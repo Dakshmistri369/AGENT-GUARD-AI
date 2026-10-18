@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: agentguard-backend
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: AGENTGUARD_ALLOW_MOCK_IN_PRODUCTION
+        value: "1"
+      - key: FRONTEND_ORIGIN
+        value: "https://*.vercel.app,http://localhost:5173"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AI_PROVIDER
+        value: "mock"

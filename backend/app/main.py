@@ -64,10 +64,16 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS — never wildcard in production
+    # CORS — allow configured origins, Vercel deployments, and local dev
+    raw_origins = [o.strip() for o in settings.frontend_origin.split(",") if o.strip()]
+    for local_origin in ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]:
+        if local_origin not in raw_origins:
+            raw_origins.append(local_origin)
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[settings.frontend_origin],
+        allow_origins=raw_origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
