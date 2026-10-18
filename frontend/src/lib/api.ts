@@ -8,6 +8,8 @@ import type {
   ValidateUrlResponse,
   Scan,
   ScanReport,
+  FindingSolution,
+  RepositorySolutionPlan,
 } from '../types';
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? '';
@@ -73,5 +75,19 @@ export const api = {
 
     listByRepo: (repositoryId: number): Promise<Scan[]> =>
       client.get(`/api/repositories/${repositoryId}/scans`).then(r => r.data),
+  },
+
+  solutions: {
+    getByScan: (scanId: number): Promise<RepositorySolutionPlan> =>
+      client.get(`/api/scans/${scanId}/solutions`).then(r => r.data),
+
+    getByFinding: (findingId: number): Promise<FindingSolution> =>
+      client.get(`/api/findings/${findingId}/solution`).then(r => r.data),
+
+    aiEnhance: (findingId: number): Promise<FindingSolution> =>
+      client.post(`/api/findings/${findingId}/solution/ai-enhance`).then(r => r.data),
+
+    getPatchUrl: (scanId: number): string =>
+      `${BASE}/api/scans/${scanId}/solutions/patch`,
   },
 };

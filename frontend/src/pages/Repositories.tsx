@@ -23,6 +23,10 @@ import {
   Clock,
   History,
   RefreshCw,
+  Wrench,
+  Terminal,
+  FileCode,
+  Code2,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import type {
@@ -30,6 +34,8 @@ import type {
   Scan,
   ScanReport,
   Finding,
+  FindingSolution,
+  RepositorySolutionPlan,
 } from '../types';
 
 const SCAN_STAGES = [
@@ -41,7 +47,7 @@ const SCAN_STAGES = [
   { id: 'generating_report', label: '6. Generating Report' },
 ];
 
-type TabType = 'findings' | 'matrix' | 'ai' | 'history';
+type TabType = 'findings' | 'solutions' | 'matrix' | 'ai' | 'history';
 
 export const RepositoriesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -82,6 +88,17 @@ export const RepositoriesPage: React.FC = () => {
   const [copiedReportJson, setCopiedReportJson] = useState(false);
   const [copiedEvidenceId, setCopiedEvidenceId] = useState<number | null>(null);
 
+  // Solution state
+  const [solutionPlan, setSolutionPlan] = useState<RepositorySolutionPlan | null>(null);
+  const [isLoadingSolutions, setIsLoadingSolutions] = useState(false);
+  const [findingSolutions, setFindingSolutions] = useState<Record<number, FindingSolution>>({});
+  const [enhancingFindingId, setEnhancingFindingId] = useState<number | null>(null);
+  const [copiedCliCmd, setCopiedCliCmd] = useState<string | null>(null);
+  const [copiedPatchFile, setCopiedPatchFile] = useState(false);
+  const [copiedFilePatchIndex, setCopiedFilePatchIndex] = useState<number | null>(null);
+  const [copiedSolutionId, setCopiedSolutionId] = useState<number | null>(null);
+  const [selectedSolutionFilter, setSelectedSolutionFilter] = useState<'all' | 'code_diff' | 'dependency_upgrade' | 'secret_removal'>('all');
+
   // Findings filter & view state
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedScanner, setSelectedScanner] = useState<string>('all');
@@ -94,10 +111,16 @@ export const RepositoriesPage: React.FC = () => {
     loadRepositories();
   }, []);
 
-  // Handle URL query parameters (e.g. ?tab=history or ?repoId=123)
+  // Handle URL query parameters (e.g. ?tab=solutions or ?repoId=123)
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam === 'findings' || tabParam === 'matrix' || tabParam === 'ai' || tabParam === 'history') {
+    if (
+      tabParam === 'findings' ||
+      tabParam === 'solutions' ||
+      tabParam === 'matrix' ||
+      tabParam === 'ai' ||
+      tabParam === 'history'
+    ) {
       setActiveTab(tabParam as TabType);
     }
   }, [searchParams]);
@@ -136,6 +159,8 @@ export const RepositoriesPage: React.FC = () => {
     setTargetBranch(repo.default_branch || '');
     setScanReport(null);
     setCurrentScan(null);
+    setSolutionPlan(null);
+    setFindingSolutions({});
     setExpandedFindingId(null);
     setIsLoadingHistory(true);
 
@@ -378,6 +403,114 @@ export const RepositoriesPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to copy to clipboard', err);
     }
+  };
+
+  // Load solutions whenever scanReport changes
+  useEffect(() => {
+    if (scanReport?.scan_id) {
+      loadSolutionsForScan(scanReport.scan_id);
+    }
+  }, [scanReport?.scan_id]);
+
+  const loadSolutionsForScan = async (scanId: number) => {
+    setIsLoadingSolutions(true);
+    try {
+      const plan = await api.solutions.getByScan(scanId);
+      setSolutionPlan(plan);
+      const solMap: Record<number, FindingSolution> = {};
+      plan.solutions.forEach((s) => {
+        solMap[s.finding_id] = s;
+      });
+      setFindingSolutions((prev) => ({ ...prev, ...solMap }));
+    } catch (err) {
+      console.warn('Could not load solutions for scan', err);
+    } finally {
+      setIsLoadingSolutions(false);
+    }
+  };
+
+  const handleAiEnhanceFinding = async (findingId: number) => {
+    setEnhancingFindingId(findingId);
+    try {
+      const enhanced = await api.solutions.aiEnhance(findingId);
+      setFindingSolutions((prev) => ({ ...prev, [findingId]: enhanced }));
+      if (solutionPlan) {
+        setSolutionPlan({
+          ...solutionPlan,
+          solutions: solutionPlan.solutions.map((s) =>
+            s.finding_id === findingId ? enhanced : s
+          ),
+        });
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || 'AI Enhancement failed';
+      alert(`AI Solution generation error: ${msg}`);
+    } finally {
+      setEnhancingFindingId(null);
+    }
+  };
+
+  const downloadPatchFile = () => {
+    if (!solutionPlan?.full_unified_patch) return;
+    const blob = new Blob([solutionPlan.full_unified_patch], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', url);
+    const repoSafeName = (activeRepo?.name || 'repository').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const shaSafe = scanReport?.commit_sha ? scanReport.commit_sha.slice(0, 7) : `scan-${scanReport?.scan_id || '0'}`;
+    downloadAnchor.setAttribute('download', `agentguard-fixes-${repoSafeName}-${shaSafe}.patch`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const renderUnifiedDiff = (diffText: string | null) => {
+    if (!diffText) return null;
+    const lines = diffText.split('\n');
+    return (
+      <div
+        style={{
+          borderRadius: '6px',
+          background: 'rgba(0, 0, 0, 0.75)',
+          border: '1px solid var(--border)',
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '12px',
+          overflowX: 'auto',
+          lineHeight: 1.5,
+          padding: '10px 12px',
+        }}
+      >
+        {lines.map((l, idx) => {
+          let color = 'var(--text-secondary)';
+          let bg = 'transparent';
+          if (l.startsWith('+') && !l.startsWith('+++')) {
+            color = '#34d399';
+            bg = 'rgba(16, 185, 129, 0.12)';
+          } else if (l.startsWith('-') && !l.startsWith('---')) {
+            color = '#f87171';
+            bg = 'rgba(244, 63, 94, 0.12)';
+          } else if (l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++')) {
+            color = 'var(--electric-blue-bright)';
+            bg = 'rgba(59, 130, 246, 0.08)';
+          }
+          return (
+            <div
+              key={idx}
+              style={{
+                color,
+                background: bg,
+                padding: '1px 6px',
+                borderRadius: '2px',
+                whiteSpace: 'pre',
+              }}
+            >
+              {l || ' '}
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   // Filtered findings
@@ -964,6 +1097,40 @@ export const RepositoriesPage: React.FC = () => {
             </button>
 
             <button
+              onClick={() => switchTab('solutions')}
+              style={{
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === 'solutions' ? '2px solid var(--accent-green)' : '2px solid transparent',
+                color: activeTab === 'solutions' ? 'var(--accent-green)' : 'var(--text-secondary)',
+                padding: '10px 16px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              aria-selected={activeTab === 'solutions'}
+            >
+              <Wrench size={15} />
+              Exact Solutions & Fixes
+              {solutionPlan?.total_solutions ? (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    padding: '1px 6px',
+                    borderRadius: '10px',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#34d399',
+                  }}
+                >
+                  {solutionPlan.total_solutions}
+                </span>
+              ) : null}
+            </button>
+
+            <button
               onClick={() => switchTab('matrix')}
               style={{
                 background: 'none',
@@ -1344,6 +1511,198 @@ export const RepositoriesPage: React.FC = () => {
                                             </div>
                                           )}
 
+                                          {/* Exact Solution & Code Patch */}
+                                          {(() => {
+                                            const sol = findingSolutions[finding.id];
+                                            const isEnhancing = enhancingFindingId === finding.id;
+
+                                            return (
+                                              <div
+                                                style={{
+                                                  padding: '14px 16px',
+                                                  borderRadius: '8px',
+                                                  background: 'rgba(10, 25, 47, 0.7)',
+                                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  gap: '12px',
+                                                }}
+                                              >
+                                                {/* Header */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Wrench size={15} color="var(--accent-green)" />
+                                                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                      Exact Solution & Actionable Fix
+                                                    </span>
+                                                    {sol && (
+                                                      <span
+                                                        style={{
+                                                          fontSize: '10px',
+                                                          padding: '2px 8px',
+                                                          borderRadius: '4px',
+                                                          fontWeight: 600,
+                                                          textTransform: 'uppercase',
+                                                          background:
+                                                            sol.solution_type === 'dependency_upgrade'
+                                                              ? 'rgba(16, 185, 129, 0.2)'
+                                                              : sol.solution_type === 'secret_removal'
+                                                              ? 'rgba(244, 63, 94, 0.2)'
+                                                              : sol.solution_type === 'security_config'
+                                                              ? 'rgba(168, 85, 247, 0.2)'
+                                                              : 'rgba(59, 130, 246, 0.2)',
+                                                          color:
+                                                            sol.solution_type === 'dependency_upgrade'
+                                                              ? '#34d399'
+                                                              : sol.solution_type === 'secret_removal'
+                                                              ? '#f87171'
+                                                              : sol.solution_type === 'security_config'
+                                                              ? '#c084fc'
+                                                              : 'var(--electric-blue-bright)',
+                                                          border: '1px solid currentColor',
+                                                        }}
+                                                      >
+                                                        {sol.solution_type.replace('_', ' ')}
+                                                      </span>
+                                                    )}
+                                                    {sol?.model_used && (
+                                                      <span style={{ fontSize: '10px', color: 'var(--accent-purple)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Sparkles size={11} /> Nemotron Enhanced
+                                                      </span>
+                                                    )}
+                                                  </div>
+
+                                                  {/* Action buttons */}
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAiEnhanceFinding(finding.id);
+                                                      }}
+                                                      disabled={isEnhancing}
+                                                      className="btn btn-secondary"
+                                                      style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                      title="Regenerate deep solution via NVIDIA Nemotron"
+                                                    >
+                                                      {isEnhancing ? (
+                                                        <>
+                                                          <RotateCw size={12} className="animate-spin" color="var(--accent-purple)" />
+                                                          AI Reasoning...
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Sparkles size={12} color="var(--accent-purple)" />
+                                                          AI Deep Remediate
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                </div>
+
+                                                {sol ? (
+                                                  <>
+                                                    {/* Action summary */}
+                                                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                      {sol.action_summary}
+                                                    </div>
+
+                                                    {/* CLI Command */}
+                                                    {sol.cli_command && (
+                                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Terminal size={12} color="var(--teal-bright)" /> Terminal Remediation Command:
+                                                          </span>
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              copyToClipboard(sol.cli_command || '', () => {
+                                                                setCopiedCliCmd(sol.cli_command);
+                                                                setTimeout(() => setCopiedCliCmd(null), 1500);
+                                                              });
+                                                            }}
+                                                            className="btn btn-secondary"
+                                                            style={{ fontSize: '11px', padding: '2px 8px' }}
+                                                          >
+                                                            {copiedCliCmd === sol.cli_command ? (
+                                                              <>
+                                                                <Check size={12} color="var(--accent-green)" /> Copied!
+                                                              </>
+                                                            ) : (
+                                                              <>
+                                                                <Copy size={12} /> Copy Command
+                                                              </>
+                                                            )}
+                                                          </button>
+                                                        </div>
+                                                        <div
+                                                          style={{
+                                                            padding: '8px 12px',
+                                                            background: 'rgba(0, 0, 0, 0.7)',
+                                                            border: '1px solid rgba(20, 184, 166, 0.3)',
+                                                            borderRadius: '6px',
+                                                            fontFamily: 'JetBrains Mono, monospace',
+                                                            fontSize: '12px',
+                                                            color: 'var(--teal-bright)',
+                                                            overflowX: 'auto',
+                                                            userSelect: 'all',
+                                                          }}
+                                                        >
+                                                          $ {sol.cli_command}
+                                                        </div>
+                                                      </div>
+                                                    )}
+
+                                                    {/* Unified Diff */}
+                                                    {sol.diff && (
+                                                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Code2 size={12} color="var(--electric-blue-bright)" /> Unified Code Diff (Before / After Patch):
+                                                          </span>
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              copyToClipboard(sol.diff || '', () => {
+                                                                setCopiedSolutionId(sol.finding_id);
+                                                                setTimeout(() => setCopiedSolutionId(null), 1500);
+                                                              });
+                                                            }}
+                                                            className="btn btn-secondary"
+                                                            style={{ fontSize: '11px', padding: '2px 8px' }}
+                                                          >
+                                                            {copiedSolutionId === sol.finding_id ? (
+                                                              <>
+                                                                <Check size={12} color="var(--accent-green)" /> Copied!
+                                                              </>
+                                                            ) : (
+                                                              <>
+                                                                <Copy size={12} /> Copy Diff
+                                                              </>
+                                                            )}
+                                                          </button>
+                                                        </div>
+                                                        {renderUnifiedDiff(sol.diff)}
+                                                      </div>
+                                                    )}
+
+                                                    {/* Verification Step */}
+                                                    {sol.verification_step && (
+                                                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', background: 'rgba(5, 13, 26, 0.5)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                                                        <strong style={{ color: 'var(--accent-green)' }}>Verification Step:</strong> {sol.verification_step}
+                                                      </div>
+                                                    )}
+                                                  </>
+                                                ) : (
+                                                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <RotateCw size={13} className="animate-spin" />
+                                                    Computing exact automated solution...
+                                                  </div>
+                                                )}
+                                              </div>
+                                            );
+                                          })()}
+
                                           {/* Metadata footer */}
                                           <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--text-muted)', paddingTop: '6px', borderTop: '1px solid rgba(30, 58, 110, 0.4)', flexWrap: 'wrap' }}>
                                             <span>Scanner: <strong>{finding.scanner}</strong></span>
@@ -1383,7 +1742,404 @@ export const RepositoriesPage: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 2: SCANNER ENGINE MATRIX */}
+          {/* TAB 2: EXACT SOLUTIONS */}
+          {activeTab === 'solutions' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {scanReport ? (
+                <>
+                  {/* Summary Metric Counters */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#34d399' }}>
+                        {solutionPlan?.total_solutions ?? 0}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                        Total Automated Fixes
+                      </div>
+                    </div>
+                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--electric-blue-bright)' }}>
+                        {solutionPlan?.code_diffs_count ?? 0}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                        Code Diff Patches
+                      </div>
+                    </div>
+                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--teal-bright)' }}>
+                        {solutionPlan?.dependency_upgrades_count ?? 0}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                        Dependency Upgrades
+                      </div>
+                    </div>
+                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent-rose)' }}>
+                        {solutionPlan?.secret_removals_count ?? 0}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                        Secret Redactions
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick-Fix All Action Card */}
+                  <div className="glass-card" style={{ padding: '20px 24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Wrench size={18} color="var(--accent-green)" />
+                          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            Automated Repository Remediation Plan
+                          </h3>
+                        </div>
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                          One-click CLI commands and verified unified diffs to resolve all detected vulnerabilities on commit{' '}
+                          <code style={{ color: 'var(--electric-blue-bright)' }}>{scanReport.commit_sha?.slice(0, 7) || 'latest'}</code>.
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        {solutionPlan?.full_unified_patch && (
+                          <>
+                            <button
+                              onClick={() => {
+                                copyToClipboard(solutionPlan.full_unified_patch || '', () => {
+                                  setCopiedPatchFile(true);
+                                  setTimeout(() => setCopiedPatchFile(false), 2000);
+                                });
+                              }}
+                              className="btn btn-secondary"
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                            >
+                              {copiedPatchFile ? (
+                                <>
+                                  <Check size={14} color="var(--accent-green)" />
+                                  Patch Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={14} />
+                                  Copy Git Patch
+                                </>
+                              )}
+                            </button>
+
+                            <button
+                              onClick={downloadPatchFile}
+                              className="btn btn-primary"
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                            >
+                              <Download size={14} />
+                              Download .patch File
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick-Fix CLI Commands */}
+                    {solutionPlan?.quick_fix_cli_commands && solutionPlan.quick_fix_cli_commands.length > 0 && (
+                      <div style={{ marginTop: '14px', background: 'rgba(5, 13, 26, 0.8)', border: '1px solid rgba(20, 184, 166, 0.3)', borderRadius: '8px', padding: '14px 16px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--teal-bright)', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Terminal size={14} /> Batch Terminal Upgrade Commands:
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {solutionPlan.quick_fix_cli_commands.map((cmd, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                background: 'rgba(0, 0, 0, 0.6)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '6px',
+                                padding: '8px 12px',
+                                gap: '12px',
+                              }}
+                            >
+                              <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: 'var(--teal-bright)', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                                $ {cmd}
+                              </code>
+                              <button
+                                onClick={() => {
+                                  copyToClipboard(cmd, () => {
+                                    setCopiedCliCmd(cmd);
+                                    setTimeout(() => setCopiedCliCmd(null), 1500);
+                                  });
+                                }}
+                                className="btn btn-secondary"
+                                style={{ fontSize: '11px', padding: '2px 8px', flexShrink: 0 }}
+                              >
+                                {copiedCliCmd === cmd ? (
+                                  <>
+                                    <Check size={12} color="var(--accent-green)" /> Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={12} /> Copy
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setSelectedSolutionFilter('all')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: selectedSolutionFilter === 'all' ? 'var(--electric-blue)' : 'rgba(5, 13, 26, 0.6)',
+                        color: selectedSolutionFilter === 'all' ? '#fff' : 'var(--text-secondary)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      All Solutions ({solutionPlan?.total_solutions ?? 0})
+                    </button>
+                    <button
+                      onClick={() => setSelectedSolutionFilter('code_diff')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: selectedSolutionFilter === 'code_diff' ? 'var(--electric-blue)' : 'rgba(5, 13, 26, 0.6)',
+                        color: selectedSolutionFilter === 'code_diff' ? '#fff' : 'var(--text-secondary)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      Code Diffs ({solutionPlan?.code_diffs_count ?? 0})
+                    </button>
+                    <button
+                      onClick={() => setSelectedSolutionFilter('dependency_upgrade')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: selectedSolutionFilter === 'dependency_upgrade' ? 'var(--teal)' : 'rgba(5, 13, 26, 0.6)',
+                        color: selectedSolutionFilter === 'dependency_upgrade' ? '#fff' : 'var(--text-secondary)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      Dependency Upgrades ({solutionPlan?.dependency_upgrades_count ?? 0})
+                    </button>
+                    <button
+                      onClick={() => setSelectedSolutionFilter('secret_removal')}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: selectedSolutionFilter === 'secret_removal' ? 'var(--accent-rose)' : 'rgba(5, 13, 26, 0.6)',
+                        color: selectedSolutionFilter === 'secret_removal' ? '#fff' : 'var(--text-secondary)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      Secret Removals ({solutionPlan?.secret_removals_count ?? 0})
+                    </button>
+                  </div>
+
+                  {/* File-by-File Fix Plan */}
+                  {isLoadingSolutions ? (
+                    <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      <RotateCw size={24} className="animate-spin" color="var(--electric-blue-bright)" style={{ margin: '0 auto 12px' }} />
+                      <div>Computing precision fixes and unified patches...</div>
+                    </div>
+                  ) : solutionPlan?.file_groups && solutionPlan.file_groups.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {solutionPlan.file_groups.map((group, gIdx) => {
+                        const matchingSolutions = group.solutions.filter(
+                          (s) => selectedSolutionFilter === 'all' || s.solution_type === selectedSolutionFilter
+                        );
+                        if (matchingSolutions.length === 0) return null;
+
+                        return (
+                          <div key={gIdx} className="glass-card" style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            {/* File Group Header */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <FileCode size={18} color="var(--electric-blue-bright)" />
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                  {group.file_path}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    background: 'rgba(59, 130, 246, 0.15)',
+                                    color: 'var(--electric-blue-bright)',
+                                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                                  }}
+                                >
+                                  {matchingSolutions.length} {matchingSolutions.length === 1 ? 'fix' : 'fixes'}
+                                </span>
+                              </div>
+
+                              {group.combined_patch && (
+                                <button
+                                  onClick={() => {
+                                    copyToClipboard(group.combined_patch || '', () => {
+                                      setCopiedFilePatchIndex(gIdx);
+                                      setTimeout(() => setCopiedFilePatchIndex(null), 1500);
+                                    });
+                                  }}
+                                  className="btn btn-secondary"
+                                  style={{ fontSize: '11px', padding: '3px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                >
+                                  {copiedFilePatchIndex === gIdx ? (
+                                    <>
+                                      <Check size={12} color="var(--accent-green)" /> Copied File Patch!
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy size={12} /> Copy File Patch
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Group Combined Diff */}
+                            {group.combined_patch && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+                                  File Unified Diff:
+                                </div>
+                                {renderUnifiedDiff(group.combined_patch)}
+                              </div>
+                            )}
+
+                            {/* Itemized Solutions */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+                              {matchingSolutions.map((sol) => (
+                                <div
+                                  key={sol.finding_id}
+                                  style={{
+                                    padding: '12px 14px',
+                                    borderRadius: '6px',
+                                    background: 'rgba(5, 13, 26, 0.6)',
+                                    border: '1px solid rgba(30, 58, 110, 0.4)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '8px',
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span
+                                        className={`severity-${sol.severity}`}
+                                        style={{
+                                          padding: '2px 7px',
+                                          borderRadius: '4px',
+                                          fontSize: '10px',
+                                          fontWeight: 700,
+                                          textTransform: 'uppercase',
+                                        }}
+                                      >
+                                        {sol.severity}
+                                      </span>
+                                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                        {sol.action_summary}
+                                      </span>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                        {sol.scanner} {sol.rule_id ? `(${sol.rule_id})` : ''}
+                                      </span>
+                                      <button
+                                        onClick={() => handleAiEnhanceFinding(sol.finding_id)}
+                                        disabled={enhancingFindingId === sol.finding_id}
+                                        className="btn btn-secondary"
+                                        style={{ fontSize: '10px', padding: '2px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                        title="Enhance with AI"
+                                      >
+                                        {enhancingFindingId === sol.finding_id ? (
+                                          <RotateCw size={10} className="animate-spin" />
+                                        ) : (
+                                          <Sparkles size={10} color="var(--accent-purple)" />
+                                        )}
+                                        AI Enhance
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                    {sol.explanation}
+                                  </div>
+
+                                  {sol.cli_command && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0, 0, 0, 0.5)', padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                                      <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: 'var(--teal-bright)' }}>
+                                        $ {sol.cli_command}
+                                      </code>
+                                      <button
+                                        onClick={() => {
+                                          copyToClipboard(sol.cli_command || '', () => {
+                                            setCopiedCliCmd(sol.cli_command);
+                                            setTimeout(() => setCopiedCliCmd(null), 1500);
+                                          });
+                                        }}
+                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                                        title="Copy CLI command"
+                                      >
+                                        {copiedCliCmd === sol.cli_command ? <Check size={12} color="var(--accent-green)" /> : <Copy size={12} />}
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {sol.verification_step && (
+                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                      <strong style={{ color: 'var(--accent-green)' }}>Verify:</strong> {sol.verification_step}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="glass-card" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      No fixable findings found for this filter.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="glass-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+                  <ShieldAlert size={40} color="var(--electric-blue)" style={{ margin: '0 auto 12px' }} />
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    No Active Scan Report
+                  </h3>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '520px', margin: '8px auto 20px' }}>
+                    Click <strong>Analyze Repository</strong> above to run security analysis and generate automated exact solutions.
+                  </p>
+                  <button onClick={handleStartAnalysis} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <Shield size={14} />
+                    Start Security Analysis Now
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: SCANNER ENGINE MATRIX */}
           {activeTab === 'matrix' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {scanReport ? (

@@ -168,3 +168,45 @@ export interface ScanReport {
   }> | null;
   generated_at: string;
 }
+
+export type SolutionType = 'code_diff' | 'dependency_upgrade' | 'secret_removal' | 'security_config';
+
+export interface FindingSolution {
+  finding_id: number;
+  title: string;
+  severity: SeverityLevel;
+  scanner: string;
+  rule_id: string | null;
+  file_path: string | null;
+  line_number: number | null;
+  solution_type: SolutionType;
+  action_summary: string;
+  cli_command: string | null;
+  before_code: string | null;
+  after_code: string | null;
+  diff: string | null;
+  explanation: string;
+  verification_step: string;
+  is_automated_patch: boolean;
+  model_used?: string | null;
+}
+
+export interface FileSolutionGroup {
+  file_path: string;
+  findings_count: number;
+  solutions: FindingSolution[];
+  combined_patch: string | null;
+}
+
+export interface RepositorySolutionPlan {
+  scan_id: number;
+  repository_id: number | null;
+  total_solutions: number;
+  code_diffs_count: number;
+  dependency_upgrades_count: number;
+  secret_removals_count: number;
+  quick_fix_cli_commands: string[];
+  file_groups: FileSolutionGroup[];
+  full_unified_patch: string | null;
+  solutions: FindingSolution[];
+}
