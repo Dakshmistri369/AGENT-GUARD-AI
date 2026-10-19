@@ -37,3 +37,9 @@ class FindingExplanation(BaseModel):
     remediation_steps: list[str]
     suggested_patch: str | None = None
     uncertainty_notes: str | None = None
+
+
+class UpdateFindingStatusRequest(BaseModel):
+    status: str = Field(..., pattern="^(unverified|confirmed|resolved|false_positive)$")
+    notes: str | None = None
+

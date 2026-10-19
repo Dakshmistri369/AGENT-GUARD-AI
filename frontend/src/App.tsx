@@ -1,28 +1,49 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/layout/Layout';
 import { OverviewPage } from './pages/Overview';
 import { ProjectsPage } from './pages/Projects';
 import { RepositoriesPage } from './pages/Repositories';
 import { SettingsPage } from './pages/Settings';
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 15, // 15 seconds
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 const App: React.FC = () => (
-  <BrowserRouter>
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/"             element={<OverviewPage />} />
-        <Route path="/repositories" element={<RepositoriesPage />} />
-        <Route path="/projects"     element={<ProjectsPage />} />
-        <Route path="/settings"     element={<SettingsPage />} />
-        {/* Direct redirects to Repositories tabs */}
-        <Route path="/new-audit" element={<Navigate to="/repositories" replace />} />
-        <Route path="/findings"  element={<Navigate to="/repositories?tab=findings" replace />} />
-        <Route path="/history"   element={<Navigate to="/repositories?tab=history" replace />} />
-        <Route path="/gateway"   element={<Navigate to="/" replace />} />
-        <Route path="/policies"  element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
-  </BrowserRouter>
+  <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<OverviewPage />} />
+          <Route path="/repositories" element={<RepositoriesPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+
+          {/* Grouped Navigation Links to Repositories & Security Workspaces */}
+          <Route path="/findings" element={<Navigate to="/repositories?tab=findings" replace />} />
+          <Route path="/history" element={<Navigate to="/repositories?tab=history" replace />} />
+          <Route path="/reports" element={<Navigate to="/repositories?tab=solutions" replace />} />
+          <Route path="/compare" element={<Navigate to="/repositories?tab=matrix" replace />} />
+          <Route path="/assistant" element={<Navigate to="/repositories?tab=ai" replace />} />
+          <Route path="/remediation" element={<Navigate to="/repositories?tab=solutions" replace />} />
+          <Route path="/rules" element={<Navigate to="/repositories?tab=matrix" replace />} />
+
+          {/* Legacy redirects */}
+          <Route path="/new-audit" element={<Navigate to="/repositories?action=new" replace />} />
+          <Route path="/gateway" element={<Navigate to="/" replace />} />
+          <Route path="/policies" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  </QueryClientProvider>
 );
 
 export default App;

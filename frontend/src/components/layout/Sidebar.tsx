@@ -2,230 +2,297 @@ import React, { useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  FolderOpen,
-  Plus,
   AlertTriangle,
-  Shield,
-  FileCheck,
+  GitBranch,
   History,
+  FileText,
+  Plus,
+  Play,
   Settings,
+  Scale,
+  Sparkles,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
-  GitBranch,
+  FolderOpen,
 } from 'lucide-react';
+import { AnimatedBrandLogo, type LogoScanState } from '../brand/AnimatedBrandLogo';
 
-interface NavItem {
-  label: string;
-  path: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  implemented: boolean;
+export interface SidebarProps {
+  scanState?: LogoScanState;
+  findingsCount?: number;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Overview',         path: '/',                         icon: LayoutDashboard, implemented: true  },
-  { label: 'GitHub Repos',     path: '/repositories',             icon: GitBranch,       implemented: true  },
-  { label: 'Projects',         path: '/projects',                 icon: FolderOpen,      implemented: true  },
-  { label: 'New Audit',        path: '/repositories?action=new',  icon: Plus,            implemented: true  },
-  { label: 'Findings',         path: '/repositories?tab=findings', icon: AlertTriangle,  implemented: true  },
-  { label: 'Scan History',     path: '/repositories?tab=history',  icon: History,        implemented: true  },
-  { label: 'Security Gateway', path: '/gateway',                  icon: Shield,          implemented: false },
-  { label: 'Policies',         path: '/policies',                 icon: FileCheck,       implemented: false },
-  { label: 'Settings',         path: '/settings',                 icon: Settings,        implemented: true  },
+interface NavSection {
+  title: string;
+  items: {
+    label: string;
+    path: string;
+    icon: React.ComponentType<{ size?: number; color?: string; className?: string }>;
+    isExternal?: boolean;
+    badge?: string;
+  }[];
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    title: 'GENERAL',
+    items: [
+      { label: 'Dashboard', path: '/', icon: LayoutDashboard },
+      { label: 'Issues', path: '/repositories?tab=findings', icon: AlertTriangle },
+      { label: 'Repositories', path: '/repositories', icon: GitBranch },
+      { label: 'Scans', path: '/repositories?tab=history', icon: History },
+      { label: 'Reports', path: '/repositories?tab=solutions', icon: FileText },
+    ],
+  },
+  {
+    title: 'QUICK ACTIONS',
+    items: [
+      { label: 'Start Scan', path: '/repositories?action=scan', icon: Play },
+      { label: 'New Repo', path: '/repositories?action=new', icon: Plus },
+    ],
+  },
+  {
+    title: 'CONFIG',
+    items: [
+      { label: 'General / Settings', path: '/settings', icon: Settings },
+      { label: 'Scan Comparison', path: '/repositories?tab=matrix', icon: Scale },
+      { label: 'AI Security Assistant', path: '/repositories?tab=ai', icon: Sparkles },
+      { label: 'Projects', path: '/projects', icon: FolderOpen },
+      { label: 'API Docs', path: '/api/docs', icon: BookOpen, isExternal: true },
+    ],
+  },
 ];
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  scanState = 'idle',
+  findingsCount = 0,
+}) => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
   return (
     <aside
       style={{
-        width: collapsed ? '64px' : '220px',
-        minWidth: collapsed ? '64px' : '220px',
-        background: 'linear-gradient(180deg, #0a1628 0%, #050d1a 100%)',
-        borderRight: '1px solid var(--border)',
+        width: collapsed ? '68px' : '230px',
+        minWidth: collapsed ? '68px' : '230px',
+        background: '#07101f',
+        borderRight: '1px solid rgba(30, 58, 110, 0.45)',
         display: 'flex',
         flexDirection: 'column',
         transition: 'width 0.2s ease, min-width 0.2s ease',
         position: 'relative',
-        zIndex: 10,
+        zIndex: 20,
+        height: '100vh',
       }}
     >
-      {/* Logo */}
-      <Link
-        to="/"
+      {/* Brand Header with Animated Logo */}
+      <div
         style={{
-          padding: collapsed ? '18px 14px' : '18px 16px',
-          borderBottom: '1px solid var(--border)',
+          padding: collapsed ? '16px 12px' : '16px 16px',
+          borderBottom: '1px solid rgba(30, 58, 110, 0.45)',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          overflow: 'hidden',
-          textDecoration: 'none',
-          cursor: 'pointer',
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          minHeight: '64px',
         }}
-        title="AgentGuard AI"
       >
-        <div style={{
-          width: '34px',
-          height: '34px',
-          borderRadius: '9px',
-          overflow: 'hidden',
-          flexShrink: 0,
-          background: '#040d1a',
-          border: '1px solid rgba(45, 212, 191, 0.35)',
-          boxShadow: '0 0 14px rgba(20, 184, 166, 0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <img
-            src="/logo-icon.png"
-            alt="AgentGuard AI Logo"
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        <Link to="/" style={{ textDecoration: 'none' }} title="AgentGuard AI Security Command Center">
+          <AnimatedBrandLogo
+            variant={collapsed ? 'icon' : 'full'}
+            size="md"
+            scanState={scanState}
+            findingsCount={findingsCount}
           />
-        </div>
-        {!collapsed && (
-          <div style={{ minWidth: 0 }}>
-            <div style={{
-              fontSize: '14px',
-              fontWeight: 700,
-              color: 'var(--text-primary)',
-              lineHeight: 1.2,
-              letterSpacing: '-0.2px',
-              whiteSpace: 'nowrap',
-            }}>
-              AgentGuard <span style={{ color: 'var(--teal-bright)' }}>AI</span>
-            </div>
-            <div style={{
-              fontSize: '9.5px',
-              color: 'var(--teal)',
-              fontWeight: 600,
-              letterSpacing: '0.6px',
-              whiteSpace: 'nowrap',
-              textTransform: 'uppercase',
-            }}>
-              Security Auditor
-            </div>
-          </div>
-        )}
-      </Link>
+        </Link>
+      </div>
 
-      {/* Nav items */}
-      <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {NAV_ITEMS.map(item => {
-          const Icon = item.icon;
-          const fullPath = location.pathname + location.search;
-          const isActive = item.path.includes('?')
-            ? fullPath === item.path
-            : location.pathname === item.path && !location.search.includes('tab=') && !location.search.includes('action=');
-          const isDisabled = !item.implemented;
-
-          if (isDisabled) {
-            return (
+      {/* Navigation Sections */}
+      <nav
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          padding: '16px 8px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '18px',
+        }}
+      >
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.title}>
+            {/* Section Header (hidden when collapsed) */}
+            {!collapsed && (
               <div
-                key={item.path}
-                title={collapsed ? `${item.label} (coming soon)` : 'Coming soon'}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '9px 10px',
-                  borderRadius: '8px',
-                  opacity: 0.35,
-                  cursor: 'not-allowed',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  color: 'var(--text-secondary)',
-                  overflow: 'hidden',
-                  whiteSpace: 'nowrap',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  color: '#475569',
+                  letterSpacing: '0.8px',
+                  padding: '4px 12px',
+                  textTransform: 'uppercase',
+                  marginBottom: '4px',
                 }}
               >
-                <Icon size={16} />
-                {!collapsed && <span>{item.label}</span>}
-                {!collapsed && (
-                  <span style={{
-                    marginLeft: 'auto',
-                    fontSize: '9px',
-                    background: 'rgba(148,163,184,0.1)',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                    color: 'var(--text-muted)',
-                  }}>
-                    SOON
-                  </span>
-                )}
+                {section.title}
               </div>
-            );
-          }
+            )}
 
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              title={collapsed ? item.label : undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '9px 10px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: 500,
-                textDecoration: 'none',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                transition: 'background 0.15s, color 0.15s',
-                background: isActive ? 'rgba(59,130,246,0.15)' : 'transparent',
-                color: isActive ? 'var(--electric-blue-bright)' : 'var(--text-secondary)',
-                borderLeft: isActive ? '2px solid var(--electric-blue)' : '2px solid transparent',
-              }}
-            >
-              <Icon size={16} />
-              {!collapsed && <span>{item.label}</span>}
-            </NavLink>
-          );
-        })}
+            {/* Items */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const fullCurrent = location.pathname + location.search;
+
+                // Check active state
+                const isActive = item.path.includes('?')
+                  ? fullCurrent === item.path
+                  : location.pathname === item.path && !location.search.includes('tab=') && !location.search.includes('action=');
+
+                if (item.isExternal) {
+                  return (
+                    <a
+                      key={item.label}
+                      href={item.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={collapsed ? item.label : undefined}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: '#94a3b8',
+                        textDecoration: 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(30, 58, 110, 0.25)';
+                        e.currentTarget.style.color = '#f1f5f9';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#94a3b8';
+                      }}
+                    >
+                      <Icon size={16} color="#64748b" />
+                      {!collapsed && <span>{item.label}</span>}
+                    </a>
+                  );
+                }
+
+                return (
+                  <NavLink
+                    key={item.label}
+                    to={item.path}
+                    title={collapsed ? item.label : undefined}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: isActive ? 600 : 500,
+                      textDecoration: 'none',
+                      color: isActive ? '#f8fafc' : '#94a3b8',
+                      background: isActive ? 'rgba(59, 130, 246, 0.18)' : 'transparent',
+                      borderLeft: isActive ? '2px solid #3b82f6' : '2px solid transparent',
+                      transition: 'all 0.15s ease',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'rgba(30, 58, 110, 0.2)';
+                        e.currentTarget.style.color = '#f1f5f9';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#94a3b8';
+                      }
+                    }}
+                  >
+                    <Icon size={16} color={isActive ? '#60a5fa' : '#64748b'} />
+                    {!collapsed && <span>{item.label}</span>}
+                    {item.badge && !collapsed && (
+                      <span
+                        style={{
+                          marginLeft: 'auto',
+                          fontSize: '10px',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          background: 'rgba(45, 212, 191, 0.15)',
+                          color: '#2dd4bf',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* Collapse toggle */}
+      {/* Collapse / Expand Toggle Button */}
       <button
-        onClick={() => setCollapsed(c => !c)}
+        onClick={() => setCollapsed((c) => !c)}
         style={{
           position: 'absolute',
-          right: '-12px',
+          right: '-11px',
           top: '72px',
-          width: '24px',
-          height: '24px',
+          width: '22px',
+          height: '22px',
           borderRadius: '50%',
-          background: 'var(--navy-700)',
-          border: '1px solid var(--border)',
+          background: '#0f2040',
+          border: '1px solid rgba(59, 130, 246, 0.4)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'var(--text-secondary)',
-          zIndex: 20,
+          color: '#94a3b8',
+          zIndex: 30,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         }}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
       </button>
 
-      {/* Footer */}
+      {/* Footer Info Pill */}
       {!collapsed && (
-        <div style={{
-          padding: '12px 16px',
-          borderTop: '1px solid var(--border)',
-          fontSize: '10px',
-          color: 'var(--text-muted)',
-          lineHeight: 1.5,
-        }}>
-          <div style={{ color: 'var(--accent-amber)', fontWeight: 600, marginBottom: '2px' }}>
-            ⚠ DEMO MODE
+        <div
+          style={{
+            padding: '12px 14px',
+            borderTop: '1px solid rgba(30, 58, 110, 0.45)',
+            fontSize: '11px',
+            color: '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: '#10b981',
+              }}
+            />
+            <span style={{ color: '#94a3b8', fontWeight: 500 }}>Engines Active</span>
           </div>
-          <div>No real auth active</div>
-          <div>AI: Mock Provider</div>
+          <span style={{ color: '#475569', fontSize: '10px' }}>v1.0.0</span>
         </div>
       )}
     </aside>

@@ -8,8 +8,11 @@ import type {
   ValidateUrlResponse,
   Scan,
   ScanReport,
+  Finding,
   FindingSolution,
   RepositorySolutionPlan,
+  DashboardSummaryResponse,
+  ScanComparisonResult,
 } from '../types';
 
 const RAW_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
@@ -91,4 +94,24 @@ export const api = {
     getPatchUrl: (scanId: number): string =>
       `${BASE}/api/scans/${scanId}/solutions/patch`,
   },
+
+  dashboard: {
+    getSummary: (): Promise<DashboardSummaryResponse> =>
+      client.get('/api/dashboard/summary').then(r => r.data),
+  },
+
+  findings: {
+    updateStatus: (
+      findingId: number,
+      status: 'unverified' | 'confirmed' | 'resolved' | 'false_positive',
+      notes?: string
+    ): Promise<Finding> =>
+      client.patch(`/api/findings/${findingId}/status`, { status, notes }).then(r => r.data),
+  },
+
+  compare: {
+    scans: (scanA: number, scanB: number): Promise<ScanComparisonResult> =>
+      client.get('/api/scans/compare', { params: { scan_a: scanA, scan_b: scanB } }).then(r => r.data),
+  },
 };
+

@@ -210,3 +210,136 @@ export interface RepositorySolutionPlan {
   full_unified_patch: string | null;
   solutions: FindingSolution[];
 }
+
+export interface ScansSummaryMetrics {
+  total_scans: number;
+  scans_last_30_days: number;
+  pr_reviews: number;
+}
+
+export interface FalsePositivesMetrics {
+  count: number;
+  total_issues: number;
+  percentage: number;
+}
+
+export interface PotentialIssuesMetrics {
+  count: number;
+  total_issues: number;
+}
+
+export interface PatchesGeneratedMetrics {
+  count: number;
+  total_issues: number;
+  percentage: number;
+}
+
+export interface VulnerabilityTypeSlice {
+  name: string;
+  short_name: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+export interface SeverityDistribution {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  info: number;
+  total: number;
+}
+
+export interface CriticalIssueItem {
+  id: number;
+  scan_id: number;
+  repository_id?: number | null;
+  repository_name?: string | null;
+  title: string;
+  category: string;
+  cwe_or_rule: string;
+  severity: SeverityLevel;
+  score: number;
+  file_path: string | null;
+  line_number: number | null;
+  scanner: string;
+  verification_status: string;
+  created_at: string;
+}
+
+export interface RepositoryIssueBreakdown {
+  repository_id: number;
+  repository_name: string;
+  default_branch: string;
+  total: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  info: number;
+}
+
+export interface ScannerHealthItem {
+  name: string;
+  engine_key: string;
+  status: 'healthy' | 'operational' | 'fallback' | 'unavailable';
+  version?: string | null;
+  last_run_at?: string | null;
+  findings_count: number;
+  description: string;
+}
+
+export interface OverallMetrics {
+  total_time_saved_hours: number;
+  logic_hours: number;
+  traditional_hours: number;
+  total_files_scanned: number;
+  total_repositories: number;
+}
+
+export interface RecentScanItem {
+  id: number;
+  repository_id?: number | null;
+  repository_name: string;
+  branch?: string | null;
+  commit_sha?: string | null;
+  status: ScanStatus;
+  findings_count: number;
+  created_at: string;
+  completed_at?: string | null;
+}
+
+export interface DashboardSummaryResponse {
+  scans_and_reviews: ScansSummaryMetrics;
+  false_positives: FalsePositivesMetrics;
+  potential_issues: PotentialIssuesMetrics;
+  patches_generated: PatchesGeneratedMetrics;
+  vulnerability_types: VulnerabilityTypeSlice[];
+  severity_distribution: SeverityDistribution;
+  most_critical_issues: CriticalIssueItem[];
+  issues_by_repository: RepositoryIssueBreakdown[];
+  scanner_health: ScannerHealthItem[];
+  metrics: OverallMetrics;
+  recent_activity: RecentScanItem[];
+}
+
+export interface ScanComparisonResult {
+  scan_a: {
+    id: number;
+    commit_sha?: string | null;
+    created_at: string;
+    total_findings: number;
+  };
+  scan_b: {
+    id: number;
+    commit_sha?: string | null;
+    created_at: string;
+    total_findings: number;
+  };
+  new_findings: Finding[];
+  resolved_findings: Finding[];
+  persistent_findings: Finding[];
+  delta: number;
+}
+

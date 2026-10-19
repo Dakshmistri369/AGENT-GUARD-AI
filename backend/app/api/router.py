@@ -7,6 +7,7 @@ from app.api.ai import router as ai_router
 from app.api.repositories import router as repositories_router
 from app.api.scans import router as scans_router
 from app.api.solutions import router as solutions_router
+from app.api.dashboard import router as dashboard_router
 
 api_router = APIRouter()
 
@@ -19,3 +20,5 @@ api_router.include_router(ai_router, prefix="/api")
 api_router.include_router(repositories_router, prefix="/api")
 api_router.include_router(scans_router)
 api_router.include_router(solutions_router)
+api_router.include_router(dashboard_router)
+

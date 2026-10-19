@@ -143,6 +143,12 @@ export const RepositoriesPage: React.FC = () => {
         input.focus();
         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
+    } else if (actionParam === 'scan') {
+      const scanBtn = document.getElementById('analyze-repo-btn');
+      if (scanBtn) {
+        scanBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        scanBtn.focus();
+      }
     }
   }, [searchParams]);
 

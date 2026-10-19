@@ -1,504 +1,959 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Shield,
-  FolderOpen,
-  Activity,
+  Play,
+  Plus,
+  Clock,
+  Code2,
   Cpu,
-  AlertCircle,
-  CheckCircle,
+  CheckCircle2,
   XCircle,
-  ArrowRight,
-  GitBranch,
-  ExternalLink,
   RefreshCw,
+  GitBranch,
+  X,
+  FileCode,
 } from 'lucide-react';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { api } from '../lib/api';
-import type { HealthStatus, ProjectListResponse, Repository, Scan } from '../types';
+import { SummaryCard } from '../components/dashboard/SummaryCard';
+import { ChartPanel } from '../components/dashboard/ChartPanel';
+import { CriticalFindingRow } from '../components/dashboard/CriticalFindingRow';
+import { ScannerStatus } from '../components/dashboard/ScannerStatus';
+import type { CriticalIssueItem, DashboardSummaryResponse } from '../types';
 
-// ── Stat Card ────────────────────────────────────────────────────────────────
-const StatCard: React.FC<{
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: React.ReactNode;
-  accent?: string;
-}> = ({ label, value, sub, icon, accent = 'var(--electric-blue)' }) => (
-  <div className="stat-card animate-slide-in" style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-    <div
-      style={{
-        width: '40px',
-        height: '40px',
-        borderRadius: '10px',
-        background: `${accent}22`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-        border: `1px solid ${accent}44`,
-      }}
-      aria-hidden="true"
-    >
-      {icon}
-    </div>
-    <div>
-      <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-        {value}
-      </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{label}</div>
-      {sub && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{sub}</div>}
-    </div>
-  </div>
-);
-
-// ── DB Status row ─────────────────────────────────────────────────────────────
-const DbStatusRow: React.FC<{ health: HealthStatus }> = ({ health }) => {
-  const ok = health.database.status === 'ok';
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-      {ok ? (
-        <CheckCircle size={14} color="var(--accent-green)" aria-hidden="true" />
-      ) : (
-        <XCircle size={14} color="var(--accent-rose)" aria-hidden="true" />
-      )}
-      <span style={{ color: ok ? 'var(--accent-green)' : 'var(--accent-rose)' }}>
-        {ok ? 'Database connected' : `Database error: ${health.database.error_type ?? 'unknown'}`}
-      </span>
-      <span style={{ color: 'var(--text-muted)' }}>·</span>
-      <span style={{ color: 'var(--text-muted)' }}>{health.database.type}</span>
-      <span style={{ color: 'var(--text-muted)' }}>·</span>
-      <span style={{ color: 'var(--text-muted)' }}>{health.database.latency_ms} ms</span>
-    </div>
-  );
-};
-
-// ── Main Overview Page ────────────────────────────────────────────────────────
 export const OverviewPage: React.FC = () => {
   const navigate = useNavigate();
-  const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [projects, setProjects] = useState<ProjectListResponse | null>(null);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [repoScans, setRepoScans] = useState<Record<number, Scan[]>>({});
+  const queryClient = useQueryClient();
 
-  const [healthErr, setHealthErr] = useState<string | null>(null);
-  const [projectsErr, setProjectsErr] = useState<string | null>(null);
-  const [reposErr, setReposErr] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [selectedIssue, setSelectedIssue] = useState<CriticalIssueItem | null>(null);
+  const [updatingFindingId, setUpdatingFindingId] = useState<number | null>(null);
 
-  const fetchOverviewData = async () => {
-    setLoading(true);
-    setHealthErr(null);
-    setProjectsErr(null);
-    setReposErr(null);
-
-    try {
-      const [hRes, pRes, rRes] = await Promise.all([
-        api.health.get().catch((e) => {
-          setHealthErr(e.message);
-          return null;
-        }),
-        api.projects.list(1, 1).catch((e) => {
-          setProjectsErr(e.message);
-          return null;
-        }),
-        api.repositories.list().catch((e) => {
-          setReposErr(e.message);
-          return null;
-        }),
-      ]);
-
-      if (hRes) setHealth(hRes);
-      if (pRes) setProjects(pRes);
-      if (rRes) {
-        setRepositories(rRes.items);
-
-        // Fetch past scans for up to 10 repos to calculate real metrics
-        const scansMap: Record<number, Scan[]> = {};
-        await Promise.all(
-          rRes.items.slice(0, 10).map(async (repo) => {
-            try {
-              const scans = await api.scans.listByRepo(repo.id);
-              scansMap[repo.id] = scans;
-            } catch (err) {
-              console.warn(`Could not load scans for repo ${repo.id}:`, err);
-            }
-          })
-        );
-        setRepoScans(scansMap);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOverviewData();
-  }, []);
-
-  // Compute live aggregate stats from real scan records
-  let totalCompletedScans = 0;
-  let totalFindingsAcrossRepos = 0;
-  let activeScansCount = 0;
-
-  Object.values(repoScans).forEach((scans) => {
-    scans.forEach((scan) => {
-      if (scan.status === 'completed') {
-        totalCompletedScans += 1;
-        if (scan.summary?.total_findings) {
-          totalFindingsAcrossRepos += scan.summary.total_findings;
-        }
-      } else if (scan.status === 'running') {
-        activeScansCount += 1;
-      }
-    });
+  // TanStack Query for live Dashboard Analytics
+  const {
+    data: summary,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery<DashboardSummaryResponse>({
+    queryKey: ['dashboardSummary'],
+    queryFn: () => api.dashboard.getSummary(),
+    refetchInterval: 30000, // automatic background refresh every 30s
   });
 
+  // Mutation to update finding verification status (e.g. mark False Positive)
+  const statusMutation = useMutation({
+    mutationFn: async ({
+      findingId,
+      status,
+    }: {
+      findingId: number;
+      status: 'unverified' | 'confirmed' | 'resolved' | 'false_positive';
+    }) => {
+      setUpdatingFindingId(findingId);
+      return api.findings.updateStatus(findingId, status);
+    },
+    onSuccess: (updatedFinding) => {
+      // Invalidate and refetch dashboard summary so False Positives & Potential Issues counters update instantly
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+      if (selectedIssue && selectedIssue.id === updatedFinding.id) {
+        setSelectedIssue((prev) =>
+          prev ? { ...prev, verification_status: updatedFinding.verification_status } : null
+        );
+      }
+      setUpdatingFindingId(null);
+    },
+    onError: (err) => {
+      console.error('Failed to update finding status:', err);
+      setUpdatingFindingId(null);
+    },
+  });
+
+  const handleStartScan = () => {
+    navigate('/repositories?action=scan');
+  };
+
+  const handleNewRepo = () => {
+    navigate('/repositories?action=new');
+  };
+
   return (
-    <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div
+    <div style={{ padding: '28px 32px', maxWidth: '1440px', margin: '0 auto' }}>
+      {/* ── Page Header matching screenshot ─────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '28px',
+          flexWrap: 'wrap',
+          gap: '16px',
+        }}
+      >
+        <div>
+          <h1
             style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '12px',
-              background: '#040d1a',
-              border: '1px solid rgba(45, 212, 191, 0.4)',
-              boxShadow: '0 0 20px rgba(20, 184, 166, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              flexShrink: 0,
+              fontSize: '26px',
+              fontWeight: 800,
+              color: '#f8fafc',
+              letterSpacing: '-0.4px',
+              lineHeight: 1.2,
             }}
           >
-            <img
-              src="/logo-icon.png"
-              alt="AgentGuard AI Logo"
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-                AgentGuard AI
-              </h1>
-              <span
-                className="mock-label"
-                style={{
-                  background: 'rgba(20, 184, 166, 0.15)',
-                  color: 'var(--teal-bright)',
-                  borderColor: 'rgba(20, 184, 166, 0.3)',
-                }}
-              >
-                Security Auditor
-              </span>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', maxWidth: '640px', marginTop: '4px' }}>
-              Independent security and quality auditor for AI-generated and human-written software. Connect repositories, run multi-engine scans, and review evidence.
-            </p>
-          </div>
+            Dashboard
+          </h1>
+          <p style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px' }}>
+            Multi-engine AST security, dependency supply chain, and secret exposure monitor
+          </p>
         </div>
 
-        <button
-          onClick={fetchOverviewData}
-          disabled={loading}
-          className="btn btn-secondary"
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
-          aria-label="Refresh dashboard metrics"
-        >
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          Refresh Status
-        </button>
+        {/* Action Buttons matching screenshot */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="btn btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '8px 12px' }}
+            title="Refresh Dashboard metrics"
+          >
+            <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+
+          <button
+            onClick={handleStartScan}
+            className="btn btn-secondary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12.5px',
+              padding: '8px 14px',
+              background: 'rgba(15, 32, 64, 0.7)',
+              borderColor: 'rgba(59, 130, 246, 0.4)',
+              color: '#f1f5f9',
+            }}
+          >
+            <Play size={13} fill="#60a5fa" color="#60a5fa" />
+            <span>Start Manual Scan</span>
+          </button>
+
+          <button
+            onClick={handleNewRepo}
+            className="btn btn-primary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12.5px',
+              padding: '8px 16px',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              boxShadow: '0 0 16px rgba(37, 99, 235, 0.4)',
+            }}
+          >
+            <Plus size={15} />
+            <span>New Repository</span>
+          </button>
+        </div>
       </div>
 
-      {/* System Status */}
-      <section style={{ marginBottom: '28px' }} aria-labelledby="system-status-heading">
-        <h2
-          id="system-status-heading"
-          style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px' }}
+      {/* ── Error Banner ────────────────────────────────────────────────────────── */}
+      {isError && (
+        <div
+          style={{
+            padding: '16px 20px',
+            borderRadius: '10px',
+            background: 'rgba(244, 63, 94, 0.12)',
+            border: '1px solid rgba(244, 63, 94, 0.35)',
+            color: '#f43f5e',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '24px',
+          }}
         >
-          System & Engine Status
-        </h2>
-        <div className="glass-card" style={{ padding: '16px 20px' }}>
-          {loading && (
-            <div style={{ color: 'var(--text-muted)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div className="animate-spin" style={{ width: '14px', height: '14px', border: '2px solid var(--border)', borderTopColor: 'var(--electric-blue)', borderRadius: '50%' }} />
-              Checking system health & backend connectivity…
-            </div>
-          )}
-          {!loading && healthErr && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-rose)', fontSize: '13px' }} role="alert">
-              <XCircle size={14} />
-              Cannot reach backend API: {healthErr}
-            </div>
-          )}
-          {!loading && health && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                {health.status === 'healthy' ? (
-                  <CheckCircle size={14} color="var(--accent-green)" />
-                ) : (
-                  <AlertCircle size={14} color="var(--accent-amber)" />
-                )}
-                <span style={{ fontSize: '13px', fontWeight: 600, color: health.status === 'healthy' ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
-                  {health.status === 'healthy' ? 'All backend security services operational' : 'Degraded — check database connection'}
-                </span>
-                <span style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' }}>
-                  v{health.version} · {health.environment}
-                </span>
-              </div>
-              <DbStatusRow health={health} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                <Cpu size={14} color={health.ai_provider.mock_active ? 'var(--accent-amber)' : 'var(--teal)'} />
-                <span style={{ color: health.ai_provider.mock_active ? 'var(--accent-amber)' : 'var(--teal)' }}>
-                  AI Engine: {health.ai_provider.mode.toUpperCase()}
-                  {health.ai_provider.mock_active
-                    ? ' (Mock/Fallback mode active when NVIDIA API key is omitted)'
-                    : ' (NVIDIA Nemotron Active)'}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Aggregate Live Stats */}
-      <section style={{ marginBottom: '28px' }} aria-labelledby="live-metrics-heading">
-        <h2
-          id="live-metrics-heading"
-          style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px' }}
-        >
-          Live Security Metrics
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
-          <StatCard
-            label="Total Projects"
-            value={loading ? '—' : projectsErr ? 'Error' : (projects?.total ?? 0)}
-            sub={projectsErr ? projectsErr : 'from live API'}
-            icon={<FolderOpen size={18} color="var(--electric-blue)" />}
-            accent="var(--electric-blue)"
-          />
-          <StatCard
-            label="Connected Repositories"
-            value={loading ? '—' : reposErr ? 'Error' : repositories.length}
-            sub={reposErr ? reposErr : `${repositories.length} public/private connected`}
-            icon={<GitBranch size={18} color="var(--teal)" />}
-            accent="var(--teal)"
-          />
-          <StatCard
-            label="Completed Audits"
-            value={loading ? '—' : totalCompletedScans}
-            sub={activeScansCount > 0 ? `${activeScansCount} scan in progress` : 'multi-engine static runs'}
-            icon={<Activity size={18} color="var(--accent-purple)" />}
-            accent="var(--accent-purple)"
-          />
-          <StatCard
-            label="Total Findings Identified"
-            value={loading ? '—' : totalFindingsAcrossRepos}
-            sub={totalFindingsAcrossRepos === 0 ? 'Zero vulnerabilities identified' : 'from real scanner reports'}
-            icon={<AlertCircle size={18} color="var(--accent-amber)" />}
-            accent="var(--accent-amber)"
-          />
-        </div>
-      </section>
-
-      {/* Connected Repositories Section */}
-      <section style={{ marginBottom: '28px' }} aria-labelledby="connected-repos-heading">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-          <h2
-            id="connected-repos-heading"
-            style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '1px', textTransform: 'uppercase' }}
-          >
-            Connected GitHub Repositories ({repositories.length})
-          </h2>
-          <Link to="/repositories" style={{ textDecoration: 'none' }}>
-            <span style={{ fontSize: '12px', color: 'var(--electric-blue-bright)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Manage in Auditor <ArrowRight size={12} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <XCircle size={18} />
+            <span style={{ fontSize: '13px' }}>
+              Failed to load dashboard metrics: {error instanceof Error ? error.message : 'Backend unreachable'}
             </span>
-          </Link>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="btn btn-secondary"
+            style={{ fontSize: '11px', padding: '4px 10px' }}
+          >
+            Retry
+          </button>
         </div>
+      )}
 
-        {loading ? (
-          <div className="glass-card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <div className="animate-spin" style={{ width: '20px', height: '20px', border: '2px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', margin: '0 auto 10px' }} />
-            Loading connected repositories...
-          </div>
-        ) : repositories.length === 0 ? (
-          <div className="glass-card" style={{ padding: '36px 24px', textAlign: 'center' }}>
-            <GitBranch size={36} color="var(--teal)" style={{ margin: '0 auto 12px', opacity: 0.8 }} />
-            <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-              No GitHub Repositories Connected Yet
-            </h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '480px', margin: '0 auto 18px' }}>
-              Connect a GitHub repository to inspect manifests, pin commit SHAs, and run isolated static analyzers.
-            </p>
-            <Link to="/repositories" style={{ textDecoration: 'none' }}>
-              <button className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <GitBranch size={14} />
-                Connect First Repository
-              </button>
-            </Link>
-          </div>
-        ) : (
-          <div className="glass-card" style={{ padding: '16px 20px', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
-                  <th style={{ padding: '10px 12px' }}>Repository</th>
-                  <th style={{ padding: '10px 12px' }}>Branch</th>
-                  <th style={{ padding: '10px 12px' }}>Pinned SHA</th>
-                  <th style={{ padding: '10px 12px' }}>Files</th>
-                  <th style={{ padding: '10px 12px' }}>Languages</th>
-                  <th style={{ padding: '10px 12px' }}>Audits</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {repositories.map((repo) => {
-                  const scans = repoScans[repo.id] || [];
-                  const latestScan = scans[0];
-                  const meta = repo.metadata_json;
+      {/* ── Top Row: Four Summary Cards matching screenshot ─────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '16px',
+          marginBottom: '24px',
+        }}
+      >
+        <SummaryCard
+          title="Scans & Reviews"
+          value={isLoading ? '—' : summary?.scans_and_reviews.total_scans ?? 0}
+          subtext={
+            isLoading
+              ? 'Loading scan metrics…'
+              : `${summary?.scans_and_reviews.pr_reviews ?? 0} PR reviews and ${
+                  summary?.scans_and_reviews.scans_last_30_days ?? 0
+                } full scans in the last 30 days`
+          }
+          accentColor="#3b82f6"
+          onClick={() => navigate('/repositories?tab=history')}
+          isLoading={isLoading}
+        />
 
-                  return (
-                    <tr
-                      key={repo.id}
+        <SummaryCard
+          title="False Positives"
+          value={isLoading ? '—' : summary?.false_positives.count ?? 0}
+          subtext={
+            isLoading
+              ? 'Loading review state…'
+              : `Filtered ${summary?.false_positives.count ?? 0} false positives out of ${
+                  summary?.false_positives.total_issues ?? 0
+                } total issues.`
+          }
+          accentColor="#2dd4bf"
+          badge={summary && summary.false_positives.percentage > 0 ? `${summary.false_positives.percentage}%` : undefined}
+          badgeColor="#2dd4bf"
+          onClick={() => navigate('/repositories?tab=findings')}
+          isLoading={isLoading}
+        />
+
+        <SummaryCard
+          title="Potential Issues"
+          value={
+            isLoading
+              ? '—'
+              : summary
+              ? summary.potential_issues.count > 1000
+                ? `${(summary.potential_issues.count / 1000).toFixed(1)}k`
+                : summary.potential_issues.count
+              : 0
+          }
+          subtext={
+            isLoading
+              ? 'Aggregating open findings…'
+              : `Found ${summary?.potential_issues.count ?? 0} potential issues out of ${
+                  summary?.potential_issues.total_issues ?? 0
+                } total issues.`
+          }
+          accentColor="#f59e0b"
+          onClick={() => navigate('/repositories?tab=findings')}
+          isLoading={isLoading}
+        />
+
+        <SummaryCard
+          title="Patches generated"
+          value={isLoading ? '—' : summary?.patches_generated.count ?? 0}
+          subtext={
+            isLoading
+              ? 'Calculating remediation patches…'
+              : `Generated patches for ${summary?.patches_generated.count ?? 0} out of ${
+                  summary?.potential_issues.count ?? 0
+                } potential issues`
+          }
+          accentColor="#8b5cf6"
+          badge={summary && summary.patches_generated.percentage > 0 ? `${summary.patches_generated.percentage}%` : undefined}
+          badgeColor="#8b5cf6"
+          onClick={() => navigate('/repositories?tab=solutions')}
+          isLoading={isLoading}
+        />
+      </div>
+
+      {/* ── Middle Row: 3 Chart Panels matching screenshot ──────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gap: '16px',
+          marginBottom: '24px',
+        }}
+      >
+        {/* Card 1: Issues By Vulnerability Type (Donut Chart) */}
+        <ChartPanel
+          title="Issues By Vulnerability Type"
+          infoTooltip="Distribution of security findings grouped by CWE and scanner rule categories."
+        >
+          {isLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
+              <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid rgba(59,130,246,0.2)', borderTopColor: '#3b82f6', borderRadius: '50%' }} />
+            </div>
+          ) : !summary || summary.vulnerability_types.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
+              <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>No Issues Found</div>
+              <div style={{ fontSize: '12px' }}>Your scanned codebases have zero reported vulnerabilities.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '240px' }}>
+              {/* Donut graphic */}
+              <div style={{ width: '180px', height: '200px', position: 'relative' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div
+                              style={{
+                                background: '#0a1628',
+                                border: '1px solid rgba(45, 212, 191, 0.4)',
+                                padding: '8px 12px',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                              }}
+                            >
+                              <div style={{ fontWeight: 600, color: '#f8fafc' }}>{data.name}</div>
+                              <div style={{ color: '#2dd4bf', marginTop: '2px' }}>
+                                {data.count} issues ({data.percentage}%)
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Pie
+                      data={summary.vulnerability_types}
+                      dataKey="count"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={78}
+                      paddingAngle={3}
+                      stroke="none"
+                    >
+                      {summary.vulnerability_types.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Legend matching screenshot (Acronym + Percentage) */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '8px 12px',
+                  flex: 1,
+                  paddingLeft: '12px',
+                }}
+              >
+                {summary.vulnerability_types.map((vt) => (
+                  <div key={vt.name} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                    <span
                       style={{
-                        borderBottom: '1px solid rgba(30, 58, 110, 0.4)',
-                        transition: 'background 0.15s',
+                        width: '8px',
+                        height: '14px',
+                        borderRadius: '2px',
+                        background: vt.color,
+                        flexShrink: 0,
+                        marginTop: '2px',
+                      }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#f8fafc', lineHeight: 1.1 }}>
+                        {vt.short_name}
+                      </div>
+                      <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '1px' }}>
+                        {vt.percentage}%
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </ChartPanel>
+
+        {/* Card 2: Issues By Severity (Stacked Bar Chart) */}
+        <ChartPanel
+          title="Issues By Severity"
+          infoTooltip="Total security findings categorized by standard CVSS / scanner severity levels."
+        >
+          {isLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
+              <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid rgba(59,130,246,0.2)', borderTopColor: '#3b82f6', borderRadius: '50%' }} />
+            </div>
+          ) : !summary || summary.severity_distribution.total === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
+              <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>Zero Vulnerabilities</div>
+              <div style={{ fontSize: '12px' }}>No critical, high, medium, or low findings recorded.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '240px', padding: '0 8px' }}>
+              {/* Stacked Horizontal Bar */}
+              <div
+                style={{
+                  height: '24px',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  background: 'rgba(15, 32, 64, 0.4)',
+                  border: '1px solid rgba(30, 58, 110, 0.6)',
+                  marginBottom: '24px',
+                }}
+              >
+                {summary.severity_distribution.critical > 0 && (
+                  <div
+                    style={{
+                      width: `${(summary.severity_distribution.critical / summary.severity_distribution.total) * 100}%`,
+                      background: '#f43f5e',
+                      transition: 'width 0.4s ease',
+                    }}
+                    title={`Critical: ${summary.severity_distribution.critical}`}
+                  />
+                )}
+                {summary.severity_distribution.high > 0 && (
+                  <div
+                    style={{
+                      width: `${(summary.severity_distribution.high / summary.severity_distribution.total) * 100}%`,
+                      background: '#f59e0b',
+                      transition: 'width 0.4s ease',
+                    }}
+                    title={`High: ${summary.severity_distribution.high}`}
+                  />
+                )}
+                {summary.severity_distribution.medium > 0 && (
+                  <div
+                    style={{
+                      width: `${(summary.severity_distribution.medium / summary.severity_distribution.total) * 100}%`,
+                      background: '#3b82f6',
+                      transition: 'width 0.4s ease',
+                    }}
+                    title={`Medium: ${summary.severity_distribution.medium}`}
+                  />
+                )}
+                {summary.severity_distribution.low > 0 && (
+                  <div
+                    style={{
+                      width: `${(summary.severity_distribution.low / summary.severity_distribution.total) * 100}%`,
+                      background: '#10b981',
+                      transition: 'width 0.4s ease',
+                    }}
+                    title={`Low: ${summary.severity_distribution.low}`}
+                  />
+                )}
+                {summary.severity_distribution.info > 0 && (
+                  <div
+                    style={{
+                      width: `${(summary.severity_distribution.info / summary.severity_distribution.total) * 100}%`,
+                      background: '#64748b',
+                      transition: 'width 0.4s ease',
+                    }}
+                    title={`Info: ${summary.severity_distribution.info}`}
+                  />
+                )}
+              </div>
+
+              {/* Severity Legend & Counts underneath (matching screenshot) */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#f43f5e' }} />
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Critical</div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.critical}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#f59e0b' }} />
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>High</div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.high}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#3b82f6' }} />
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Medium</div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.medium}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#10b981' }} />
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Low</div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.low}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#64748b' }} />
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Info</div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.info}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </ChartPanel>
+
+        {/* Card 3: Issues By PR Author / Scanner Health & Coverage */}
+        <ChartPanel
+          title="Scanner Health & Coverage"
+          infoTooltip="Live operational status of configured static scanners, package analyzers, and secret detectors."
+        >
+          <ScannerStatus scanners={summary?.scanner_health ?? []} isLoading={isLoading} />
+        </ChartPanel>
+      </div>
+
+      {/* ── Bottom Row: 3 Widget Panels matching screenshot ─────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gap: '16px',
+        }}
+      >
+        {/* Card 1: Metrics (Time Saved & Automated Split) */}
+        <ChartPanel
+          title="Metrics"
+          infoTooltip="Calculated engineer hours saved through automated AST scanners and precision patch generation."
+        >
+          {isLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
+              <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid rgba(59,130,246,0.2)', borderTopColor: '#3b82f6', borderRadius: '50%' }} />
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '240px', justifyContent: 'space-between', padding: '12px 8px' }}>
+              {/* Primary Time Saved Metric */}
+              <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>
+                  <Clock size={16} color="#60a5fa" />
+                  <span>Total Time Saved</span>
+                </div>
+                <div
+                  style={{
+                    fontSize: '44px',
+                    fontWeight: 800,
+                    color: '#f8fafc',
+                    letterSpacing: '-1px',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {summary?.metrics.total_time_saved_hours ?? 0}
+                  <span style={{ fontSize: '24px', fontWeight: 500, color: '#94a3b8', marginLeft: '4px' }}>h</span>
+                </div>
+              </div>
+
+              {/* Split breakdown: Logic vs Traditional/Automated */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-around',
+                  paddingTop: '16px',
+                  borderTop: '1px solid rgba(30, 58, 110, 0.45)',
+                }}
+              >
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#64748b', fontSize: '11px', marginBottom: '2px' }}>
+                    <Code2 size={13} color="#2dd4bf" />
+                    <span>Logic</span>
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 700, color: '#f1f5f9' }}>
+                    {summary?.metrics.logic_hours ?? 0}h
+                  </div>
+                </div>
+
+                <div style={{ width: '1px', height: '32px', background: 'rgba(30, 58, 110, 0.45)' }} />
+
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#64748b', fontSize: '11px', marginBottom: '2px' }}>
+                    <Cpu size={13} color="#a855f7" />
+                    <span>Traditional</span>
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 700, color: '#f1f5f9' }}>
+                    {summary?.metrics.traditional_hours ?? 0}h
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </ChartPanel>
+
+        {/* Card 2: Most Critical Issues (with Interactive Row) */}
+        <ChartPanel
+          title="Most Critical Issues"
+          infoTooltip="Highest severity security findings requiring immediate attention or automated patch review."
+          action={
+            <button
+              onClick={() => navigate('/repositories?tab=findings')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#60a5fa',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+            >
+              View all
+            </button>
+          }
+        >
+          {isLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse" style={{ height: '52px', borderRadius: '8px', background: 'rgba(30, 58, 110, 0.25)' }} />
+              ))}
+            </div>
+          ) : !summary || summary.most_critical_issues.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
+              <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>No Critical Issues</div>
+              <div style={{ fontSize: '12px' }}>All connected repositories are free of critical vulnerabilities.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: '280px' }}>
+              {summary.most_critical_issues.map((issue) => (
+                <CriticalFindingRow
+                  key={issue.id}
+                  issue={issue}
+                  onClick={(iss) => setSelectedIssue(iss)}
+                />
+              ))}
+            </div>
+          )}
+        </ChartPanel>
+
+        {/* Card 3: Issues By Repository */}
+        <ChartPanel
+          title="Issues By Repository"
+          infoTooltip="Comparative vulnerability breakdown for each connected GitHub repository."
+          action={
+            <button
+              onClick={() => navigate('/repositories')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#60a5fa',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+            >
+              Manage repos
+            </button>
+          }
+        >
+          {isLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
+              {[1, 2].map((i) => (
+                <div key={i} className="animate-pulse" style={{ height: '56px', borderRadius: '8px', background: 'rgba(30, 58, 110, 0.25)' }} />
+              ))}
+            </div>
+          ) : !summary || summary.issues_by_repository.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
+              <GitBranch size={32} color="#60a5fa" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>No Repositories Connected</div>
+              <div style={{ fontSize: '12px', marginBottom: '12px' }}>Connect a repository to audit findings.</div>
+              <button onClick={handleNewRepo} className="btn btn-primary" style={{ fontSize: '11px' }}>
+                Connect Repository
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto', maxHeight: '280px' }}>
+              {summary.issues_by_repository.map((repo) => (
+                <div
+                  key={repo.repository_id}
+                  onClick={() => navigate(`/repositories?repoId=${repo.repository_id}`)}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(15, 23, 42, 0.5)',
+                    border: '1px solid rgba(30, 58, 110, 0.3)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(30, 58, 110, 0.3)')}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <GitBranch size={13} color="#2dd4bf" />
+                      <span>{repo.repository_name}</span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'JetBrains Mono, monospace' }}>
+                      {repo.total} issues
+                    </span>
+                  </div>
+
+                  {/* Repository Mini Stacked Bar */}
+                  <div
+                    style={{
+                      height: '8px',
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      background: 'rgba(30, 58, 110, 0.4)',
+                    }}
+                  >
+                    {repo.total === 0 ? (
+                      <div style={{ width: '100%', background: '#10b981' }} title="Clean" />
+                    ) : (
+                      <>
+                        {repo.critical > 0 && (
+                          <div style={{ width: `${(repo.critical / repo.total) * 100}%`, background: '#f43f5e' }} />
+                        )}
+                        {repo.high > 0 && (
+                          <div style={{ width: `${(repo.high / repo.total) * 100}%`, background: '#f59e0b' }} />
+                        )}
+                        {repo.medium > 0 && (
+                          <div style={{ width: `${(repo.medium / repo.total) * 100}%`, background: '#3b82f6' }} />
+                        )}
+                        {repo.low > 0 && (
+                          <div style={{ width: `${(repo.low / repo.total) * 100}%`, background: '#10b981' }} />
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ChartPanel>
+      </div>
+
+      {/* ── Finding Detail & False Positive Review Drawer/Modal ─────────────────── */}
+      {selectedIssue && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(3, 8, 19, 0.8)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '20px',
+          }}
+          onClick={() => setSelectedIssue(null)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '680px',
+              background: '#091528',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              borderRadius: '14px',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh',
+            }}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="issue-detail-title"
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: '18px 24px',
+                borderBottom: '1px solid rgba(30, 58, 110, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    background:
+                      selectedIssue.severity === 'critical'
+                        ? 'rgba(244, 63, 94, 0.2)'
+                        : 'rgba(245, 158, 11, 0.2)',
+                    color: selectedIssue.severity === 'critical' ? '#f43f5e' : '#fbbf24',
+                    border: `1px solid ${selectedIssue.severity === 'critical' ? '#f43f5e' : '#fbbf24'}40`,
+                  }}
+                >
+                  {selectedIssue.severity}
+                </span>
+                <span style={{ fontSize: '13px', color: '#94a3b8' }}>
+                  Risk Score: <strong style={{ color: '#f8fafc' }}>{selectedIssue.score}/100</strong>
+                </span>
+              </div>
+
+              <button
+                onClick={() => setSelectedIssue(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '4px',
+                }}
+                aria-label="Close dialog"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <h3 id="issue-detail-title" style={{ fontSize: '17px', fontWeight: 700, color: '#f8fafc', lineHeight: 1.3 }}>
+                  {selectedIssue.title}
+                </h3>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                  Repository:{' '}
+                  <span style={{ color: '#2dd4bf', fontWeight: 600 }}>{selectedIssue.repository_name}</span>
+                </div>
+              </div>
+
+              {/* Location metadata */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '10px',
+                  padding: '12px 14px',
+                  borderRadius: '8px',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(30, 58, 110, 0.35)',
+                  fontSize: '12px',
+                }}
+              >
+                <div>
+                  <div style={{ color: '#64748b', fontSize: '11px' }}>Scanner Engine</div>
+                  <div style={{ color: '#f1f5f9', fontWeight: 600, marginTop: '2px' }}>{selectedIssue.scanner}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#64748b', fontSize: '11px' }}>Rule ID / CWE</div>
+                  <div style={{ color: '#60a5fa', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
+                    {selectedIssue.cwe_or_rule}
+                  </div>
+                </div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <div style={{ color: '#64748b', fontSize: '11px' }}>File Location</div>
+                  <div style={{ color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
+                    {selectedIssue.file_path || 'source_code'}
+                    {selectedIssue.line_number ? `:${selectedIssue.line_number}` : ''}
+                  </div>
+                </div>
+              </div>
+
+              {/* Status & Review State */}
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '8px',
+                  background:
+                    selectedIssue.verification_status === 'false_positive'
+                      ? 'rgba(45, 212, 191, 0.1)'
+                      : 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(30, 58, 110, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Current Verification Status</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', textTransform: 'capitalize' }}>
+                    {selectedIssue.verification_status.replace('_', ' ')}
+                  </div>
+                </div>
+
+                {/* Mark False Positive or Revert Buttons */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {selectedIssue.verification_status === 'false_positive' ? (
+                    <button
+                      onClick={() =>
+                        statusMutation.mutate({ findingId: selectedIssue.id, status: 'unverified' })
+                      }
+                      disabled={updatingFindingId === selectedIssue.id}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '11px', padding: '5px 12px' }}
+                    >
+                      {updatingFindingId === selectedIssue.id ? 'Updating…' : 'Revert to Open'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        statusMutation.mutate({ findingId: selectedIssue.id, status: 'false_positive' })
+                      }
+                      disabled={updatingFindingId === selectedIssue.id}
+                      className="btn btn-secondary"
+                      style={{
+                        fontSize: '11px',
+                        padding: '5px 12px',
+                        borderColor: 'rgba(45, 212, 191, 0.4)',
+                        color: '#2dd4bf',
                       }}
                     >
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <GitBranch size={14} color="var(--electric-blue-bright)" />
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{repo.full_name}</span>
-                          <a
-                            href={repo.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: 'var(--text-muted)' }}
-                            title="Open on GitHub"
-                          >
-                            <ExternalLink size={12} />
-                          </a>
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px', color: 'var(--teal-bright)', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
-                        {repo.default_branch}
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <code
-                          style={{
-                            background: 'rgba(15, 32, 64, 0.8)',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            border: '1px solid var(--border)',
-                            color: 'var(--electric-blue-bright)',
-                          }}
-                        >
-                          {repo.pinned_sha ? repo.pinned_sha.slice(0, 7) : 'Unpinned'}
-                        </code>
-                      </td>
-                      <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>
-                        {meta?.file_count ?? 0} files
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {meta?.languages && meta.languages.length > 0 ? (
-                            meta.languages.slice(0, 2).map((lang) => (
-                              <span
-                                key={lang}
-                                style={{
-                                  fontSize: '10px',
-                                  padding: '1px 5px',
-                                  borderRadius: '4px',
-                                  background: 'rgba(59, 130, 246, 0.15)',
-                                  color: 'var(--electric-blue-bright)',
-                                }}
-                              >
-                                {lang}
-                              </span>
-                            ))
-                          ) : (
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>—</span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px' }}>
-                        {latestScan ? (
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              background:
-                                latestScan.status === 'completed'
-                                  ? 'rgba(16, 185, 129, 0.15)'
-                                  : latestScan.status === 'running'
-                                  ? 'rgba(59, 130, 246, 0.15)'
-                                  : 'rgba(244, 63, 94, 0.15)',
-                              color:
-                                latestScan.status === 'completed'
-                                  ? 'var(--accent-green)'
-                                  : latestScan.status === 'running'
-                                  ? 'var(--electric-blue-bright)'
-                                  : 'var(--accent-rose)',
-                              fontWeight: 600,
-                              textTransform: 'capitalize',
-                            }}
-                          >
-                            {latestScan.status}
-                            {latestScan.summary && ` (${latestScan.summary.total_findings} findings)`}
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Not scanned yet</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '12px', textAlign: 'right' }}>
-                        <button
-                          onClick={() => navigate(`/repositories?repoId=${repo.id}`)}
-                          className="btn btn-secondary"
-                          style={{ fontSize: '11px', padding: '4px 10px' }}
-                        >
-                          <Shield size={12} />
-                          Audit
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                      {updatingFindingId === selectedIssue.id ? 'Marking…' : 'Mark as False Positive'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
 
-      {/* Quick actions */}
-      <section style={{ marginTop: '28px' }} aria-labelledby="quick-actions-heading">
-        <h2
-          id="quick-actions-heading"
-          style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '12px' }}
-        >
-          Quick Actions
-        </h2>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <Link to="/repositories" style={{ textDecoration: 'none' }}>
-            <button className="btn btn-primary">
-              <Shield size={14} />
-              Open Security Auditor
-              <ArrowRight size={12} />
-            </button>
-          </Link>
-          <Link to="/projects" style={{ textDecoration: 'none' }}>
-            <button className="btn btn-secondary">
-              <FolderOpen size={14} />
-              Manage Projects
-            </button>
-          </Link>
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: '14px 24px',
+                borderTop: '1px solid rgba(30, 58, 110, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'rgba(7, 14, 27, 0.6)',
+              }}
+            >
+              <button
+                onClick={() => {
+                  const fId = selectedIssue.id;
+                  setSelectedIssue(null);
+                  navigate(`/repositories?tab=solutions&findingId=${fId}`);
+                }}
+                className="btn btn-primary"
+                style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <FileCode size={14} />
+                <span>View Exact Fix Patch</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedIssue(null)}
+                className="btn btn-secondary"
+                style={{ fontSize: '12px' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
-      </section>
+      )}
     </div>
   );
 };
-
