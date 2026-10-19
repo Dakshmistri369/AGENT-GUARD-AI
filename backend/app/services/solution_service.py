@@ -36,7 +36,7 @@ def _generate_unified_diff(
     if not before_code or not after_code:
         return None
 
-    path_label = file_path or "unknown/file"
+    path_label = (file_path or "unknown/file").replace("\\", "/")
     before_lines = before_code.splitlines(keepends=True)
     after_lines = after_code.splitlines(keepends=True)
 
@@ -115,7 +115,7 @@ class SolutionService:
         scanner = (finding.scanner or "").lower()
         rule_id = (finding.rule_id or "").upper()
         title = finding.title or "Security Issue"
-        file_path = finding.file_path or "source_code"
+        file_path = (finding.file_path or "source_code").replace("\\", "/")
         line_num = finding.line_number
         evidence = finding.sanitized_evidence or ""
 
@@ -593,7 +593,7 @@ class SolutionService:
             else:
                 code_diffs += 1
 
-            target_file = sol.file_path or "unassigned_fixes"
+            target_file = (sol.file_path or "unassigned_fixes").replace("\\", "/")
             if target_file not in file_map:
                 file_map[target_file] = []
             file_map[target_file].append(sol)

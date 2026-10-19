@@ -135,6 +135,17 @@ export const RepositoriesPage: React.FC = () => {
     }
   }, [searchParams, repositories]);
 
+  useEffect(() => {
+    const actionParam = searchParams.get('action');
+    if (actionParam === 'new') {
+      const input = document.getElementById('github-url-input');
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [searchParams]);
+
   const loadRepositories = async () => {
     setIsLoadingRepos(true);
     try {
@@ -429,6 +440,20 @@ export const RepositoriesPage: React.FC = () => {
     }
   };
 
+  // Lazy-load individual solution if finding is expanded and not yet in findingSolutions
+  useEffect(() => {
+    if (expandedFindingId && !findingSolutions[expandedFindingId]) {
+      api.solutions
+        .getByFinding(expandedFindingId)
+        .then((sol) => {
+          setFindingSolutions((prev) => ({ ...prev, [expandedFindingId]: sol }));
+        })
+        .catch((err) => {
+          console.warn(`Could not load single solution for finding #${expandedFindingId}`, err);
+        });
+    }
+  }, [expandedFindingId, findingSolutions]);
+
   const handleAiEnhanceFinding = async (findingId: number) => {
     setEnhancingFindingId(findingId);
     try {
@@ -440,6 +465,19 @@ export const RepositoriesPage: React.FC = () => {
           solutions: solutionPlan.solutions.map((s) =>
             s.finding_id === findingId ? enhanced : s
           ),
+          file_groups: solutionPlan.file_groups.map((group) => {
+            const hasFinding = group.solutions.some((s) => s.finding_id === findingId);
+            if (!hasFinding) return group;
+            const updatedSolutions = group.solutions.map((s) =>
+              s.finding_id === findingId ? enhanced : s
+            );
+            const diffs = updatedSolutions.map((s) => s.diff).filter(Boolean);
+            return {
+              ...group,
+              solutions: updatedSolutions,
+              combined_patch: diffs.length > 0 ? diffs.join('\n') : null,
+            };
+          }),
         });
       }
     } catch (err: any) {

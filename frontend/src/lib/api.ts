@@ -12,7 +12,8 @@ import type {
   RepositorySolutionPlan,
 } from '../types';
 
-const BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+const RAW_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+const BASE = RAW_BASE.replace(/\/+$/, '');
 
 const client = axios.create({
   baseURL: BASE,
