@@ -84,7 +84,8 @@ The repository includes a ready-to-use [`render.yaml`](./render.yaml).
      "status": "healthy",
      "version": "0.1.0",
      "environment": "production",
-     "database": { "status": "ok", "type": "sqlite", "latency_ms": 1.2 }
+     "database": { "status": "ok", "type": "postgresql" },
+     "ai_provider": { "mode": "nemotron", "mock_active": false }
    }
    ```
 2. Open your Vercel URL in your browser:
