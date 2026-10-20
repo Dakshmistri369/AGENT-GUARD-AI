@@ -79,6 +79,19 @@ def create_app() -> FastAPI:
 
     app.include_router(api_router)
 
+    @app.get("/", tags=["Root"])
+    async def root():
+        """Root endpoint returning service identity and documentation links."""
+        return {
+            "name": "AgentGuard AI Security Auditor API",
+            "status": "online",
+            "version": settings.app_version,
+            "documentation": "/api/docs",
+            "health": "/health",
+            "environment": settings.environment,
+            "message": "Backend service is operational and connected to Supabase PostgreSQL.",
+        }
+
     return app
 
 
