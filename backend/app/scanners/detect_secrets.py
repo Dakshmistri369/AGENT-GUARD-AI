@@ -106,8 +106,8 @@ class DetectSecretsScanner(BaseScanner):
                     try:
                         if target_file.exists() and target_file.is_file():
                             lines = target_file.read_text(encoding="utf-8", errors="replace").splitlines()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.debug("Failed reading file %s during secret extraction: %s", target_file, exc)
 
                     for sec in secret_items:
                         sec_type = sec.get("type", "Secret")
@@ -158,11 +158,11 @@ class DetectSecretsScanner(BaseScanner):
                             "commit_sha": commit_sha,
                         })
             except json.JSONDecodeError as exc:
-                logger.warning("detect-secrets output was not valid JSON: %s (stderr: %s)", exc, stderr[:200])
+                logger.warning("Scanner parser encountered invalid JSON output from detect-secrets utility: %s", exc)
 
         if not findings and exit_code != 0 and (not raw or not raw.startswith("{")):
             clean_err = redact_sensitive_text(stderr.strip()[:300]) or f"detect-secrets returned exit code {exit_code}"
-            logger.warning("detect-secrets execution failed (code %d): %s", exit_code, clean_err)
+            logger.warning("Scanner execution completed with non-zero exit code %d: %s", exit_code, clean_err)
             return ScannerResult(
                 scanner=self.name,
                 scanner_version=version,

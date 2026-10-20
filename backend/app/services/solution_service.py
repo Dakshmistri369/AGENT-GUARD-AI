@@ -404,7 +404,7 @@ class SolutionService:
             )
 
         if "sql" in title_lower or "injection" in title_lower:
-            before_c = evidence.strip() if evidence else f'query = f"SELECT * FROM users WHERE id = \'{user_input}\'"'
+            before_c = evidence.strip() if evidence else 'query = f"SELECT * FROM users WHERE id = \'{user_input}\'"'  # nosec B608
             after_c = (
                 '# Use parameterized query or ORM query builder\n'
                 'cursor.execute("SELECT * FROM users WHERE id = %s", (user_input,))'

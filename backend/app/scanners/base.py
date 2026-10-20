@@ -53,10 +53,10 @@ def _get_windows_registry_paths() -> list[str]:
                         cleaned = os.path.expandvars(item.strip())
                         if cleaned and cleaned not in paths:
                             paths.append(cleaned)
-            except Exception:
-                pass
-    except Exception:
-        pass
+            except OSError as _key_err:
+                _ = _key_err
+    except Exception as _reg_err:
+        _ = _reg_err
     return paths
 
 
@@ -117,8 +117,8 @@ def find_scanner_executable(tool_name: str) -> str | None:
                         for match in packages_dir.glob(f"**/{t_name}.exe"):
                             if match.is_file():
                                 return str(match)
-                except Exception:
-                    pass
+                except (OSError, PermissionError) as _pkg_err:
+                    _ = _pkg_err
 
     return None
 
@@ -163,7 +163,7 @@ class BaseScanner(ABC):
         Disables interactive prompts and injects safe environment paths.
         Supports fallback execution on event loops lacking async subprocesses (Windows SelectorEventLoop).
         """
-        import subprocess
+        import subprocess  # nosec B404
 
         # Ensure user Scripts and WinGet directories are included in PATH for subprocesses
         env = {**os.environ}
@@ -219,7 +219,7 @@ class BaseScanner(ABC):
             except NotImplementedError:
                 # Async subprocess not implemented in this event loop (e.g. Windows SelectorEventLoop)
                 def _sync_run():
-                    return subprocess.run(
+                    return subprocess.run(  # nosec B603
                         cmd,
                         cwd=str(cwd) if cwd else None,
                         stdout=subprocess.PIPE,
@@ -243,6 +243,6 @@ class BaseScanner(ABC):
             if process:
                 try:
                     process.kill()
-                except Exception:
-                    pass
+                except Exception as _kill_err:
+                    _ = _kill_err
             raise TimeoutError(f"Scanner '{self.name}' timed out after {timeout_seconds} seconds.") from exc

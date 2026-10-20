@@ -91,8 +91,8 @@ async def connect_repository(
     try:
         lang_dict = await github_svc.get_languages(owner, repo_name)
         detected_languages = sorted(list(lang_dict.keys()))
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Could not resolve repository languages for %s/%s: %s", owner, repo_name, exc)
 
     # Fetch git tree for metadata inspection (no file content downloaded)
     tree_items: list[dict[str, Any]] = []

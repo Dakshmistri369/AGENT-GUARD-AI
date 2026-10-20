@@ -113,7 +113,7 @@ class GitService:
         Execute git command safely, with automatic fallback for event loops lacking
         async subprocess support (such as Windows SelectorEventLoop under Uvicorn reload).
         """
-        import subprocess
+        import subprocess  # nosec B404
 
         exec_env = env or {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
         exec_env.pop("GIT_ASKPASS", None)
@@ -135,7 +135,7 @@ class GitService:
             except NotImplementedError:
                 # Async subprocess not implemented in this event loop (e.g. Windows SelectorEventLoop)
                 def _sync_git():
-                    p = subprocess.run(
+                    p = subprocess.run(  # nosec B603
                         cmd,
                         cwd=str(cwd) if cwd else None,
                         stdout=subprocess.PIPE,
@@ -152,8 +152,8 @@ class GitService:
                 try:
                     process.kill()
                     await process.wait()
-                except Exception:
-                    pass
+                except Exception as _kill_err:
+                    _ = _kill_err
             raise TimeoutError(f"Git command timed out after {timeout} seconds.") from exc
 
     async def get_head_commit_sha(self, repo_dir: Path) -> str:

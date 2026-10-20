@@ -130,6 +130,19 @@ class BanditScanner(BaseScanner):
                     test_id = issue.get("test_id", "B000")
                     test_name = issue.get("test_name", "")
 
+                    # Suppress standard assert statements (B101) inside unit test suites
+                    lower_rel = rel_file.lower()
+                    is_test_file = (
+                        lower_rel.startswith("tests/")
+                        or "/tests/" in lower_rel
+                        or lower_rel.startswith("test/")
+                        or "/test/" in lower_rel
+                        or Path(lower_rel).name.startswith("test_")
+                        or Path(lower_rel).name.endswith("_test.py")
+                    )
+                    if test_id == "B101" and is_test_file:
+                        continue
+
                     if "eval" in issue_text.lower() or test_name == "eval" or test_id == "B307":
                         title = f"Unsafe Dynamic Code Execution (eval()): {issue_text}"
                     else:

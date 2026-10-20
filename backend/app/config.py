@@ -13,6 +13,9 @@ from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+_INSECURE_SENTINEL = "CHANGE_ME_BEFORE_PRODUCTION"  # nosec B105
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),
@@ -137,7 +140,7 @@ class Settings(BaseSettings):
     def validate_production_security(self) -> "Settings":
         if self.is_production:
             errors: list[str] = []
-            if self.jwt_secret == "CHANGE_ME_BEFORE_PRODUCTION":
+            if self.jwt_secret == _INSECURE_SENTINEL:
                 errors.append("JWT_SECRET must be set to a strong random value in production")
             if self.debug:
                 errors.append("DEBUG must be False in production")

@@ -43,7 +43,7 @@ async def get_current_user(db: AsyncSession = Depends(get_db)) -> User:
         user = User(
             id=settings.demo_user_id,
             email=settings.demo_user_email,
-            password_hash="DEMO_MODE_NO_REAL_AUTH",
+            password_hash="DEMO_MODE_NO_REAL_AUTH",  # nosec B106
         )
         db.add(user)
         await db.commit()

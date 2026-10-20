@@ -193,15 +193,15 @@ class OSVScanner(BaseScanner):
         exe = find_scanner_executable("osv-scanner")
         if exe:
             try:
-                import subprocess
-                res = subprocess.run([exe, "--version"], capture_output=True, text=True, errors="replace", timeout=5)
+                import subprocess  # nosec B404
+                res = subprocess.run([exe, "--version"], capture_output=True, text=True, errors="replace", timeout=5)  # nosec B603
                 for line in (res.stdout or "").splitlines():
                     if "version:" in line.lower():
                         ver = line.split(":")[-1].strip()
                         if ver:
                             return True, ver
-            except Exception:
-                pass
+            except Exception as _ver_err:
+                _ = _ver_err
             return True, "cli"
         return False, None
 

@@ -484,7 +484,7 @@ export const RepositoriesPage: React.FC = () => {
           setFindingSolutions((prev) => ({ ...prev, [expandedFindingId]: sol }));
         })
         .catch((err) => {
-          console.warn(`Could not load single solution for finding #${expandedFindingId}`, err);
+          console.warn('Could not load single solution for finding #', expandedFindingId, err);
         });
     }
   }, [expandedFindingId, findingSolutions]);

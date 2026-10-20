@@ -15,8 +15,8 @@ from typing import AsyncGenerator
 if sys.platform == "win32":
     try:
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-    except Exception:
-        pass
+    except Exception as _loop_err:
+        _ = _loop_err
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

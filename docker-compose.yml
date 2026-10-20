@@ -4,6 +4,8 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_USER: agentguard
       POSTGRES_PASSWORD: agentguard_dev   # Change in staging/prod via secrets manager
@@ -23,6 +25,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile.backend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       db:
         condition: service_healthy
@@ -45,6 +49,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile.frontend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       - backend
     ports:
