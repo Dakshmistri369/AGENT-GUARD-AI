@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings as SettingsIcon, AlertCircle, Shield, Cpu, Database, Package } from 'lucide-react';
+import { Settings as SettingsIcon, AlertCircle, Shield, Cpu, Database, Package, Sparkles } from 'lucide-react';
 import { AnimatedBrandLogo } from '../components/brand/AnimatedBrandLogo';
 
 export const SettingsPage: React.FC = () => (
@@ -76,6 +76,20 @@ export const SettingsPage: React.FC = () => (
       <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.6 }}>
         Independent security and quality auditor for AI-generated and human-written codebases.
         Continuous static analysis, credential scanning, and vulnerability detection powered by Semgrep, Bandit, detect-secrets, and OSV API.
+      </div>
+      <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          style={{ fontSize: '12px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+          onClick={() => {
+            sessionStorage.removeItem('agentguard_intro_completed');
+            window.dispatchEvent(new CustomEvent('agentguard:replay-intro'));
+          }}
+        >
+          <Sparkles size={13} color="var(--teal)" />
+          Replay Cinematic Startup Intro
+        </button>
       </div>
     </div>
   </div>
