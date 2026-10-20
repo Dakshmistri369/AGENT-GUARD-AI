@@ -20,5 +20,13 @@ services:
         value: "https://*.vercel.app,http://localhost:5173"
       - key: JWT_SECRET
         generateValue: true
+      - key: DATABASE_URL
+        sync: false
       - key: AI_PROVIDER
-        value: "mock"
+        value: "nemotron"
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_BASE_URL
+        value: "https://integrate.api.nvidia.com/v1"
+      - key: AI_MODEL
+        value: "nvidia/llama-3.1-nemotron-70b-instruct"
