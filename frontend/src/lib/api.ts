@@ -17,8 +17,12 @@ import type {
 
 const RAW_BASE =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? 'https://agent-guard-ai.onrender.com' : '');
-export const API_BASE_URL = RAW_BASE.replace(/\/+$/, '');
+  'https://agent-guard-ai.onrender.com';
+let sanitizedBase = RAW_BASE.trim().replace(/\/+$/, '');
+if (typeof window !== 'undefined' && window.location.protocol === 'https:' && sanitizedBase.startsWith('http://')) {
+  sanitizedBase = sanitizedBase.replace(/^http:\/\//, 'https://');
+}
+export const API_BASE_URL = sanitizedBase;
 const BASE = API_BASE_URL;
 
 const client = axios.create({
@@ -26,6 +30,28 @@ const client = axios.create({
   timeout: 300000, // 5 minutes for full static analysis and multi-engine cloning
   headers: { 'Content-Type': 'application/json' },
 });
+
+// Automatic resilience interceptor:
+// If a browser extension, Brave Shield, or strict CORS policy blocks direct cross-origin calls to Render,
+// automatically fallback to the same-origin Vercel rewrite proxy (relative path "").
+client.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config;
+    const isNetworkErr = !error.response || (error.message && error.message.includes('Network Error'));
+    if (isNetworkErr && config && !config._retriedWithProxy) {
+      config._retriedWithProxy = true;
+      if (config.baseURL && config.baseURL !== '') {
+        console.warn(
+          `[AgentGuard API] Direct call to ${config.baseURL} encountered Network Error. Retrying seamlessly via same-origin rewrite proxy...`
+        );
+        config.baseURL = '';
+        return client(config);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const api = {
   health: {
