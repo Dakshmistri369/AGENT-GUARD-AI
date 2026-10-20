@@ -516,8 +516,8 @@ export const RepositoriesPage: React.FC = () => {
       <div
         style={{
           borderRadius: '6px',
-          background: 'rgba(0, 0, 0, 0.75)',
-          border: '1px solid var(--border)',
+          background: '#f8fafc',
+          border: '1px solid #cbd5e1',
           fontFamily: 'JetBrains Mono, monospace',
           fontSize: '12px',
           overflowX: 'auto',
@@ -526,17 +526,17 @@ export const RepositoriesPage: React.FC = () => {
         }}
       >
         {lines.map((l, idx) => {
-          let color = 'var(--text-secondary)';
+          let color = '#334155';
           let bg = 'transparent';
           if (l.startsWith('+') && !l.startsWith('+++')) {
-            color = '#34d399';
-            bg = 'rgba(16, 185, 129, 0.12)';
+            color = '#15803d';
+            bg = '#f0fdf4';
           } else if (l.startsWith('-') && !l.startsWith('---')) {
-            color = '#f87171';
-            bg = 'rgba(244, 63, 94, 0.12)';
+            color = '#b91c1c';
+            bg = '#fef2f2';
           } else if (l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++')) {
-            color = 'var(--electric-blue-bright)';
-            bg = 'rgba(59, 130, 246, 0.08)';
+            color = '#1d4ed8';
+            bg = '#eff6ff';
           }
           return (
             <div
@@ -737,7 +737,7 @@ export const RepositoriesPage: React.FC = () => {
 
         {/* Existing connected repository switcher pills */}
         {repositories.length > 0 && (
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(30, 58, 110, 0.5)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Connected Repositories:</span>
             {repositories.map((repo) => {
               const isSelected = activeRepo?.id === repo.id;
@@ -749,9 +749,10 @@ export const RepositoriesPage: React.FC = () => {
                     fontSize: '12px',
                     padding: '5px 12px',
                     borderRadius: '6px',
-                    background: isSelected ? 'rgba(59, 130, 246, 0.25)' : 'rgba(15, 32, 64, 0.5)',
-                    color: isSelected ? 'var(--electric-blue-bright)' : 'var(--text-secondary)',
-                    border: isSelected ? '1px solid var(--electric-blue)' : '1px solid var(--border)',
+                    background: isSelected ? '#eff6ff' : '#f8fafc',
+                    color: isSelected ? '#1d4ed8' : '#0f172a',
+                    border: isSelected ? '1px solid #93c5fd' : '1px solid #cbd5e1',
+                    fontWeight: isSelected ? 600 : 500,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -761,7 +762,7 @@ export const RepositoriesPage: React.FC = () => {
                   aria-pressed={isSelected}
                   aria-label={`Select repository ${repo.full_name}`}
                 >
-                  <GitBranch size={12} />
+                  <GitBranch size={12} color={isSelected ? '#1d4ed8' : '#64748b'} />
                   <span>{repo.full_name}</span>
                 </button>
               );
@@ -799,17 +800,18 @@ export const RepositoriesPage: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '14px', marginTop: '8px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-secondary)' }}>
                   <span>
-                    Default Branch: <strong style={{ color: 'var(--teal-bright)' }}>{activeRepo.default_branch}</strong>
+                    Default Branch: <strong style={{ color: '#0f766e', fontWeight: 700 }}>{activeRepo.default_branch}</strong>
                   </span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     Commit SHA:{' '}
                     <code
                       style={{
-                        background: 'rgba(15, 32, 64, 0.8)',
+                        background: '#f1f5f9',
                         padding: '2px 6px',
                         borderRadius: '4px',
-                        border: '1px solid var(--border)',
-                        color: 'var(--electric-blue-bright)',
+                        border: '1px solid #cbd5e1',
+                        color: '#0f172a',
+                        fontWeight: 600,
                       }}
                     >
                       {activeRepo.pinned_sha ? activeRepo.pinned_sha.slice(0, 7) : 'Unpinned'}
@@ -903,8 +905,8 @@ export const RepositoriesPage: React.FC = () => {
             {/* Inspection Pills */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginTop: '20px' }}>
               {/* Languages */}
-              <div style={{ background: 'rgba(5, 13, 26, 0.6)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                <div style={{ fontSize: '11px', color: '#0f172a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Detected Languages
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -914,25 +916,26 @@ export const RepositoriesPage: React.FC = () => {
                         key={lang}
                         style={{
                           fontSize: '11px',
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          background: 'rgba(59, 130, 246, 0.15)',
-                          color: 'var(--electric-blue-bright)',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          fontWeight: 600,
+                          padding: '3px 9px',
+                          borderRadius: '6px',
+                          background: '#eff6ff',
+                          color: '#1d4ed8',
+                          border: '1px solid #bfdbfe',
                         }}
                       >
                         {lang}
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>None detected</span>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>None detected</span>
                   )}
                 </div>
               </div>
 
               {/* Manifests */}
-              <div style={{ background: 'rgba(5, 13, 26, 0.6)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                <div style={{ fontSize: '11px', color: '#0f172a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Detected Manifests
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -942,25 +945,26 @@ export const RepositoriesPage: React.FC = () => {
                         key={m}
                         style={{
                           fontSize: '11px',
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          background: 'rgba(20, 184, 166, 0.15)',
-                          color: 'var(--teal-bright)',
-                          border: '1px solid rgba(45, 212, 191, 0.3)',
+                          fontWeight: 600,
+                          padding: '3px 9px',
+                          borderRadius: '6px',
+                          background: '#f0fdf4',
+                          color: '#15803d',
+                          border: '1px solid #bbf7d0',
                         }}
                       >
                         {m}
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No manifests detected</span>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>No manifests detected</span>
                   )}
                 </div>
               </div>
 
               {/* Test & Config */}
-              <div style={{ background: 'rgba(5, 13, 26, 0.6)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: '6px' }}>
+              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                <div style={{ fontSize: '11px', color: '#0f172a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Test & CI Detection
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -970,31 +974,33 @@ export const RepositoriesPage: React.FC = () => {
                         key={t}
                         style={{
                           fontSize: '11px',
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          background: 'rgba(139, 92, 246, 0.15)',
-                          color: 'var(--accent-purple)',
-                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          fontWeight: 600,
+                          padding: '3px 9px',
+                          borderRadius: '6px',
+                          background: '#faf5ff',
+                          color: '#7e22ce',
+                          border: '1px solid #e9d5ff',
                         }}
                       >
                         📁 {t}
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No test directories</span>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>No test directories</span>
                   )}
                   {meta?.workflow_files && meta.workflow_files.length > 0 && (
                     <span
                       style={{
                         fontSize: '11px',
-                        padding: '2px 7px',
-                        borderRadius: '4px',
-                        background: 'rgba(16, 185, 129, 0.15)',
-                        color: 'var(--accent-green)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        fontWeight: 600,
+                        padding: '3px 9px',
+                        borderRadius: '6px',
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
                       }}
                     >
-                      ⚡ {meta.workflow_files.length} CI Workflows
+                      ⚡ Workflows ({meta.workflow_files.length})
                     </span>
                   )}
                 </div>
@@ -1063,24 +1069,24 @@ export const RepositoriesPage: React.FC = () => {
                         padding: '10px 12px',
                         borderRadius: '8px',
                         background: isStageDone
-                          ? 'rgba(16, 185, 129, 0.08)'
+                          ? '#f0fdf4'
                           : isStageCurrent
-                          ? 'rgba(59, 130, 246, 0.15)'
-                          : 'rgba(5, 13, 26, 0.8)',
+                          ? '#eff6ff'
+                          : '#f8fafc',
                         border: isStageDone
-                          ? '1px solid rgba(16, 185, 129, 0.3)'
+                          ? '1px solid #86efac'
                           : isStageCurrent
-                          ? '1px solid var(--electric-blue)'
-                          : '1px solid var(--border)',
+                          ? '1px solid #3b82f6'
+                          : '1px solid #e2e8f0',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
                         fontSize: '12px',
                         color: isStageDone
-                          ? 'var(--accent-green)'
+                          ? '#15803d'
                           : isStageCurrent
-                          ? 'var(--electric-blue-bright)'
-                          : 'var(--text-secondary)',
+                          ? '#1d4ed8'
+                          : '#475569',
                       }}
                     >
                       {isStageDone ? (
@@ -1478,7 +1484,7 @@ export const RepositoriesPage: React.FC = () => {
                                   {/* Expanded Detail Row */}
                                   {isExpanded && (
                                     <tr>
-                                      <td colSpan={6} style={{ padding: '16px 20px', background: 'rgba(5, 13, 26, 0.95)', borderBottom: '1px solid var(--border)' }}>
+                                      <td colSpan={6} style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                           {/* Redacted Evidence */}
                                           {finding.sanitized_evidence && (
@@ -1516,11 +1522,11 @@ export const RepositoriesPage: React.FC = () => {
                                                 style={{
                                                   padding: '12px 14px',
                                                   borderRadius: '6px',
-                                                  background: 'rgba(0, 0, 0, 0.6)',
-                                                  border: '1px solid var(--border)',
+                                                  background: '#ffffff',
+                                                  border: '1px solid #cbd5e1',
                                                   fontFamily: 'JetBrains Mono, monospace',
                                                   fontSize: '12px',
-                                                  color: 'var(--teal-bright)',
+                                                  color: '#0f172a',
                                                   overflowX: 'auto',
                                                   whiteSpace: 'pre-wrap',
                                                   lineHeight: 1.5,
@@ -1565,8 +1571,9 @@ export const RepositoriesPage: React.FC = () => {
                                                 style={{
                                                   padding: '14px 16px',
                                                   borderRadius: '8px',
-                                                  background: 'rgba(10, 25, 47, 0.7)',
-                                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                                  background: '#ffffff',
+                                                  border: '1px solid #e2e8f0',
+                                                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                                                   display: 'flex',
                                                   flexDirection: 'column',
                                                   gap: '12px',
@@ -1576,7 +1583,7 @@ export const RepositoriesPage: React.FC = () => {
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <Wrench size={15} color="var(--accent-green)" />
-                                                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                                       Exact Solution & Actionable Fix
                                                     </span>
                                                     {sol && (
@@ -1589,21 +1596,28 @@ export const RepositoriesPage: React.FC = () => {
                                                           textTransform: 'uppercase',
                                                           background:
                                                             sol.solution_type === 'dependency_upgrade'
-                                                              ? 'rgba(16, 185, 129, 0.2)'
+                                                              ? '#f0fdf4'
                                                               : sol.solution_type === 'secret_removal'
-                                                              ? 'rgba(244, 63, 94, 0.2)'
+                                                              ? '#fef2f2'
                                                               : sol.solution_type === 'security_config'
-                                                              ? 'rgba(168, 85, 247, 0.2)'
-                                                              : 'rgba(59, 130, 246, 0.2)',
+                                                              ? '#faf5ff'
+                                                              : '#eff6ff',
                                                           color:
                                                             sol.solution_type === 'dependency_upgrade'
-                                                              ? '#34d399'
+                                                              ? '#15803d'
                                                               : sol.solution_type === 'secret_removal'
-                                                              ? '#f87171'
+                                                              ? '#dc2626'
                                                               : sol.solution_type === 'security_config'
-                                                              ? '#c084fc'
-                                                              : 'var(--electric-blue-bright)',
-                                                          border: '1px solid currentColor',
+                                                              ? '#7c3aed'
+                                                              : '#1d4ed8',
+                                                          border:
+                                                            sol.solution_type === 'dependency_upgrade'
+                                                              ? '1px solid #bbf7d0'
+                                                              : sol.solution_type === 'secret_removal'
+                                                              ? '1px solid #fecaca'
+                                                              : sol.solution_type === 'security_config'
+                                                              ? '1px solid #e9d5ff'
+                                                              : '1px solid #bfdbfe',
                                                         }}
                                                       >
                                                         {sol.solution_type.replace('_', ' ')}
@@ -1682,12 +1696,12 @@ export const RepositoriesPage: React.FC = () => {
                                                         <div
                                                           style={{
                                                             padding: '8px 12px',
-                                                            background: 'rgba(0, 0, 0, 0.7)',
-                                                            border: '1px solid rgba(20, 184, 166, 0.3)',
+                                                            background: '#f1f5f9',
+                                                            border: '1px solid #cbd5e1',
                                                             borderRadius: '6px',
                                                             fontFamily: 'JetBrains Mono, monospace',
                                                             fontSize: '12px',
-                                                            color: 'var(--teal-bright)',
+                                                            color: '#0f172a',
                                                             overflowX: 'auto',
                                                             userSelect: 'all',
                                                           }}
@@ -1732,8 +1746,8 @@ export const RepositoriesPage: React.FC = () => {
 
                                                     {/* Verification Step */}
                                                     {sol.verification_step && (
-                                                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', background: 'rgba(5, 13, 26, 0.5)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                                                        <strong style={{ color: 'var(--accent-green)' }}>Verification Step:</strong> {sol.verification_step}
+                                                      <div style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                                                        <strong style={{ color: '#15803d' }}>Verification Step:</strong> {sol.verification_step}
                                                       </div>
                                                     )}
                                                   </>
@@ -1748,7 +1762,7 @@ export const RepositoriesPage: React.FC = () => {
                                           })()}
 
                                           {/* Metadata footer */}
-                                          <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--text-muted)', paddingTop: '6px', borderTop: '1px solid rgba(30, 58, 110, 0.4)', flexWrap: 'wrap' }}>
+                                          <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--text-muted)', paddingTop: '6px', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
                                             <span>Scanner: <strong>{finding.scanner}</strong></span>
                                             {finding.scanner_version && <span>Version: <strong>v{finding.scanner_version}</strong></span>}
                                             {finding.rule_id && <span>Rule: <strong>{finding.rule_id}</strong></span>}
@@ -1884,8 +1898,8 @@ export const RepositoriesPage: React.FC = () => {
 
                     {/* Quick-Fix CLI Commands */}
                     {solutionPlan?.quick_fix_cli_commands && solutionPlan.quick_fix_cli_commands.length > 0 && (
-                      <div style={{ marginTop: '14px', background: 'rgba(5, 13, 26, 0.8)', border: '1px solid rgba(20, 184, 166, 0.3)', borderRadius: '8px', padding: '14px 16px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--teal-bright)', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ marginTop: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Terminal size={14} /> Batch Terminal Upgrade Commands:
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1896,14 +1910,14 @@ export const RepositoriesPage: React.FC = () => {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                background: 'rgba(0, 0, 0, 0.6)',
-                                border: '1px solid var(--border)',
+                                background: '#ffffff',
+                                border: '1px solid #cbd5e1',
                                 borderRadius: '6px',
                                 padding: '8px 12px',
                                 gap: '12px',
                               }}
                             >
-                              <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: 'var(--teal-bright)', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                              <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#0f172a', overflowX: 'auto', whiteSpace: 'nowrap' }}>
                                 $ {cmd}
                               </code>
                               <button
@@ -1943,9 +1957,9 @@ export const RepositoriesPage: React.FC = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: selectedSolutionFilter === 'all' ? 'var(--electric-blue)' : 'rgba(5, 13, 26, 0.6)',
-                        color: selectedSolutionFilter === 'all' ? '#fff' : 'var(--text-secondary)',
-                        border: '1px solid var(--border)',
+                        background: selectedSolutionFilter === 'all' ? '#2563eb' : '#ffffff',
+                        color: selectedSolutionFilter === 'all' ? '#fff' : '#334155',
+                        border: selectedSolutionFilter === 'all' ? '1px solid #2563eb' : '1px solid #cbd5e1',
                       }}
                     >
                       All Solutions ({solutionPlan?.total_solutions ?? 0})
@@ -1958,9 +1972,9 @@ export const RepositoriesPage: React.FC = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: selectedSolutionFilter === 'code_diff' ? 'var(--electric-blue)' : 'rgba(5, 13, 26, 0.6)',
-                        color: selectedSolutionFilter === 'code_diff' ? '#fff' : 'var(--text-secondary)',
-                        border: '1px solid var(--border)',
+                        background: selectedSolutionFilter === 'code_diff' ? '#2563eb' : '#ffffff',
+                        color: selectedSolutionFilter === 'code_diff' ? '#fff' : '#334155',
+                        border: selectedSolutionFilter === 'code_diff' ? '1px solid #2563eb' : '1px solid #cbd5e1',
                       }}
                     >
                       Code Diffs ({solutionPlan?.code_diffs_count ?? 0})
@@ -1973,9 +1987,9 @@ export const RepositoriesPage: React.FC = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: selectedSolutionFilter === 'dependency_upgrade' ? 'var(--teal)' : 'rgba(5, 13, 26, 0.6)',
-                        color: selectedSolutionFilter === 'dependency_upgrade' ? '#fff' : 'var(--text-secondary)',
-                        border: '1px solid var(--border)',
+                        background: selectedSolutionFilter === 'dependency_upgrade' ? '#0d9488' : '#ffffff',
+                        color: selectedSolutionFilter === 'dependency_upgrade' ? '#fff' : '#334155',
+                        border: selectedSolutionFilter === 'dependency_upgrade' ? '1px solid #0d9488' : '1px solid #cbd5e1',
                       }}
                     >
                       Dependency Upgrades ({solutionPlan?.dependency_upgrades_count ?? 0})
@@ -1988,9 +2002,9 @@ export const RepositoriesPage: React.FC = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: selectedSolutionFilter === 'secret_removal' ? 'var(--accent-rose)' : 'rgba(5, 13, 26, 0.6)',
-                        color: selectedSolutionFilter === 'secret_removal' ? '#fff' : 'var(--text-secondary)',
-                        border: '1px solid var(--border)',
+                        background: selectedSolutionFilter === 'secret_removal' ? '#e11d48' : '#ffffff',
+                        color: selectedSolutionFilter === 'secret_removal' ? '#fff' : '#334155',
+                        border: selectedSolutionFilter === 'secret_removal' ? '1px solid #e11d48' : '1px solid #cbd5e1',
                       }}
                     >
                       Secret Removals ({solutionPlan?.secret_removals_count ?? 0})
@@ -2076,8 +2090,9 @@ export const RepositoriesPage: React.FC = () => {
                                   style={{
                                     padding: '12px 14px',
                                     borderRadius: '6px',
-                                    background: 'rgba(5, 13, 26, 0.6)',
-                                    border: '1px solid rgba(30, 58, 110, 0.4)',
+                                    background: '#ffffff',
+                                    border: '1px solid #e2e8f0',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '8px',
@@ -2128,8 +2143,8 @@ export const RepositoriesPage: React.FC = () => {
                                   </div>
 
                                   {sol.cli_command && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0, 0, 0, 0.5)', padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                                      <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: 'var(--teal-bright)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
+                                      <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#0f172a' }}>
                                         $ {sol.cli_command}
                                       </code>
                                       <button
@@ -2259,15 +2274,16 @@ export const RepositoriesPage: React.FC = () => {
                           <div
                             key={idx}
                             style={{
-                              background: 'rgba(5, 13, 26, 0.6)',
+                              background: '#ffffff',
                               borderRadius: '8px',
                               border: isCompleted
-                                ? '1px solid rgba(45, 212, 191, 0.3)'
+                                ? '1px solid #86efac'
                                 : isUnavailable
-                                ? '1px solid rgba(245, 158, 11, 0.3)'
+                                ? '1px solid #fde68a'
                                 : isFailed
-                                ? '1px solid rgba(244, 63, 94, 0.3)'
+                                ? '1px solid #fca5a5'
                                 : '1px solid var(--border)',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                               padding: '14px 16px',
                               display: 'flex',
                               flexDirection: 'column',
@@ -2279,22 +2295,22 @@ export const RepositoriesPage: React.FC = () => {
                                 {sc.name}
                               </span>
                               {isCompleted && (
-                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-green)', fontWeight: 600 }}>
+                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: 600 }}>
                                   ✓ Active {sc.version ? `v${sc.version}` : ''}
                                 </span>
                               )}
                               {isUnavailable && (
-                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-amber)', fontWeight: 600 }}>
+                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 600 }}>
                                   ⚠ Unavailable
                                 </span>
                               )}
                               {isFailed && (
-                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(244, 63, 94, 0.15)', color: 'var(--accent-rose)', fontWeight: 600 }}>
+                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 600 }}>
                                   ✕ Failed
                                 </span>
                               )}
                               {isNotApplicable && (
-                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.1)', color: 'var(--text-muted)', fontWeight: 600 }}>
+                                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0', fontWeight: 600 }}>
                                   ○ Not Applicable
                                 </span>
                               )}
@@ -2305,7 +2321,7 @@ export const RepositoriesPage: React.FC = () => {
                             </div>
 
                             {sc.findings_count !== undefined && sc.findings_count > 0 && (
-                              <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--electric-blue-bright)', fontWeight: 600 }}>
+                              <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--electric-blue)', fontWeight: 600 }}>
                                 {sc.findings_count} {sc.findings_count === 1 ? 'Finding' : 'Findings'} Detected
                               </div>
                             )}
@@ -2329,26 +2345,26 @@ export const RepositoriesPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {scanReport?.ai_analysis && scanReport.ai_analysis.status !== 'not_configured' ? (
                 <div
-                  className="glass-card glow-teal"
+                  className="glass-card"
                   style={{
                     padding: '22px 24px',
-                    border: '1px solid rgba(45, 212, 191, 0.45)',
-                    background: 'rgba(10, 24, 48, 0.9)',
+                    border: '1px solid var(--border)',
+                    background: '#ffffff',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Sparkles size={18} color="var(--teal-bright)" />
-                      <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--teal-bright)' }}>
+                      <Sparkles size={18} color="var(--electric-blue)" />
+                      <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>
                         NVIDIA Nemotron • LangGraph 4-Agent Security Audit
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: 'var(--electric-blue-bright)', fontWeight: 600 }}>
+                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontWeight: 600 }}>
                         Model: {scanReport.ai_analysis.model || 'NVIDIA Nemotron'}
                       </span>
                       {scanReport.ai_analysis.is_fallback && (
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: 'var(--accent-amber)', fontWeight: 600 }}>
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 600 }}>
                           Deterministic Heuristic Fallback
                         </span>
                       )}
@@ -2357,14 +2373,14 @@ export const RepositoriesPage: React.FC = () => {
 
                   {/* LangGraph Pipeline Stage Indicator */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '14px', flexWrap: 'wrap' }}>
-                    <span style={{ color: 'var(--teal-bright)', fontWeight: 600 }}>Orchestration Pipeline:</span>
-                    <span style={{ background: 'rgba(15, 32, 64, 0.6)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)' }}>1. Threat Modeler</span>
+                    <span style={{ color: '#0f766e', fontWeight: 600 }}>Orchestration Pipeline:</span>
+                    <span style={{ background: '#f1f5f9', color: '#0f172a', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>1. Threat Modeler</span>
                     <span>→</span>
-                    <span style={{ background: 'rgba(15, 32, 64, 0.6)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)' }}>2. Test Strategist</span>
+                    <span style={{ background: '#f1f5f9', color: '#0f172a', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>2. Test Strategist</span>
                     <span>→</span>
-                    <span style={{ background: 'rgba(15, 32, 64, 0.6)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)' }}>3. Evidence Analyst</span>
+                    <span style={{ background: '#f1f5f9', color: '#0f172a', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>3. Evidence Analyst</span>
                     <span>→</span>
-                    <span style={{ background: 'rgba(15, 32, 64, 0.6)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border)' }}>4. Remediation Verifier</span>
+                    <span style={{ background: '#f1f5f9', color: '#0f172a', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>4. Remediation Verifier</span>
                   </div>
 
                   <p style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: '16px' }}>
@@ -2375,8 +2391,8 @@ export const RepositoriesPage: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '12px' }}>
                     {/* Agent 1: Threat Modeler */}
                     {scanReport.ai_analysis.threat_model && (
-                      <div style={{ background: 'rgba(5, 13, 26, 0.6)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--electric-blue-bright)', marginBottom: '6px' }}>
+                      <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #bfdbfe', borderTop: '3px solid #2563eb' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#1d4ed8', marginBottom: '6px' }}>
                           Agent 1 • Threat Modeler
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
@@ -2396,8 +2412,8 @@ export const RepositoriesPage: React.FC = () => {
 
                     {/* Agent 2: Test Strategist */}
                     {scanReport.ai_analysis.test_strategy && (
-                      <div style={{ background: 'rgba(5, 13, 26, 0.6)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-green)', marginBottom: '6px' }}>
+                      <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #bbf7d0', borderTop: '3px solid #16a34a' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>
                           Agent 2 • Test Strategist
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
@@ -2417,18 +2433,18 @@ export const RepositoriesPage: React.FC = () => {
 
                     {/* Agent 3: Evidence Analyst */}
                     {scanReport.ai_analysis.evidence_analysis && (
-                      <div style={{ background: 'rgba(5, 13, 26, 0.6)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-amber)', marginBottom: '6px' }}>
+                      <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #fde68a', borderTop: '3px solid #d97706' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#b45309', marginBottom: '6px' }}>
                           Agent 3 • Evidence Analyst
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                           {scanReport.ai_analysis.evidence_analysis.analysis_summary}
                         </div>
                         <div style={{ display: 'flex', gap: '10px', fontSize: '11px' }}>
-                          <span style={{ color: 'var(--accent-green)' }}>
+                          <span style={{ color: '#15803d' }}>
                             Verified Proof: <strong>{scanReport.ai_analysis.evidence_analysis.verified_findings_count ?? 0}</strong>
                           </span>
-                          <span style={{ color: 'var(--accent-amber)' }}>
+                          <span style={{ color: '#b45309' }}>
                             Unverified/Heuristic: <strong>{scanReport.ai_analysis.evidence_analysis.unverified_findings_count ?? 0}</strong>
                           </span>
                         </div>
@@ -2437,15 +2453,15 @@ export const RepositoriesPage: React.FC = () => {
 
                     {/* Agent 4: Remediation Verifier */}
                     {scanReport.ai_analysis.remediation_plan && (
-                      <div style={{ background: 'rgba(5, 13, 26, 0.6)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(45, 212, 191, 0.25)' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--teal-bright)', marginBottom: '6px' }}>
+                      <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #99f6e4', borderTop: '3px solid #0d9488' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', marginBottom: '6px' }}>
                           Agent 4 • Remediation Verifier
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                           {scanReport.ai_analysis.remediation_plan.executive_remediation_summary}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Status: <strong style={{ color: '#fbbf24' }}>Unverified</strong> (Requires passing CI test assertions)
+                          Status: <strong style={{ color: '#b45309' }}>Unverified</strong> (Requires passing CI test assertions)
                         </div>
                       </div>
                     )}
@@ -2563,11 +2579,12 @@ export const RepositoriesPage: React.FC = () => {
                             <td style={{ padding: '12px' }}>
                               <code
                                 style={{
-                                  background: 'rgba(15, 32, 64, 0.8)',
+                                  background: '#f1f5f9',
                                   padding: '2px 6px',
                                   borderRadius: '4px',
-                                  border: '1px solid var(--border)',
-                                  color: 'var(--electric-blue-bright)',
+                                  border: '1px solid #e2e8f0',
+                                  color: '#1d4ed8',
+                                  fontWeight: 600,
                                 }}
                               >
                                 {scan.commit_sha ? scan.commit_sha.slice(0, 7) : 'Unpinned'}

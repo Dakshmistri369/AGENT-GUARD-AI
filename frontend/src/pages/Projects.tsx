@@ -33,7 +33,7 @@ const CreateModal: React.FC<{ onClose: () => void; onCreated: () => void }> = ({
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(5,13,26,0.85)',
+      position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
       backdropFilter: 'blur(4px)',
     }}>
