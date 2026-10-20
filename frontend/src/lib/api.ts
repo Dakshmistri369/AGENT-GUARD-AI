@@ -18,7 +18,8 @@ import type {
 const RAW_BASE =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.PROD ? 'https://agent-guard-ai.onrender.com' : '');
-const BASE = RAW_BASE.replace(/\/+$/, '');
+export const API_BASE_URL = RAW_BASE.replace(/\/+$/, '');
+const BASE = API_BASE_URL;
 
 const client = axios.create({
   baseURL: BASE,

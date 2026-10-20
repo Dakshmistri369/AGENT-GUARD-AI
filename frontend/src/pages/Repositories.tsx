@@ -28,7 +28,7 @@ import {
   FileCode,
   Code2,
 } from 'lucide-react';
-import { api } from '../lib/api';
+import { api, API_BASE_URL } from '../lib/api';
 import type {
   Repository,
   Scan,
@@ -64,6 +64,7 @@ export const RepositoriesPage: React.FC = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [isDeletingRepo, setIsDeletingRepo] = useState(false);
+  const [isWakingBackend, setIsWakingBackend] = useState(false);
 
   // Active repository state
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -306,6 +307,19 @@ export const RepositoriesPage: React.FC = () => {
       setConnectError(detail);
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const handleWakeUpBackend = async () => {
+    setIsWakingBackend(true);
+    try {
+      await api.health.get();
+      setConnectError(null);
+      await loadRepositories();
+    } catch {
+      window.open(`${API_BASE_URL || 'https://agent-guard-ai.onrender.com'}/health`, '_blank');
+    } finally {
+      setIsWakingBackend(false);
     }
   };
 
@@ -741,9 +755,22 @@ export const RepositoriesPage: React.FC = () => {
           )}
 
           {urlValidation.error && (
-            <div style={{ fontSize: '12px', color: 'var(--accent-rose)', display: 'flex', alignItems: 'center', gap: '6px' }} role="alert">
-              <AlertTriangle size={13} />
-              {urlValidation.error}
+            <div
+              style={{
+                fontSize: '12px',
+                color: '#b91c1c',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#fef2f2',
+                padding: '6px 10px',
+                borderRadius: '6px',
+                border: '1px solid #fecaca',
+              }}
+              role="alert"
+            >
+              <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+              <span>{urlValidation.error}</span>
             </div>
           )}
 
@@ -751,15 +778,72 @@ export const RepositoriesPage: React.FC = () => {
             <div
               style={{
                 fontSize: '12px',
-                color: 'var(--accent-rose)',
-                padding: '8px 12px',
-                borderRadius: '6px',
-                background: 'rgba(244, 63, 94, 0.1)',
-                border: '1px solid rgba(244, 63, 94, 0.3)',
+                color: '#991b1b',
+                padding: '12px 14px',
+                borderRadius: '8px',
+                background: '#fef2f2',
+                border: '1px solid #f87171',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
               }}
               role="alert"
             >
-              {connectError}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600 }}>{connectError}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}>
+                    💡 <strong>Tip for Render Free Tier:</strong> Render automatically hibernates free services after 15 minutes of inactivity. When asleep, incoming requests take ~50 seconds to wake up the server. Once awake, all requests respond instantly.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: '24px', flexWrap: 'wrap', marginTop: '2px' }}>
+                <a
+                  href={`${API_BASE_URL || 'https://agent-guard-ai.onrender.com'}/health`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#2563eb',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <ExternalLink size={12} />
+                  Ping Backend Service ({API_BASE_URL || 'https://agent-guard-ai.onrender.com'}) ↗
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handleWakeUpBackend}
+                  disabled={isWakingBackend}
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#334155',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <RotateCw size={12} className={isWakingBackend ? 'animate-spin' : ''} />
+                  {isWakingBackend ? 'Waking up backend...' : 'Retry Connection'}
+                </button>
+              </div>
             </div>
           )}
         </form>
