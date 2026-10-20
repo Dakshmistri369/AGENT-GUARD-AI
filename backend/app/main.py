@@ -35,14 +35,11 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
-    Startup: create tables (dev/test only via create_all — Alembic handles prod).
+    Startup: ensure tables are created (idempotent across SQLite & PostgreSQL).
     Shutdown: dispose engine.
     """
-    if settings.is_sqlite:
-        # For SQLite dev / ephemeral test DBs, create tables directly.
-        # For PostgreSQL (staging/prod), run: alembic upgrade head
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
     yield
 

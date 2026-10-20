@@ -25,8 +25,10 @@ export const SettingsPage: React.FC = () => (
 
     {/* Database */}
     <Section title="Database" icon={<Database size={14} color="var(--teal)" />}>
-      <InfoRow label="Mode" value="SQLite (local dev)" />
-      <InfoRow label="Note" value="PostgreSQL used in staging/prod — see docker-compose.yml" />
+      <InfoRow label="Engine" value="Supabase PostgreSQL (Active)" />
+      <InfoRow label="Project" value="https://ohnwhldqnemjvpjvpclw.supabase.co" />
+      <InfoRow label="Region / Mode" value="AWS ap-northeast-2 (IPv4 & IPv6 Dual Pooler)" />
+      <InfoRow label="Status" value="Connected · Tables Initialized · Synced" />
     </Section>
 
     {/* Sandbox */}

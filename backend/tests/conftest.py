@@ -5,6 +5,10 @@ external services.
 """
 from __future__ import annotations
 
+import os
+# Force in-memory SQLite for test isolation
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+
 from typing import AsyncGenerator
 
 import pytest_asyncio

@@ -15,6 +15,11 @@ pool_kwargs: dict = {}
 if settings.is_sqlite:
     connect_args["check_same_thread"] = False
     pool_kwargs["poolclass"] = StaticPool
+else:
+    # PostgreSQL pool settings for Supabase / Cloud Postgres
+    pool_kwargs["pool_size"] = 10
+    pool_kwargs["max_overflow"] = 20
+    pool_kwargs["pool_pre_ping"] = True
 
 engine = create_async_engine(
     settings.database_url,
