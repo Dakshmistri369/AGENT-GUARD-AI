@@ -84,7 +84,7 @@ The repository includes a ready-to-use [`render.yaml`](./render.yaml).
      "status": "healthy",
      "version": "0.1.0",
      "environment": "production",
-     "database": { "status": "ok", "type": "postgresql" },
+     "database": { "status": "ok", "type": "postgresql", "latency_ms": 1.2 },
      "ai_provider": { "mode": "nemotron", "mock_active": false }
    }
    ```
