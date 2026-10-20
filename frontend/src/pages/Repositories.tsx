@@ -229,28 +229,54 @@ export const RepositoriesPage: React.FC = () => {
     });
   };
 
-  // URL input handler with debounce
+  // URL input handler with client-side pattern recognition and backend validation
   const handleUrlChange = async (url: string) => {
     setRepoUrl(url);
     setConnectError(null);
 
-    if (!url.trim()) {
+    const clean = url.trim();
+    if (!clean) {
       setUrlValidation({});
       return;
     }
 
+    // Client-side instant format check
+    const githubRegex = /^https?:\/\/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+?)(\.git)?$/i;
+    const match = clean.match(githubRegex);
+    if (!match) {
+      setUrlValidation({ valid: false, error: 'Must be a valid GitHub repository URL (e.g. https://github.com/owner/repo)' });
+      return;
+    }
+
+    // Optimistically recognize valid format so the user is not blocked
+    const owner = match[1];
+    const name = match[2].replace(/\.git$/, '');
+    setUrlValidation({ valid: true, owner, name });
+
     setIsValidatingUrl(true);
     try {
-      const res = await api.repositories.validate(url.trim());
+      const res = await api.repositories.validate(clean);
       setUrlValidation({
         valid: res.valid,
         error: res.error,
-        owner: res.owner,
-        name: res.name,
+        owner: res.owner || owner,
+        name: res.name || name,
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Validation failed';
-      setUrlValidation({ valid: false, error: msg });
+      // If client format is valid, keep valid: true so user can still attempt connection,
+      // but warn about backend connection if Network Error
+      const isNetworkErr = err instanceof Error && (err.message.includes('Network Error') || err.message.includes('404'));
+      if (isNetworkErr) {
+        setUrlValidation({
+          valid: true,
+          owner,
+          name,
+          error: 'Backend API unreachable. Ensure your Render backend is running and VITE_API_BASE_URL is set in Vercel.',
+        });
+      } else {
+        const msg = err instanceof Error ? err.message : 'Validation failed';
+        setUrlValidation({ valid: false, error: msg });
+      }
     } finally {
       setIsValidatingUrl(false);
     }
@@ -273,7 +299,10 @@ export const RepositoriesPage: React.FC = () => {
       setScanReport(null);
       setPastScans([]);
     } catch (err: any) {
-      const detail = err?.response?.data?.detail || err?.message || 'Failed to connect repository';
+      const isNetworkErr = err?.message?.includes('Network Error') || !err?.response;
+      const detail = isNetworkErr
+        ? 'Cannot reach backend server. Please verify your Render service is awake and VITE_API_BASE_URL is set in Vercel.'
+        : err?.response?.data?.detail || err?.message || 'Failed to connect repository';
       setConnectError(detail);
     } finally {
       setIsConnecting(false);

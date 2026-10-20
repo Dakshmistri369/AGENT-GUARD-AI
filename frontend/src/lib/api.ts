@@ -18,6 +18,13 @@ import type {
 const RAW_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 const BASE = RAW_BASE.replace(/\/+$/, '');
 
+if (import.meta.env.PROD && !RAW_BASE) {
+  console.warn(
+    '[AgentGuard AI] VITE_API_BASE_URL is not configured! Requests will default to current host. ' +
+    'Please add VITE_API_BASE_URL=https://<your-render-service>.onrender.com in your Vercel Project Settings and redeploy.'
+  );
+}
+
 const client = axios.create({
   baseURL: BASE,
   timeout: 300000, // 5 minutes for full static analysis and multi-engine cloning
