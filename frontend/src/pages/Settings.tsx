@@ -65,17 +65,18 @@ export const SettingsPage: React.FC = () => (
       display: 'flex',
       alignItems: 'center',
       gap: '18px',
-      borderColor: 'rgba(20, 184, 166, 0.25)',
-      background: 'linear-gradient(135deg, rgba(15, 32, 64, 0.8), rgba(5, 13, 26, 0.9))',
+      borderColor: '#e2e8f0',
+      background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
     }}>
       <div style={{
         width: '64px',
         height: '64px',
         borderRadius: '14px',
         overflow: 'hidden',
-        border: '1px solid rgba(45, 212, 191, 0.4)',
-        boxShadow: '0 0 20px rgba(20, 184, 166, 0.25)',
-        background: '#040d1a',
+        border: '1px solid #cbd5e1',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+        background: '#ffffff',
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
@@ -91,7 +92,7 @@ export const SettingsPage: React.FC = () => (
         <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
           AgentGuard AI
         </div>
-        <div style={{ fontSize: '11px', color: 'var(--teal-bright)', fontWeight: 600, letterSpacing: '0.6px', marginTop: '2px' }}>
+        <div style={{ fontSize: '11px', color: '#0d9488', fontWeight: 700, letterSpacing: '0.6px', marginTop: '2px' }}>
           SCAN · ANALYZE · VERIFY · SECURE
         </div>
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.5 }}>

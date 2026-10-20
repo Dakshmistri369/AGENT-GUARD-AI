@@ -219,7 +219,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             style={{
               fontSize: dimensions.fontTitle,
               fontWeight: 800,
-              color: '#f8fafc',
+              color: '#0f172a',
               lineHeight: 1.15,
               letterSpacing: '-0.3px',
               whiteSpace: 'nowrap',
@@ -228,8 +228,8 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             AgentGuard{' '}
             <span
               style={{
-                color: '#2dd4bf',
-                textShadow: '0 0 10px rgba(45, 212, 191, 0.4)',
+                color: '#0d9488',
+                fontWeight: 900,
               }}
             >
               AI

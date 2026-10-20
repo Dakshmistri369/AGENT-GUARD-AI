@@ -48,8 +48,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     <header
       style={{
         height: '56px',
-        background: '#071224',
-        borderBottom: '1px solid rgba(30, 58, 110, 0.45)',
+        background: '#ffffff',
+        borderBottom: '1px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -62,35 +62,35 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
       {/* Left: Breadcrumbs & Active Repository context */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
         <span style={{ color: '#64748b', fontWeight: 500 }}>demo</span>
-        <ChevronRight size={14} color="#475569" />
-        <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{getPageTitle()}</span>
+        <ChevronRight size={14} color="#94a3b8" />
+        <span style={{ color: '#0f172a', fontWeight: 700 }}>{getPageTitle()}</span>
 
         {/* Repository context selector pill */}
         {repositories.length > 0 && onSelectRepo && (
           <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#475569', fontSize: '12px' }}>|</span>
-            <GitBranch size={13} color="#2dd4bf" />
+            <span style={{ color: '#cbd5e1', fontSize: '12px' }}>|</span>
+            <GitBranch size={13} color="#0d9488" />
             <select
               value={selectedRepoId || ''}
               onChange={(e) => onSelectRepo(Number(e.target.value))}
               style={{
-                background: 'rgba(15, 32, 64, 0.6)',
-                border: '1px solid rgba(30, 58, 110, 0.5)',
+                background: '#f8fafc',
+                border: '1px solid #cbd5e1',
                 borderRadius: '6px',
-                color: '#2dd4bf',
+                color: '#0f172a',
                 fontSize: '12px',
                 fontWeight: 600,
-                padding: '3px 8px',
+                padding: '4px 8px',
                 cursor: 'pointer',
                 outline: 'none',
               }}
               aria-label="Filter context by connected repository"
             >
-              <option value="" style={{ background: '#071426', color: '#94a3b8' }}>
+              <option value="" style={{ background: '#ffffff', color: '#64748b' }}>
                 All Repositories ({repositories.length})
               </option>
               {repositories.map((repo) => (
-                <option key={repo.id} value={repo.id} style={{ background: '#071426', color: '#f1f5f9' }}>
+                <option key={repo.id} value={repo.id} style={{ background: '#ffffff', color: '#0f172a' }}>
                   {repo.full_name}
                 </option>
               ))}
@@ -108,9 +108,9 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               gap: '6px',
               fontSize: '11px',
               fontWeight: 600,
-              color: '#2dd4bf',
-              background: 'rgba(20, 184, 166, 0.15)',
-              border: '1px solid rgba(45, 212, 191, 0.35)',
+              color: '#0f766e',
+              background: '#f0fdf4',
+              border: '1px solid #a7f3d0',
               padding: '2px 10px',
               borderRadius: '9999px',
             }}
@@ -133,17 +133,17 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               gap: '6px',
               fontSize: '12px',
               fontWeight: 600,
-              color: '#e2e8f0',
-              background: 'rgba(59, 130, 246, 0.15)',
-              border: '1px solid rgba(59, 130, 246, 0.3)',
+              color: '#1d4ed8',
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
               borderRadius: '6px',
-              padding: '5px 10px',
+              padding: '5px 12px',
               cursor: 'pointer',
-              transition: 'background 0.15s ease',
+              transition: 'all 0.15s ease',
             }}
             title="Open AI Security Assistant"
           >
-            <Sparkles size={13} color="#60a5fa" />
+            <Sparkles size={13} color="#2563eb" />
             <span>AI Assistant</span>
           </button>
         )}
@@ -154,7 +154,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            color: '#94a3b8',
+            color: '#475569',
             display: 'flex',
             alignItems: 'center',
             padding: '6px',
@@ -170,7 +170,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         <Link
           to="/settings"
           style={{
-            color: '#94a3b8',
+            color: '#475569',
             display: 'flex',
             alignItems: 'center',
             padding: '6px',
@@ -190,8 +190,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             gap: '8px',
             padding: '4px 10px',
             borderRadius: '8px',
-            background: 'rgba(15, 32, 64, 0.5)',
-            border: '1px solid rgba(30, 58, 110, 0.4)',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
           }}
         >
           <div
@@ -199,7 +199,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               width: '24px',
               height: '24px',
               borderRadius: '6px',
-              background: 'linear-gradient(135deg, #1d4ed8 0%, #0d9488 100%)',
+              background: 'linear-gradient(135deg, #2563eb 0%, #0d9488 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -211,7 +211,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             D
           </div>
           <div style={{ lineHeight: 1.1 }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>demo</div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>demo</div>
             <div style={{ fontSize: '10px', color: '#64748b' }}>Security Auditor</div>
           </div>
         </div>

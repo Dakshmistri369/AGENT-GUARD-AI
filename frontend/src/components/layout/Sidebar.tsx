@@ -76,8 +76,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       style={{
         width: collapsed ? '68px' : '230px',
         minWidth: collapsed ? '68px' : '230px',
-        background: '#07101f',
-        borderRight: '1px solid rgba(30, 58, 110, 0.45)',
+        background: '#f8fafc',
+        borderRight: '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
         transition: 'width 0.2s ease, min-width 0.2s ease',
@@ -90,11 +90,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div
         style={{
           padding: collapsed ? '16px 12px' : '16px 16px',
-          borderBottom: '1px solid rgba(30, 58, 110, 0.45)',
+          borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
           minHeight: '64px',
+          background: '#ffffff',
         }}
       >
         <Link to="/" style={{ textDecoration: 'none' }} title="AgentGuard AI Security Command Center">
@@ -127,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 style={{
                   fontSize: '10.5px',
                   fontWeight: 700,
-                  color: '#475569',
+                  color: '#64748b',
                   letterSpacing: '0.8px',
                   padding: '4px 12px',
                   textTransform: 'uppercase',
@@ -165,17 +166,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         borderRadius: '8px',
                         fontSize: '13px',
                         fontWeight: 500,
-                        color: '#94a3b8',
+                        color: '#334155',
                         textDecoration: 'none',
                         transition: 'all 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(30, 58, 110, 0.25)';
-                        e.currentTarget.style.color = '#f1f5f9';
+                        e.currentTarget.style.background = '#f1f5f9';
+                        e.currentTarget.style.color = '#0f172a';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#94a3b8';
+                        e.currentTarget.style.color = '#334155';
                       }}
                     >
                       <Icon size={16} color="#64748b" />
@@ -196,28 +197,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       padding: '8px 12px',
                       borderRadius: '8px',
                       fontSize: '13px',
-                      fontWeight: isActive ? 600 : 500,
+                      fontWeight: isActive ? 700 : 500,
                       textDecoration: 'none',
-                      color: isActive ? '#f8fafc' : '#94a3b8',
-                      background: isActive ? 'rgba(59, 130, 246, 0.18)' : 'transparent',
-                      borderLeft: isActive ? '2px solid #3b82f6' : '2px solid transparent',
+                      color: isActive ? '#1d4ed8' : '#0f172a',
+                      background: isActive ? '#eff6ff' : 'transparent',
+                      borderLeft: isActive ? '3px solid #2563eb' : '3px solid transparent',
                       transition: 'all 0.15s ease',
                       position: 'relative',
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
-                        e.currentTarget.style.background = 'rgba(30, 58, 110, 0.2)';
-                        e.currentTarget.style.color = '#f1f5f9';
+                        e.currentTarget.style.background = '#f1f5f9';
+                        e.currentTarget.style.color = '#000000';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive) {
                         e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#94a3b8';
+                        e.currentTarget.style.color = '#0f172a';
                       }
                     }}
                   >
-                    <Icon size={16} color={isActive ? '#60a5fa' : '#64748b'} />
+                    <Icon size={16} color={isActive ? '#2563eb' : '#64748b'} />
                     {!collapsed && <span>{item.label}</span>}
                     {item.badge && !collapsed && (
                       <span
@@ -226,9 +227,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           fontSize: '10px',
                           padding: '1px 6px',
                           borderRadius: '4px',
-                          background: 'rgba(45, 212, 191, 0.15)',
-                          color: '#2dd4bf',
+                          background: '#f0fdf4',
+                          color: '#059669',
                           fontWeight: 600,
+                          border: '1px solid #bbf7d0',
                         }}
                       >
                         {item.badge}
@@ -252,15 +254,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           width: '22px',
           height: '22px',
           borderRadius: '50%',
-          background: '#0f2040',
-          border: '1px solid rgba(59, 130, 246, 0.4)',
+          background: '#ffffff',
+          border: '1px solid #cbd5e1',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#94a3b8',
+          color: '#475569',
           zIndex: 30,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
         }}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
@@ -272,12 +274,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
           style={{
             padding: '12px 14px',
-            borderTop: '1px solid rgba(30, 58, 110, 0.45)',
+            borderTop: '1px solid #e2e8f0',
             fontSize: '11px',
             color: '#64748b',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            background: '#ffffff',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -287,12 +290,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: '#10b981',
+                background: '#059669',
               }}
             />
-            <span style={{ color: '#94a3b8', fontWeight: 500 }}>Engines Active</span>
+            <span style={{ color: '#0f172a', fontWeight: 600 }}>Engines Active</span>
           </div>
-          <span style={{ color: '#475569', fontSize: '10px' }}>v1.0.0</span>
+          <span style={{ color: '#64748b', fontSize: '10px' }}>v1.0.0</span>
         </div>
       )}
     </aside>

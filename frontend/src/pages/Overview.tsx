@@ -56,7 +56,6 @@ export const OverviewPage: React.FC = () => {
       return api.findings.updateStatus(findingId, status);
     },
     onSuccess: (updatedFinding) => {
-      // Invalidate and refetch dashboard summary so False Positives & Potential Issues counters update instantly
       queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
       if (selectedIssue && selectedIssue.id === updatedFinding.id) {
         setSelectedIssue((prev) =>
@@ -80,8 +79,8 @@ export const OverviewPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: '1440px', margin: '0 auto' }}>
-      {/* ── Page Header matching screenshot ─────────────────────────────────────── */}
+    <div style={{ padding: '28px 32px', maxWidth: '1440px', margin: '0 auto', background: '#ffffff', minHeight: '100%' }}>
+      {/* ── Page Header with Black Fonts ────────────────────────────────────────── */}
       <div
         style={{
           display: 'flex',
@@ -97,25 +96,25 @@ export const OverviewPage: React.FC = () => {
             style={{
               fontSize: '26px',
               fontWeight: 800,
-              color: '#f8fafc',
+              color: '#0f172a',
               letterSpacing: '-0.4px',
               lineHeight: 1.2,
             }}
           >
             Dashboard
           </h1>
-          <p style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px' }}>
+          <p style={{ fontSize: '13px', color: '#475569', marginTop: '4px' }}>
             Multi-engine AST security, dependency supply chain, and secret exposure monitor
           </p>
         </div>
 
-        {/* Action Buttons matching screenshot */}
+        {/* Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
             className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '8px 12px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '8px 12px' }}
             title="Refresh Dashboard metrics"
           >
             <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
@@ -131,12 +130,11 @@ export const OverviewPage: React.FC = () => {
               gap: '6px',
               fontSize: '12.5px',
               padding: '8px 14px',
-              background: 'rgba(15, 32, 64, 0.7)',
-              borderColor: 'rgba(59, 130, 246, 0.4)',
-              color: '#f1f5f9',
+              color: '#0f172a',
+              fontWeight: 600,
             }}
           >
-            <Play size={13} fill="#60a5fa" color="#60a5fa" />
+            <Play size={13} fill="#2563eb" color="#2563eb" />
             <span>Start Manual Scan</span>
           </button>
 
@@ -150,7 +148,7 @@ export const OverviewPage: React.FC = () => {
               fontSize: '12.5px',
               padding: '8px 16px',
               background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-              boxShadow: '0 0 16px rgba(37, 99, 235, 0.4)',
+              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
             }}
           >
             <Plus size={15} />
@@ -165,9 +163,9 @@ export const OverviewPage: React.FC = () => {
           style={{
             padding: '16px 20px',
             borderRadius: '10px',
-            background: 'rgba(244, 63, 94, 0.12)',
-            border: '1px solid rgba(244, 63, 94, 0.35)',
-            color: '#f43f5e',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -176,7 +174,7 @@ export const OverviewPage: React.FC = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <XCircle size={18} />
-            <span style={{ fontSize: '13px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600 }}>
               Failed to load dashboard metrics: {error instanceof Error ? error.message : 'Backend unreachable'}
             </span>
           </div>
@@ -190,7 +188,7 @@ export const OverviewPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Top Row: Four Summary Cards matching screenshot ─────────────────────── */}
+      {/* ── Top Row: 4 Summary Cards with Different Background Colors & Black Fonts ── */}
       <div
         style={{
           display: 'grid',
@@ -209,7 +207,9 @@ export const OverviewPage: React.FC = () => {
                   summary?.scans_and_reviews.scans_last_30_days ?? 0
                 } full scans in the last 30 days`
           }
-          accentColor="#3b82f6"
+          accentColor="#2563eb"
+          bgColor="#f0f7ff"
+          borderColor="#bfdbfe"
           onClick={() => navigate('/repositories?tab=history')}
           isLoading={isLoading}
         />
@@ -224,9 +224,11 @@ export const OverviewPage: React.FC = () => {
                   summary?.false_positives.total_issues ?? 0
                 } total issues.`
           }
-          accentColor="#2dd4bf"
+          accentColor="#059669"
+          bgColor="#f0fdf4"
+          borderColor="#bbf7d0"
           badge={summary && summary.false_positives.percentage > 0 ? `${summary.false_positives.percentage}%` : undefined}
-          badgeColor="#2dd4bf"
+          badgeColor="#059669"
           onClick={() => navigate('/repositories?tab=findings')}
           isLoading={isLoading}
         />
@@ -249,7 +251,9 @@ export const OverviewPage: React.FC = () => {
                   summary?.potential_issues.total_issues ?? 0
                 } total issues.`
           }
-          accentColor="#f59e0b"
+          accentColor="#d97706"
+          bgColor="#fffbeb"
+          borderColor="#fde68a"
           onClick={() => navigate('/repositories?tab=findings')}
           isLoading={isLoading}
         />
@@ -264,15 +268,17 @@ export const OverviewPage: React.FC = () => {
                   summary?.potential_issues.count ?? 0
                 } potential issues`
           }
-          accentColor="#8b5cf6"
+          accentColor="#7c3aed"
+          bgColor="#faf5ff"
+          borderColor="#e9d5ff"
           badge={summary && summary.patches_generated.percentage > 0 ? `${summary.patches_generated.percentage}%` : undefined}
-          badgeColor="#8b5cf6"
+          badgeColor="#7c3aed"
           onClick={() => navigate('/repositories?tab=solutions')}
           isLoading={isLoading}
         />
       </div>
 
-      {/* ── Middle Row: 3 Chart Panels matching screenshot ──────────────────────── */}
+      {/* ── Middle Row: 3 Chart Panels on White Card Backgrounds ─────────────────── */}
       <div
         style={{
           display: 'grid',
@@ -288,12 +294,12 @@ export const OverviewPage: React.FC = () => {
         >
           {isLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
-              <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid rgba(59,130,246,0.2)', borderTopColor: '#3b82f6', borderRadius: '50%' }} />
+              <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
             </div>
           ) : !summary || summary.vulnerability_types.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
-              <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>No Issues Found</div>
+              <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>No Issues Found</div>
               <div style={{ fontSize: '12px' }}>Your scanned codebases have zero reported vulnerabilities.</div>
             </div>
           ) : (
@@ -309,16 +315,16 @@ export const OverviewPage: React.FC = () => {
                           return (
                             <div
                               style={{
-                                background: '#0a1628',
-                                border: '1px solid rgba(45, 212, 191, 0.4)',
+                                background: '#ffffff',
+                                border: '1px solid #e2e8f0',
                                 padding: '8px 12px',
                                 borderRadius: '8px',
                                 fontSize: '12px',
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                               }}
                             >
-                              <div style={{ fontWeight: 600, color: '#f8fafc' }}>{data.name}</div>
-                              <div style={{ color: '#2dd4bf', marginTop: '2px' }}>
+                              <div style={{ fontWeight: 700, color: '#0f172a' }}>{data.name}</div>
+                              <div style={{ color: '#0d9488', fontWeight: 600, marginTop: '2px' }}>
                                 {data.count} issues ({data.percentage}%)
                               </div>
                             </div>
@@ -346,7 +352,7 @@ export const OverviewPage: React.FC = () => {
                 </ResponsiveContainer>
               </div>
 
-              {/* Legend matching screenshot (Acronym + Percentage) */}
+              {/* Legend with Black Fonts */}
               <div
                 style={{
                   display: 'grid',
@@ -369,10 +375,10 @@ export const OverviewPage: React.FC = () => {
                       }}
                     />
                     <div>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#f8fafc', lineHeight: 1.1 }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', lineHeight: 1.1 }}>
                         {vt.short_name}
                       </div>
-                      <div style={{ fontSize: '10.5px', color: '#94a3b8', marginTop: '1px' }}>
+                      <div style={{ fontSize: '10.5px', color: '#475569', marginTop: '1px' }}>
                         {vt.percentage}%
                       </div>
                     </div>
@@ -390,12 +396,12 @@ export const OverviewPage: React.FC = () => {
         >
           {isLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
-              <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid rgba(59,130,246,0.2)', borderTopColor: '#3b82f6', borderRadius: '50%' }} />
+              <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
             </div>
           ) : !summary || summary.severity_distribution.total === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
-              <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>Zero Vulnerabilities</div>
+              <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Zero Vulnerabilities</div>
               <div style={{ fontSize: '12px' }}>No critical, high, medium, or low findings recorded.</div>
             </div>
           ) : (
@@ -407,8 +413,8 @@ export const OverviewPage: React.FC = () => {
                   borderRadius: '6px',
                   overflow: 'hidden',
                   display: 'flex',
-                  background: 'rgba(15, 32, 64, 0.4)',
-                  border: '1px solid rgba(30, 58, 110, 0.6)',
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
                   marginBottom: '24px',
                 }}
               >
@@ -416,7 +422,7 @@ export const OverviewPage: React.FC = () => {
                   <div
                     style={{
                       width: `${(summary.severity_distribution.critical / summary.severity_distribution.total) * 100}%`,
-                      background: '#f43f5e',
+                      background: '#e11d48',
                       transition: 'width 0.4s ease',
                     }}
                     title={`Critical: ${summary.severity_distribution.critical}`}
@@ -426,7 +432,7 @@ export const OverviewPage: React.FC = () => {
                   <div
                     style={{
                       width: `${(summary.severity_distribution.high / summary.severity_distribution.total) * 100}%`,
-                      background: '#f59e0b',
+                      background: '#d97706',
                       transition: 'width 0.4s ease',
                     }}
                     title={`High: ${summary.severity_distribution.high}`}
@@ -436,7 +442,7 @@ export const OverviewPage: React.FC = () => {
                   <div
                     style={{
                       width: `${(summary.severity_distribution.medium / summary.severity_distribution.total) * 100}%`,
-                      background: '#3b82f6',
+                      background: '#2563eb',
                       transition: 'width 0.4s ease',
                     }}
                     title={`Medium: ${summary.severity_distribution.medium}`}
@@ -446,7 +452,7 @@ export const OverviewPage: React.FC = () => {
                   <div
                     style={{
                       width: `${(summary.severity_distribution.low / summary.severity_distribution.total) * 100}%`,
-                      background: '#10b981',
+                      background: '#059669',
                       transition: 'width 0.4s ease',
                     }}
                     title={`Low: ${summary.severity_distribution.low}`}
@@ -456,7 +462,7 @@ export const OverviewPage: React.FC = () => {
                   <div
                     style={{
                       width: `${(summary.severity_distribution.info / summary.severity_distribution.total) * 100}%`,
-                      background: '#64748b',
+                      background: '#94a3b8',
                       transition: 'width 0.4s ease',
                     }}
                     title={`Info: ${summary.severity_distribution.info}`}
@@ -464,45 +470,45 @@ export const OverviewPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Severity Legend & Counts underneath (matching screenshot) */}
+              {/* Severity Legend & Counts with Black Fonts */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#f43f5e' }} />
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#e11d48' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Critical</div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.critical}</div>
+                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Critical</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.critical}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#f59e0b' }} />
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#d97706' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>High</div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.high}</div>
+                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>High</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.high}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#3b82f6' }} />
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#2563eb' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Medium</div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.medium}</div>
+                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Medium</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.medium}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#10b981' }} />
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#059669' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Low</div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.low}</div>
+                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Low</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.low}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#64748b' }} />
+                  <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#94a3b8' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>Info</div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{summary.severity_distribution.info}</div>
+                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Info</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.info}</div>
                   </div>
                 </div>
               </div>
@@ -510,7 +516,7 @@ export const OverviewPage: React.FC = () => {
           )}
         </ChartPanel>
 
-        {/* Card 3: Issues By PR Author / Scanner Health & Coverage */}
+        {/* Card 3: Scanner Health & Coverage */}
         <ChartPanel
           title="Scanner Health & Coverage"
           infoTooltip="Live operational status of configured static scanners, package analyzers, and secret detectors."
@@ -519,7 +525,7 @@ export const OverviewPage: React.FC = () => {
         </ChartPanel>
       </div>
 
-      {/* ── Bottom Row: 3 Widget Panels matching screenshot ─────────────────────── */}
+      {/* ── Bottom Row: 3 Widget Panels with Black Fonts ────────────────────────── */}
       <div
         style={{
           display: 'grid',
@@ -534,27 +540,27 @@ export const OverviewPage: React.FC = () => {
         >
           {isLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
-              <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid rgba(59,130,246,0.2)', borderTopColor: '#3b82f6', borderRadius: '50%' }} />
+              <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', height: '240px', justifyContent: 'space-between', padding: '12px 8px' }}>
               {/* Primary Time Saved Metric */}
               <div style={{ textAlign: 'center', marginTop: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#94a3b8', fontSize: '12px', marginBottom: '4px' }}>
-                  <Clock size={16} color="#60a5fa" />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#475569', fontSize: '13px', marginBottom: '4px', fontWeight: 600 }}>
+                  <Clock size={16} color="#2563eb" />
                   <span>Total Time Saved</span>
                 </div>
                 <div
                   style={{
                     fontSize: '44px',
                     fontWeight: 800,
-                    color: '#f8fafc',
+                    color: '#0f172a',
                     letterSpacing: '-1px',
                     lineHeight: 1.1,
                   }}
                 >
                   {summary?.metrics.total_time_saved_hours ?? 0}
-                  <span style={{ fontSize: '24px', fontWeight: 500, color: '#94a3b8', marginLeft: '4px' }}>h</span>
+                  <span style={{ fontSize: '24px', fontWeight: 600, color: '#475569', marginLeft: '4px' }}>h</span>
                 </div>
               </div>
 
@@ -565,27 +571,27 @@ export const OverviewPage: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'space-around',
                   paddingTop: '16px',
-                  borderTop: '1px solid rgba(30, 58, 110, 0.45)',
+                  borderTop: '1px solid #e2e8f0',
                 }}
               >
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#64748b', fontSize: '11px', marginBottom: '2px' }}>
-                    <Code2 size={13} color="#2dd4bf" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#475569', fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
+                    <Code2 size={13} color="#0d9488" />
                     <span>Logic</span>
                   </div>
-                  <div style={{ fontSize: '20px', fontWeight: 700, color: '#f1f5f9' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
                     {summary?.metrics.logic_hours ?? 0}h
                   </div>
                 </div>
 
-                <div style={{ width: '1px', height: '32px', background: 'rgba(30, 58, 110, 0.45)' }} />
+                <div style={{ width: '1px', height: '32px', background: '#e2e8f0' }} />
 
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#64748b', fontSize: '11px', marginBottom: '2px' }}>
-                    <Cpu size={13} color="#a855f7" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#475569', fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
+                    <Cpu size={13} color="#7c3aed" />
                     <span>Traditional</span>
                   </div>
-                  <div style={{ fontSize: '20px', fontWeight: 700, color: '#f1f5f9' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
                     {summary?.metrics.traditional_hours ?? 0}h
                   </div>
                 </div>
@@ -594,7 +600,7 @@ export const OverviewPage: React.FC = () => {
           )}
         </ChartPanel>
 
-        {/* Card 2: Most Critical Issues (with Interactive Row) */}
+        {/* Card 2: Most Critical Issues */}
         <ChartPanel
           title="Most Critical Issues"
           infoTooltip="Highest severity security findings requiring immediate attention or automated patch review."
@@ -604,10 +610,10 @@ export const OverviewPage: React.FC = () => {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#60a5fa',
-                fontSize: '11.5px',
+                color: '#2563eb',
+                fontSize: '12px',
                 cursor: 'pointer',
-                fontWeight: 600,
+                fontWeight: 700,
               }}
             >
               View all
@@ -617,13 +623,13 @@ export const OverviewPage: React.FC = () => {
           {isLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
               {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse" style={{ height: '52px', borderRadius: '8px', background: 'rgba(30, 58, 110, 0.25)' }} />
+                <div key={i} className="animate-pulse" style={{ height: '52px', borderRadius: '8px', background: '#f1f5f9' }} />
               ))}
             </div>
           ) : !summary || summary.most_critical_issues.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
-              <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>No Critical Issues</div>
+              <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>No Critical Issues</div>
               <div style={{ fontSize: '12px' }}>All connected repositories are free of critical vulnerabilities.</div>
             </div>
           ) : (
@@ -649,10 +655,10 @@ export const OverviewPage: React.FC = () => {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#60a5fa',
-                fontSize: '11.5px',
+                color: '#2563eb',
+                fontSize: '12px',
                 cursor: 'pointer',
-                fontWeight: 600,
+                fontWeight: 700,
               }}
             >
               Manage repos
@@ -662,15 +668,15 @@ export const OverviewPage: React.FC = () => {
           {isLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
               {[1, 2].map((i) => (
-                <div key={i} className="animate-pulse" style={{ height: '56px', borderRadius: '8px', background: 'rgba(30, 58, 110, 0.25)' }} />
+                <div key={i} className="animate-pulse" style={{ height: '56px', borderRadius: '8px', background: '#f1f5f9' }} />
               ))}
             </div>
           ) : !summary || summary.issues_by_repository.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
-              <GitBranch size={32} color="#60a5fa" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>No Repositories Connected</div>
+              <GitBranch size={32} color="#2563eb" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>No Repositories Connected</div>
               <div style={{ fontSize: '12px', marginBottom: '12px' }}>Connect a repository to audit findings.</div>
-              <button onClick={handleNewRepo} className="btn btn-primary" style={{ fontSize: '11px' }}>
+              <button onClick={handleNewRepo} className="btn btn-primary" style={{ fontSize: '12px' }}>
                 Connect Repository
               </button>
             </div>
@@ -681,22 +687,28 @@ export const OverviewPage: React.FC = () => {
                   key={repo.repository_id}
                   onClick={() => navigate(`/repositories?repoId=${repo.repository_id}`)}
                   style={{
-                    padding: '10px 12px',
+                    padding: '12px 14px',
                     borderRadius: '8px',
-                    background: 'rgba(15, 23, 42, 0.5)',
-                    border: '1px solid rgba(30, 58, 110, 0.3)',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(30, 58, 110, 0.3)')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#2563eb';
+                    e.currentTarget.style.background = '#f1f5f9';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.background = '#f8fafc';
+                  }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <div style={{ fontSize: '12.5px', fontWeight: 600, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <GitBranch size={13} color="#2dd4bf" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <GitBranch size={14} color="#0d9488" />
                       <span>{repo.repository_name}</span>
                     </div>
-                    <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'JetBrains Mono, monospace' }}>
+                    <span style={{ fontSize: '11.5px', color: '#334155', fontWeight: 600, fontFamily: 'JetBrains Mono, monospace' }}>
                       {repo.total} issues
                     </span>
                   </div>
@@ -708,24 +720,24 @@ export const OverviewPage: React.FC = () => {
                       borderRadius: '4px',
                       overflow: 'hidden',
                       display: 'flex',
-                      background: 'rgba(30, 58, 110, 0.4)',
+                      background: '#e2e8f0',
                     }}
                   >
                     {repo.total === 0 ? (
-                      <div style={{ width: '100%', background: '#10b981' }} title="Clean" />
+                      <div style={{ width: '100%', background: '#059669' }} title="Clean" />
                     ) : (
                       <>
                         {repo.critical > 0 && (
-                          <div style={{ width: `${(repo.critical / repo.total) * 100}%`, background: '#f43f5e' }} />
+                          <div style={{ width: `${(repo.critical / repo.total) * 100}%`, background: '#e11d48' }} />
                         )}
                         {repo.high > 0 && (
-                          <div style={{ width: `${(repo.high / repo.total) * 100}%`, background: '#f59e0b' }} />
+                          <div style={{ width: `${(repo.high / repo.total) * 100}%`, background: '#d97706' }} />
                         )}
                         {repo.medium > 0 && (
-                          <div style={{ width: `${(repo.medium / repo.total) * 100}%`, background: '#3b82f6' }} />
+                          <div style={{ width: `${(repo.medium / repo.total) * 100}%`, background: '#2563eb' }} />
                         )}
                         {repo.low > 0 && (
-                          <div style={{ width: `${(repo.low / repo.total) * 100}%`, background: '#10b981' }} />
+                          <div style={{ width: `${(repo.low / repo.total) * 100}%`, background: '#059669' }} />
                         )}
                       </>
                     )}
@@ -743,8 +755,8 @@ export const OverviewPage: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(3, 8, 19, 0.8)',
-            backdropFilter: 'blur(6px)',
+            background: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -757,10 +769,10 @@ export const OverviewPage: React.FC = () => {
             style={{
               width: '100%',
               maxWidth: '680px',
-              background: '#091528',
-              border: '1px solid rgba(59, 130, 246, 0.4)',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
               borderRadius: '14px',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
@@ -775,7 +787,7 @@ export const OverviewPage: React.FC = () => {
             <div
               style={{
                 padding: '18px 24px',
-                borderBottom: '1px solid rgba(30, 58, 110, 0.5)',
+                borderBottom: '1px solid #e2e8f0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -791,16 +803,16 @@ export const OverviewPage: React.FC = () => {
                     borderRadius: '6px',
                     background:
                       selectedIssue.severity === 'critical'
-                        ? 'rgba(244, 63, 94, 0.2)'
-                        : 'rgba(245, 158, 11, 0.2)',
-                    color: selectedIssue.severity === 'critical' ? '#f43f5e' : '#fbbf24',
-                    border: `1px solid ${selectedIssue.severity === 'critical' ? '#f43f5e' : '#fbbf24'}40`,
+                        ? '#fef2f2'
+                        : '#fffbeb',
+                    color: selectedIssue.severity === 'critical' ? '#dc2626' : '#b45309',
+                    border: `1px solid ${selectedIssue.severity === 'critical' ? '#fecaca' : '#fde68a'}`,
                   }}
                 >
                   {selectedIssue.severity}
                 </span>
-                <span style={{ fontSize: '13px', color: '#94a3b8' }}>
-                  Risk Score: <strong style={{ color: '#f8fafc' }}>{selectedIssue.score}/100</strong>
+                <span style={{ fontSize: '13px', color: '#475569' }}>
+                  Risk Score: <strong style={{ color: '#0f172a' }}>{selectedIssue.score}/100</strong>
                 </span>
               </div>
 
@@ -809,7 +821,7 @@ export const OverviewPage: React.FC = () => {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#94a3b8',
+                  color: '#64748b',
                   cursor: 'pointer',
                   padding: '4px',
                 }}
@@ -822,12 +834,12 @@ export const OverviewPage: React.FC = () => {
             {/* Modal Body */}
             <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <h3 id="issue-detail-title" style={{ fontSize: '17px', fontWeight: 700, color: '#f8fafc', lineHeight: 1.3 }}>
+                <h3 id="issue-detail-title" style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
                   {selectedIssue.title}
                 </h3>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
                   Repository:{' '}
-                  <span style={{ color: '#2dd4bf', fontWeight: 600 }}>{selectedIssue.repository_name}</span>
+                  <span style={{ color: '#0d9488', fontWeight: 700 }}>{selectedIssue.repository_name}</span>
                 </div>
               </div>
 
@@ -839,24 +851,24 @@ export const OverviewPage: React.FC = () => {
                   gap: '10px',
                   padding: '12px 14px',
                   borderRadius: '8px',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  border: '1px solid rgba(30, 58, 110, 0.35)',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
                   fontSize: '12px',
                 }}
               >
                 <div>
-                  <div style={{ color: '#64748b', fontSize: '11px' }}>Scanner Engine</div>
-                  <div style={{ color: '#f1f5f9', fontWeight: 600, marginTop: '2px' }}>{selectedIssue.scanner}</div>
+                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>Scanner Engine</div>
+                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>{selectedIssue.scanner}</div>
                 </div>
                 <div>
-                  <div style={{ color: '#64748b', fontSize: '11px' }}>Rule ID / CWE</div>
-                  <div style={{ color: '#60a5fa', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
+                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>Rule ID / CWE</div>
+                  <div style={{ color: '#2563eb', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, marginTop: '2px' }}>
                     {selectedIssue.cwe_or_rule}
                   </div>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <div style={{ color: '#64748b', fontSize: '11px' }}>File Location</div>
-                  <div style={{ color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', marginTop: '2px' }}>
+                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>File Location</div>
+                  <div style={{ color: '#0f172a', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, marginTop: '2px' }}>
                     {selectedIssue.file_path || 'source_code'}
                     {selectedIssue.line_number ? `:${selectedIssue.line_number}` : ''}
                   </div>
@@ -870,17 +882,19 @@ export const OverviewPage: React.FC = () => {
                   borderRadius: '8px',
                   background:
                     selectedIssue.verification_status === 'false_positive'
-                      ? 'rgba(45, 212, 191, 0.1)'
-                      : 'rgba(59, 130, 246, 0.1)',
-                  border: '1px solid rgba(30, 58, 110, 0.4)',
+                      ? '#f0fdf4'
+                      : '#eff6ff',
+                  border: `1px solid ${
+                    selectedIssue.verification_status === 'false_positive' ? '#bbf7d0' : '#bfdbfe'
+                  }`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>Current Verification Status</div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#f8fafc', textTransform: 'capitalize' }}>
+                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Current Verification Status</div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', textTransform: 'capitalize' }}>
                     {selectedIssue.verification_status.replace('_', ' ')}
                   </div>
                 </div>
@@ -908,8 +922,9 @@ export const OverviewPage: React.FC = () => {
                       style={{
                         fontSize: '11px',
                         padding: '5px 12px',
-                        borderColor: 'rgba(45, 212, 191, 0.4)',
-                        color: '#2dd4bf',
+                        borderColor: '#059669',
+                        color: '#059669',
+                        fontWeight: 600,
                       }}
                     >
                       {updatingFindingId === selectedIssue.id ? 'Marking…' : 'Mark as False Positive'}
@@ -923,11 +938,11 @@ export const OverviewPage: React.FC = () => {
             <div
               style={{
                 padding: '14px 24px',
-                borderTop: '1px solid rgba(30, 58, 110, 0.5)',
+                borderTop: '1px solid #e2e8f0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: 'rgba(7, 14, 27, 0.6)',
+                background: '#f8fafc',
               }}
             >
               <button

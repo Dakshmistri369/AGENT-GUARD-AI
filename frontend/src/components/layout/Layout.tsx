@@ -59,7 +59,7 @@ export const Layout: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#040d1a' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
       {/* Sidebar with Animated Brand Logo */}
       <Sidebar scanState={scanState} />
 
@@ -80,7 +80,7 @@ export const Layout: React.FC = () => {
           style={{
             flex: 1,
             overflowY: 'auto',
-            background: 'linear-gradient(180deg, #050d1a 0%, #030813 100%)',
+            background: '#ffffff',
           }}
         >
           <Outlet />

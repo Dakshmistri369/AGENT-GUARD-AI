@@ -20,28 +20,28 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
   const getIcon = () => {
     const text = `${issue.category} ${issue.title} ${issue.cwe_or_rule}`.toLowerCase();
     if (text.includes('sql') || text.includes('database')) {
-      return <Database size={15} color="#60a5fa" />;
+      return <Database size={15} color="#2563eb" />;
     }
     if (text.includes('subprocess') || text.includes('command') || text.includes('ci')) {
-      return <Terminal size={15} color="#f59e0b" />;
+      return <Terminal size={15} color="#d97706" />;
     }
     if (text.includes('secret') || text.includes('token') || text.includes('key')) {
-      return <KeyRound size={15} color="#2dd4bf" />;
+      return <KeyRound size={15} color="#0d9488" />;
     }
     if (text.includes('xss') || text.includes('web') || text.includes('network')) {
-      return <Globe size={15} color="#a855f7" />;
+      return <Globe size={15} color="#7c3aed" />;
     }
     if (issue.severity === 'critical') {
-      return <ShieldAlert size={15} color="#f43f5e" />;
+      return <ShieldAlert size={15} color="#e11d48" />;
     }
-    return <FileCode size={15} color="#94a3b8" />;
+    return <FileCode size={15} color="#64748b" />;
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 95) return { bg: 'rgba(244, 63, 94, 0.15)', text: '#f43f5e', border: 'rgba(244, 63, 94, 0.35)' };
-    if (score >= 80) return { bg: 'rgba(245, 158, 11, 0.15)', text: '#fbbf24', border: 'rgba(245, 158, 11, 0.35)' };
-    if (score >= 60) return { bg: 'rgba(59, 130, 246, 0.15)', text: '#60a5fa', border: 'rgba(59, 130, 246, 0.35)' };
-    return { bg: 'rgba(16, 185, 129, 0.15)', text: '#34d399', border: 'rgba(16, 185, 129, 0.35)' };
+    if (score >= 95) return { bg: '#fef2f2', text: '#dc2626', border: '#fecaca' };
+    if (score >= 80) return { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
+    if (score >= 60) return { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' };
+    return { bg: '#f0fdf4', text: '#059669', border: '#bbf7d0' };
   };
 
   const scoreBadge = getScoreColor(issue.score);
@@ -55,19 +55,19 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
         gap: '12px',
         padding: '12px 14px',
         borderRadius: '8px',
-        background: 'rgba(15, 23, 42, 0.5)',
-        border: '1px solid rgba(30, 58, 110, 0.3)',
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         marginBottom: '8px',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(30, 58, 110, 0.35)';
-        e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.45)';
+        e.currentTarget.style.background = '#f1f5f9';
+        e.currentTarget.style.borderColor = '#cbd5e1';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'rgba(15, 23, 42, 0.5)';
-        e.currentTarget.style.borderColor = 'rgba(30, 58, 110, 0.3)';
+        e.currentTarget.style.background = '#f8fafc';
+        e.currentTarget.style.borderColor = '#e2e8f0';
       }}
       role="button"
       tabIndex={0}
@@ -85,8 +85,9 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
           width: '32px',
           height: '32px',
           borderRadius: '8px',
-          background: 'rgba(7, 14, 27, 0.8)',
-          border: '1px solid rgba(30, 58, 110, 0.5)',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -97,13 +98,13 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
         {getIcon()}
       </div>
 
-      {/* Main Details */}
+      {/* Main Details in Black font */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
             fontSize: '13px',
-            fontWeight: 600,
-            color: '#f8fafc',
+            fontWeight: 700,
+            color: '#0f172a',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -125,9 +126,9 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
             textOverflow: 'ellipsis',
           }}
         >
-          <span style={{ color: '#94a3b8' }}>{issue.category}</span>
+          <span style={{ color: '#334155', fontWeight: 500 }}>{issue.category}</span>
           <span>|</span>
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#60a5fa' }}>{issue.cwe_or_rule}</span>
+          <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#2563eb', fontWeight: 600 }}>{issue.cwe_or_rule}</span>
           {issue.file_path && (
             <>
               <span>·</span>
@@ -157,7 +158,7 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
         >
           {issue.score}
         </span>
-        <ChevronRight size={14} color="#64748b" />
+        <ChevronRight size={14} color="#94a3b8" />
       </div>
     </div>
   );

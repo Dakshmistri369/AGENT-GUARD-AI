@@ -25,13 +25,13 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
       style={{
-        background: 'linear-gradient(145deg, rgba(13, 23, 42, 0.85) 0%, rgba(6, 13, 25, 0.95) 100%)',
-        border: '1px solid rgba(30, 58, 110, 0.45)',
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
         borderRadius: '12px',
         padding: '20px 22px',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
         minHeight,
         position: 'relative',
       }}
@@ -50,8 +50,8 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
           <h2
             style={{
               fontSize: '14px',
-              fontWeight: 600,
-              color: '#f1f5f9',
+              fontWeight: 700,
+              color: '#0f172a',
               letterSpacing: '-0.1px',
               margin: 0,
             }}
@@ -69,7 +69,7 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
                 borderRadius: '4px',
                 transition: 'color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#94a3b8')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#0f172a')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
               aria-label={infoTooltip}
             >
