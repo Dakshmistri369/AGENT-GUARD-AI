@@ -64,7 +64,7 @@ class DetectSecretsScanner(BaseScanner):
         cmd = [exe or sys.executable]
         if not exe:
             cmd.extend(["-m", "detect_secrets"])
-        cmd.extend(["scan", "--all-files", "--exclude-files", r"(\.git/|node_modules/|\.venv/|build/|dist/)", str(workspace_path)])
+        cmd.extend(["scan", "--all-files", "--exclude-files", r"(\.git/|node_modules/|\.venv/|venv/|build/|dist/|.*\.min\.js$|.*\.map$|.*lock.*)", str(workspace_path)])
 
         try:
             exit_code, stdout, stderr = await self.execute_cmd(
@@ -76,8 +76,8 @@ class DetectSecretsScanner(BaseScanner):
             return ScannerResult(
                 scanner=self.name,
                 scanner_version=version,
-                status="failed",
-                error=str(exc),
+                status="timed_out",
+                error=f"detect-secrets execution timed out after {timeout_seconds} seconds",
                 duration_seconds=round(time.time() - start_time, 2),
             )
         except Exception as exc:

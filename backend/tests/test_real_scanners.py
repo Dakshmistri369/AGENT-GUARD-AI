@@ -242,7 +242,7 @@ class TestScannerOrchestratorCoverage:
                 timeout_seconds=5,
             )
 
-            assert result.status == "failed"
+            assert result.status == "timed_out"
             assert "timed out" in result.error
 
 

@@ -13,6 +13,7 @@ from typing import Any
 from app.scanners.bandit import BanditScanner
 from app.scanners.base import BaseScanner, ScannerResult
 from app.scanners.detect_secrets import DetectSecretsScanner
+from app.scanners.filters import build_scan_file_list
 from app.scanners.osv import OSVScanner
 from app.scanners.semgrep import SemgrepScanner
 
@@ -117,6 +118,16 @@ class ScannerOrchestrator:
             elif isinstance(effective_metadata[k], list) and isinstance(v, list):
                 effective_metadata[k] = sorted(list(set(effective_metadata[k] + v)))
 
+        # Discover scannable files and pre-filter oversized or binary files
+        scannable_files, skipped_files = build_scan_file_list(workspace_path)
+        files_discovered = len(scannable_files) + len(skipped_files)
+        files_scanned = len(scannable_files)
+        files_skipped = len(skipped_files)
+
+        skip_manifest: dict[str, list[str]] = {}
+        for sk in skipped_files:
+            skip_manifest.setdefault(sk.reason, []).append(sk.path)
+
         scanner_matrix = self.get_scanner_matrix(effective_metadata)
         scanners_run: list[dict[str, Any]] = []
         all_findings: list[dict[str, Any]] = []
@@ -211,6 +222,19 @@ class ScannerOrchestrator:
                         "findings_count": len(res.findings),
                         "duration_seconds": res.duration_seconds,
                     })
+                elif res.status == "timed_out":
+                    failed_scanners.append(sc.name)
+                    coverage_notes.append(f"{sc.name} execution timed out ({res.duration_seconds}s); results are incomplete.")
+                    skip_manifest.setdefault("timed_out_scanners", []).append(sc.name)
+                    scanners_run.append({
+                        "name": sc.name,
+                        "scanner_id": sc.scanner_id,
+                        "version": res.scanner_version,
+                        "status": "timed_out",
+                        "error": res.error or f"Timed out after {timeout_seconds}s",
+                        "findings_count": 0,
+                        "duration_seconds": res.duration_seconds,
+                    })
                 elif res.status == "failed":
                     failed_scanners.append(sc.name)
                     coverage_notes.append(f"{sc.name} execution failed: {res.error}")
@@ -257,6 +281,10 @@ class ScannerOrchestrator:
             "failed_scanners": failed_scanners,
             "skipped_scanners": skipped_scanners,
             "notes": coverage_notes,
+            "files_discovered": files_discovered,
+            "files_scanned": files_scanned,
+            "files_skipped": files_skipped,
+            "skip_manifest": skip_manifest,
         }
 
         return list(unique_findings.values()), scanners_run, coverage_summary, scanner_matrix

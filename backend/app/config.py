@@ -39,8 +39,20 @@ class Settings(BaseSettings):
     # ── CORS ──────────────────────────────────────────────────────────────────
     frontend_origin: str = "http://localhost:5173"
 
-    # ── Upload ────────────────────────────────────────────────────────────────
-    max_upload_size_mb: int = 50
+    # ── Upload & Archive Limits (Large File Defense) ──────────────────────────
+    max_upload_size_mb: int = 100
+    max_extracted_size_mb: int = 500
+    max_single_file_mb: int = 20
+    max_compression_ratio: int = 100
+    max_archive_files: int = 10_000
+
+    # ── Pre-Scan Source File Filters ──────────────────────────────────────────
+    max_scannable_file_bytes: int = 1 * 1024 * 1024  # 1 MB source limit
+    scanner_timeout_seconds: int = 300               # 5 min per scanner
+
+    # ── AI Snippet Extraction ─────────────────────────────────────────────────
+    ai_context_lines: int = 15
+    ai_max_snippet_chars: int = 4000
 
     # ── AI Provider ───────────────────────────────────────────────────────────
     # Default: mock — the whole application works with zero API credentials.
@@ -91,6 +103,14 @@ class Settings(BaseSettings):
     @property
     def max_upload_size_bytes(self) -> int:
         return self.max_upload_size_mb * 1024 * 1024
+
+    @property
+    def max_extracted_size_bytes(self) -> int:
+        return self.max_extracted_size_mb * 1024 * 1024
+
+    @property
+    def max_single_file_bytes(self) -> int:
+        return self.max_single_file_mb * 1024 * 1024
 
     @property
     def is_sqlite(self) -> bool:

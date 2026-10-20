@@ -54,8 +54,7 @@ def is_safe_path(base_dir: Path, target_path: Path) -> bool:
     Guards against directory traversal, symlink escapes, and relative jumping.
     """
     try:
-        base_resolved = base_dir.resolve(strict=True)
-        # target might not exist yet if checking before creation, but if it exists check realpath
+        base_resolved = base_dir.resolve(strict=False)
         target_resolved = target_path.resolve(strict=False)
         return os.path.commonpath([str(base_resolved), str(target_resolved)]) == str(base_resolved)
     except Exception as exc:

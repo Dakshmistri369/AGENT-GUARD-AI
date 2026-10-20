@@ -99,6 +99,13 @@ class SemgrepScanner(BaseScanner):
             "--exclude", ".venv",
             "--exclude", "build",
             "--exclude", "dist",
+            "--exclude", "vendor",
+            "--exclude", "*.min.js",
+            "--exclude", "*.min.css",
+            "--max-target-bytes", "1000000",
+            "--timeout", "30",
+            "--timeout-threshold", "3",
+            "--max-memory", "2048",
             "--json",
             "--quiet",
             "--disable-version-check",
@@ -115,8 +122,8 @@ class SemgrepScanner(BaseScanner):
             return ScannerResult(
                 scanner=self.name,
                 scanner_version=version,
-                status="failed",
-                error=str(exc),
+                status="timed_out",
+                error=f"Semgrep execution timed out after {timeout_seconds} seconds",
                 duration_seconds=round(time.time() - start_time, 2),
             )
         except Exception as exc:

@@ -26,7 +26,7 @@ class ScannerResult:
     """Standardized execution outcome for an individual security scanner."""
     scanner: str
     scanner_version: str | None
-    status: str  # 'completed' | 'failed' | 'skipped_not_applicable' | 'skipped_unavailable'
+    status: str  # 'completed' | 'failed' | 'timed_out' | 'skipped_not_applicable' | 'skipped_unavailable'
     findings: list[dict[str, Any]] = field(default_factory=list)
     raw_output: str | None = None
     error: str | None = None

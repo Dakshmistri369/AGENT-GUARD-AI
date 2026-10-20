@@ -128,6 +128,10 @@ export interface Scan {
   completed_at: string | null;
   summary: ScanSummary | null;
   configuration: Record<string, any> | null;
+  files_discovered?: number;
+  files_scanned?: number;
+  files_skipped?: number;
+  skip_manifest?: Record<string, any> | null;
   created_at: string;
 }
 
@@ -144,6 +148,10 @@ export interface ScanReport {
   started_at: string | null;
   completed_at: string | null;
   duration_seconds: number | null;
+  files_discovered?: number;
+  files_scanned?: number;
+  files_skipped?: number;
+  skip_manifest?: Record<string, any> | null;
   metadata: RepositoryMetadata | null;
   summary: ScanSummary;
   findings: Finding[];
@@ -157,6 +165,10 @@ export interface ScanReport {
     failed_scanners: string[];
     skipped_scanners: string[];
     notes: string[];
+    files_discovered?: number;
+    files_scanned?: number;
+    files_skipped?: number;
+    skip_manifest?: Record<string, any> | null;
   } | null;
   scanner_matrix?: Record<string, {
     name: string;

@@ -263,8 +263,8 @@ class OSVScanner(BaseScanner):
                 return ScannerResult(
                     scanner=self.name,
                     scanner_version=version,
-                    status="failed",
-                    error=str(exc),
+                    status="timed_out",
+                    error=f"OSV-Scanner execution timed out after {timeout_seconds} seconds",
                     duration_seconds=round(time.time() - start_time, 2),
                 )
             except Exception as exc:

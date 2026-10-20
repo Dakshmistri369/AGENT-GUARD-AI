@@ -86,7 +86,7 @@ class BanditScanner(BaseScanner):
         cmd = [exe or sys.executable]
         if not exe:
             cmd.extend(["-m", "bandit"])
-        cmd.extend(["-r", str(workspace_path), "-x", ".git,.venv,node_modules,build,dist,__pycache__", "-f", "json", "-q"])
+        cmd.extend(["-r", str(workspace_path), "-x", ".git,.venv,venv,node_modules,build,dist,__pycache__,vendor,.next", "-f", "json", "-q"])
 
         try:
             exit_code, stdout, stderr = await self.execute_cmd(
@@ -98,8 +98,8 @@ class BanditScanner(BaseScanner):
             return ScannerResult(
                 scanner=self.name,
                 scanner_version=version,
-                status="failed",
-                error=str(exc),
+                status="timed_out",
+                error=f"Bandit execution timed out after {timeout_seconds} seconds",
                 duration_seconds=round(time.time() - start_time, 2),
             )
         except Exception as exc:

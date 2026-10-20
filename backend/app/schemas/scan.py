@@ -45,6 +45,10 @@ class ScanResponse(BaseModel):
     completed_at: datetime.datetime | None = None
     summary: dict[str, Any] | None = None
     configuration: dict[str, Any] | None = None
+    files_discovered: int = 0
+    files_scanned: int = 0
+    files_skipped: int = 0
+    skip_manifest: dict[str, Any] | None = None
     created_at: datetime.datetime
 
 
@@ -62,6 +66,10 @@ class ScanReportResponse(BaseModel):
     completed_at: datetime.datetime | None = None
     duration_seconds: float | None = None
     metadata: dict[str, Any] | None = None
+    files_discovered: int = 0
+    files_scanned: int = 0
+    files_skipped: int = 0
+    skip_manifest: dict[str, Any] | None = None
     summary: ScanSummaryResponse
     findings: list[FindingResponse] = Field(default_factory=list)
     ai_analysis: dict[str, Any] | None = None

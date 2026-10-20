@@ -270,6 +270,10 @@ async def analyze_repository(
         scan.stage = "completed"
         scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
         scan.summary = summary_dict
+        scan.files_discovered = coverage_summary.get("files_discovered", 0)
+        scan.files_scanned = coverage_summary.get("files_scanned", 0)
+        scan.files_skipped = coverage_summary.get("files_skipped", 0)
+        scan.skip_manifest = coverage_summary.get("skip_manifest") or {}
         scan.configuration = {
             "metadata_only": payload.metadata_only,
             "branch": target_branch,

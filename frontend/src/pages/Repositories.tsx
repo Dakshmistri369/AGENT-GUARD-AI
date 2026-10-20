@@ -1370,6 +1370,41 @@ export const RepositoriesPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {scanReport ? (
                 <>
+                  {/* Coverage Notice Banner */}
+                  {((scanReport.files_skipped && scanReport.files_skipped > 0) ||
+                    (scanReport.coverage_summary?.files_skipped && scanReport.coverage_summary.files_skipped > 0)) && (
+                    <div
+                      style={{
+                        padding: '12px 18px',
+                        borderRadius: '8px',
+                        background: 'rgba(245, 158, 11, 0.08)',
+                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        fontSize: '13px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <AlertTriangle size={18} color="var(--accent-amber)" style={{ flexShrink: 0 }} />
+                        <span>
+                          <strong>Coverage note:</strong>{' '}
+                          {scanReport.files_scanned ?? scanReport.coverage_summary?.files_scanned ?? 0} of{' '}
+                          {scanReport.files_discovered ?? scanReport.coverage_summary?.files_discovered ?? 0} source files scanned.{' '}
+                          <span style={{ color: '#fbbf24', fontWeight: 600 }}>
+                            {scanReport.files_skipped ?? scanReport.coverage_summary?.files_skipped ?? 0} files skipped.
+                          </span>{' '}
+                          Skipped files were <strong>not verified</strong>.
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Oversized (&gt;1 MB source) &amp; binary exclusions
+                      </span>
+                    </div>
+                  )}
+
                   {/* Summary Metric Counters */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                     <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>

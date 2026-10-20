@@ -70,6 +70,12 @@ class ReportService:
         coverage_summary = raw_config.get("coverage_summary")
         scanner_matrix = raw_config.get("scanner_matrix")
 
+        cov_summary = coverage_summary or {}
+        files_disc = getattr(scan, "files_discovered", 0) or cov_summary.get("files_discovered", 0)
+        files_sc = getattr(scan, "files_scanned", 0) or cov_summary.get("files_scanned", 0)
+        files_sk = getattr(scan, "files_skipped", 0) or cov_summary.get("files_skipped", 0)
+        skip_man = getattr(scan, "skip_manifest", None) or cov_summary.get("skip_manifest")
+
         return ScanReportResponse(
             scan_id=scan.id,
             repository_id=repository.id,
@@ -84,6 +90,10 @@ class ReportService:
             completed_at=scan.completed_at,
             duration_seconds=duration_seconds,
             metadata=repository.metadata_json,
+            files_discovered=files_disc,
+            files_scanned=files_sc,
+            files_skipped=files_sk,
+            skip_manifest=skip_man,
             summary=summary,
             findings=finding_responses,
             ai_analysis=ai_analysis,
