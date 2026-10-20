@@ -1,5 +1,6 @@
 import React from 'react';
 import { Settings as SettingsIcon, AlertCircle, Shield, Cpu, Database, Package } from 'lucide-react';
+import { AnimatedBrandLogo } from '../components/brand/AnimatedBrandLogo';
 
 export const SettingsPage: React.FC = () => (
   <div style={{ padding: '32px', maxWidth: '700px' }}>
@@ -62,44 +63,19 @@ export const SettingsPage: React.FC = () => (
 
     {/* About & Branding */}
     <div className="glass-card" style={{
-      padding: '20px',
+      padding: '24px',
       marginTop: '20px',
       display: 'flex',
-      alignItems: 'center',
-      gap: '18px',
+      flexDirection: 'column',
+      gap: '12px',
       borderColor: '#e2e8f0',
-      background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)',
+      background: '#ffffff',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
     }}>
-      <div style={{
-        width: '64px',
-        height: '64px',
-        borderRadius: '14px',
-        overflow: 'hidden',
-        border: '1px solid #cbd5e1',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-        background: '#ffffff',
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <img
-          src="/logo-icon.png"
-          alt="AgentGuard AI Brand Logo"
-          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-        />
-      </div>
-      <div>
-        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
-          AgentGuard AI
-        </div>
-        <div style={{ fontSize: '11px', color: '#0d9488', fontWeight: 700, letterSpacing: '0.6px', marginTop: '2px' }}>
-          SCAN · ANALYZE · VERIFY · SECURE
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.5 }}>
-          Independent security and quality auditor for AI-generated codebases.
-        </div>
+      <AnimatedBrandLogo variant="full" size="lg" />
+      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.6 }}>
+        Independent security and quality auditor for AI-generated and human-written codebases.
+        Continuous static analysis, credential scanning, and vulnerability detection powered by Semgrep, Bandit, detect-secrets, and OSV API.
       </div>
     </div>
   </div>
