@@ -7,6 +7,7 @@ import {
   GitBranch,
   RefreshCw,
   ExternalLink,
+  Play,
 } from 'lucide-react';
 import type { Repository } from '../../types';
 
@@ -123,6 +124,29 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
       {/* Right: Quick actions, AI assistant, user pill */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Cinematic Animated Logo Intro Button */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('agentguard:replay-intro'))}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            color: '#7c3aed',
+            background: '#faf5ff',
+            border: '1px solid #e9d5ff',
+            borderRadius: '6px',
+            padding: '5px 11px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          title="Play Cinematic Logo & Cybersecurity Animation"
+        >
+          <Play size={12} color="#7c3aed" fill="#7c3aed" />
+          <span>Play Intro</span>
+        </button>
+
         {/* AI Assistant shortcut */}
         {onOpenAiAssistant && (
           <button

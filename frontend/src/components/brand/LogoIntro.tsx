@@ -1,148 +1,198 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { X } from 'lucide-react';
+import { X, Sparkles, Shield, Cpu, Lock, Terminal, CheckCircle2, Zap } from 'lucide-react';
 
 export interface LogoIntroProps {
-  /** Callback fired when the intro animation finishes or is skipped */
+  /** Callback fired when the intro animation finishes or is dismissed */
   onComplete?: () => void;
   /** Force the intro to run even if already played in the current session */
   forcePlay?: boolean;
-  /** Total animation duration before initiating fade-out in seconds (default ~3.6s) */
+  /** Total animation duration in seconds before dashboard transition (default ~4.8s) */
   durationSeconds?: number;
 }
 
-// Background security vocabulary words configuration
-interface BackgroundWord {
+// Security Keywords orbiting the completed logo in the background
+interface SecurityKeywordBadge {
+  id: string;
+  icon: React.ReactNode;
+  label: string;
+  sublabel: string;
+  x: string;
+  y: string;
+  textColor: string;
+  borderColor: string;
+  bgColor: string;
+  glowColor: string;
+  delayOffset: number;
+  driftRangeY: number;
+  driftDuration: number;
+}
+
+const SECURITY_KEYWORD_BADGES: SecurityKeywordBadge[] = [
+  {
+    id: 'sast',
+    icon: <Zap size={14} color="#2563eb" />,
+    label: 'STATIC CODE ANALYSIS (SAST)',
+    sublabel: 'Deterministic Pattern Auditing',
+    x: '18%',
+    y: '22%',
+    textColor: '#1d4ed8',
+    borderColor: '#bfdbfe',
+    bgColor: '#eff6ff',
+    glowColor: 'rgba(37, 99, 235, 0.15)',
+    delayOffset: 0.05,
+    driftRangeY: -8,
+    driftDuration: 3.6,
+  },
+  {
+    id: 'scanners',
+    icon: <Shield size={14} color="#059669" />,
+    label: 'SEMGREP & BANDIT ENGINES',
+    sublabel: 'Multi-Scanner AST Detection',
+    x: '82%',
+    y: '22%',
+    textColor: '#15803d',
+    borderColor: '#bbf7d0',
+    bgColor: '#f0fdf4',
+    glowColor: 'rgba(5, 150, 105, 0.15)',
+    delayOffset: 0.15,
+    driftRangeY: 8,
+    driftDuration: 4.0,
+  },
+  {
+    id: 'nemotron',
+    icon: <Cpu size={14} color="#7c3aed" />,
+    label: 'NVIDIA NEMOTRON 70B',
+    sublabel: 'Deep Cybersecurity Reasoning',
+    x: '14%',
+    y: '45%',
+    textColor: '#6d28d9',
+    borderColor: '#e9d5ff',
+    bgColor: '#faf5ff',
+    glowColor: 'rgba(124, 58, 237, 0.18)',
+    delayOffset: 0.25,
+    driftRangeY: -6,
+    driftDuration: 3.4,
+  },
+  {
+    id: 'langgraph',
+    icon: <Sparkles size={14} color="#4338ca" />,
+    label: 'LANGGRAPH 4-AGENT PIPELINE',
+    sublabel: 'Threat • Test • Evidence • Verify',
+    x: '86%',
+    y: '45%',
+    textColor: '#3730a3',
+    borderColor: '#c7d2fe',
+    bgColor: '#eef2ff',
+    glowColor: 'rgba(67, 56, 202, 0.18)',
+    delayOffset: 0.35,
+    driftRangeY: 7,
+    driftDuration: 3.8,
+  },
+  {
+    id: 'secrets',
+    icon: <Lock size={14} color="#e11d48" />,
+    label: 'SECRET LEAK DETECTION',
+    sublabel: 'High-Entropy Token Defense',
+    x: '19%',
+    y: '68%',
+    textColor: '#be123c',
+    borderColor: '#fecaca',
+    bgColor: '#fef2f2',
+    glowColor: 'rgba(225, 29, 72, 0.15)',
+    delayOffset: 0.45,
+    driftRangeY: -7,
+    driftDuration: 3.5,
+  },
+  {
+    id: 'remediation',
+    icon: <Terminal size={14} color="#0d9488" />,
+    label: 'AUTOMATED CODE REMEDIATION',
+    sublabel: 'Validated Unified Diff Patches',
+    x: '81%',
+    y: '68%',
+    textColor: '#0f766e',
+    borderColor: '#99f6e4',
+    bgColor: '#f0fdfa',
+    glowColor: 'rgba(13, 148, 136, 0.15)',
+    delayOffset: 0.55,
+    driftRangeY: 8,
+    driftDuration: 3.9,
+  },
+  {
+    id: 'cve-osv',
+    icon: <Shield size={14} color="#0284c7" />,
+    label: 'CVE & OSV VULNERABILITY AUDITING',
+    sublabel: 'Supply Chain Dependency Integrity',
+    x: '50%',
+    y: '12%',
+    textColor: '#0369a1',
+    borderColor: '#bae6fd',
+    bgColor: '#f0f9ff',
+    glowColor: 'rgba(2, 132, 199, 0.14)',
+    delayOffset: 0.2,
+    driftRangeY: -5,
+    driftDuration: 4.2,
+  },
+  {
+    id: 'verification',
+    icon: <CheckCircle2 size={14} color="#15803d" />,
+    label: 'ZERO-DAY DEFENSE & CI VERIFICATION',
+    sublabel: 'Evidence-Backed Quality Gate',
+    x: '50%',
+    y: '88%',
+    textColor: '#166534',
+    borderColor: '#bbf7d0',
+    bgColor: '#f0fdf4',
+    glowColor: 'rgba(22, 163, 74, 0.15)',
+    delayOffset: 0.4,
+    driftRangeY: 6,
+    driftDuration: 3.7,
+  },
+];
+
+// Large Ambient Watermark Typography across the background
+interface BackgroundWatermark {
   id: string;
   text: string;
   x: string;
   y: string;
   fontSize: string;
-  fontWeight: number;
   color: string;
-  initialX?: number;
-  initialY?: number;
-  initialBlur?: string;
-  delay: number;
-  targetOpacity: number;
-  tracking?: string;
+  opacity: number;
+  tracking: string;
 }
 
-const BACKGROUND_WORDS: BackgroundWord[] = [
+const BACKGROUND_WATERMARKS: BackgroundWatermark[] = [
   {
-    id: 'w-secure-code',
-    text: 'SECURE CODE',
+    id: 'bg-guard',
+    text: 'AGENTGUARD AI',
     x: '50%',
-    y: '18%',
-    fontSize: 'clamp(32px, 6vw, 68px)',
-    fontWeight: 900,
+    y: '28%',
+    fontSize: 'clamp(40px, 8vw, 92px)',
     color: '#0f172a',
-    initialY: -20,
-    delay: 2.1,
-    targetOpacity: 0.06,
+    opacity: 0.045,
+    tracking: '0.28em',
+  },
+  {
+    id: 'bg-defense',
+    text: 'CYBERSECURITY COMMAND CENTER',
+    x: '50%',
+    y: '74%',
+    fontSize: 'clamp(22px, 4.5vw, 48px)',
+    color: '#2563eb',
+    opacity: 0.055,
     tracking: '0.22em',
-  },
-  {
-    id: 'w-ai-security',
-    text: 'AI SECURITY',
-    x: '50%',
-    y: '82%',
-    fontSize: 'clamp(28px, 5.5vw, 60px)',
-    fontWeight: 900,
-    color: '#7c3aed',
-    initialY: 20,
-    delay: 2.25,
-    targetOpacity: 0.07,
-    tracking: '0.24em',
-  },
-  {
-    id: 'w-scan',
-    text: 'SCAN',
-    x: '18%',
-    y: '28%',
-    fontSize: 'clamp(20px, 3.5vw, 42px)',
-    fontWeight: 800,
-    color: '#0284c7',
-    initialX: -50,
-    delay: 2.2,
-    targetOpacity: 0.18,
-    tracking: '0.12em',
-  },
-  {
-    id: 'w-analyze',
-    text: 'ANALYZE',
-    x: '82%',
-    y: '28%',
-    fontSize: 'clamp(20px, 3.5vw, 42px)',
-    fontWeight: 800,
-    color: '#7c3aed',
-    initialX: 50,
-    delay: 2.35,
-    targetOpacity: 0.2,
-    tracking: '0.12em',
-  },
-  {
-    id: 'w-detect',
-    text: 'DETECT',
-    x: '15%',
-    y: '50%',
-    fontSize: 'clamp(22px, 3.8vw, 44px)',
-    fontWeight: 800,
-    color: '#0f172a',
-    initialX: -40,
-    delay: 2.45,
-    targetOpacity: 0.16,
-    tracking: '0.1em',
-  },
-  {
-    id: 'w-protect',
-    text: 'PROTECT',
-    x: '85%',
-    y: '50%',
-    fontSize: 'clamp(22px, 3.8vw, 44px)',
-    fontWeight: 800,
-    color: '#4f46e5',
-    initialX: 40,
-    delay: 2.55,
-    targetOpacity: 0.18,
-    tracking: '0.1em',
-  },
-  {
-    id: 'w-explain',
-    text: 'EXPLAIN',
-    x: '22%',
-    y: '70%',
-    fontSize: 'clamp(18px, 3vw, 36px)',
-    fontWeight: 800,
-    color: '#8b5cf6',
-    initialY: 30,
-    delay: 2.65,
-    targetOpacity: 0.16,
-    tracking: '0.12em',
-  },
-  {
-    id: 'w-fix',
-    text: 'FIX',
-    x: '78%',
-    y: '70%',
-    fontSize: 'clamp(20px, 3.2vw, 38px)',
-    fontWeight: 800,
-    color: '#059669',
-    initialY: 30,
-    delay: 2.75,
-    targetOpacity: 0.18,
-    tracking: '0.14em',
   },
 ];
 
 export const LogoIntro: React.FC<LogoIntroProps> = ({
   onComplete,
   forcePlay = false,
-  durationSeconds = 3.8,
+  durationSeconds = 4.8,
 }) => {
   const shouldReduceMotion = useReducedMotion();
 
-  // Check session storage so intro runs once per session unless forcePlay is set
   const [isVisible, setIsVisible] = useState<boolean>(() => {
     if (forcePlay) return true;
     if (typeof window === 'undefined') return false;
@@ -150,7 +200,14 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
     return seen !== 'true';
   });
 
-  // Track phase of cinematic sequence (0 to 7)
+  // Phases:
+  // 0 = Canvas Initialization
+  // 1 = Parts connect and converge from all areas
+  // 2 = Circuits extend and connect nodes
+  // 3 = Snap convergence & Logo completion flash
+  // 4 = Wordmark & Tagline reveal
+  // 5 = LOGO IS DONE -> Radial background wave & security words activate with effects
+  // 6 = Smooth dissolve transition to live dashboard
   const [phase, setPhase] = useState<number>(0);
 
   const dismissIntro = useCallback(() => {
@@ -161,7 +218,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
     if (onComplete) onComplete();
   }, [onComplete]);
 
-  // If reduced motion is preferred, complete quickly and cleanly
+  // Handle reduced motion preferences gracefully
   useEffect(() => {
     if (shouldReduceMotion && isVisible) {
       const quickTimer = setTimeout(() => {
@@ -171,39 +228,34 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
     }
   }, [shouldReduceMotion, isVisible, dismissIntro]);
 
-  // Main cinematic timeline coordinator
+  // Main orchestrated cinematic timeline
   useEffect(() => {
     if (!isVisible || shouldReduceMotion) return;
 
-    // Timeline markers (in ms)
-    const tAwakening = setTimeout(() => setPhase(1), 50);     // Phase 1: 0.05s
-    const tCircuits = setTimeout(() => setPhase(2), 400);     // Phase 2: 0.40s
-    const tShield = setTimeout(() => setPhase(3), 900);       // Phase 3: 0.90s
-    const tPulse = setTimeout(() => setPhase(4), 1500);       // Phase 4: 1.50s
-    const tWordmark = setTimeout(() => setPhase(5), 1800);    // Phase 5: 1.80s
-    const tWords = setTimeout(() => setPhase(6), 2200);       // Phase 6: 2.20s
-    const tFadeOut = setTimeout(() => setPhase(7), durationSeconds * 1000); // Phase 7: ~3.8s
-    const tComplete = setTimeout(() => {
+    // Timeline sequences:
+    const tStartAssembly = setTimeout(() => setPhase(1), 80);    // 0.08s: Parts connect from all areas
+    const tCircuits = setTimeout(() => setPhase(2), 650);        // 0.65s: Circuits extend & pulse
+    const tCompleteSnap = setTimeout(() => setPhase(3), 1250);   // 1.25s: Parts lock & flash shockwave
+    const tWordmark = setTimeout(() => setPhase(4), 1600);       // 1.60s: Wordmark & tagline reveal
+    const tLogoDoneWords = setTimeout(() => setPhase(5), 2050);  // 2.05s: LOGO DONE -> Background Words activate
+    const tFadeOut = setTimeout(() => setPhase(6), durationSeconds * 1000); // 4.80s: Transition
+    const tFinish = setTimeout(() => {
       dismissIntro();
     }, (durationSeconds + 0.65) * 1000);
 
-    // Keyboard 'Escape' to skip immediately
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        dismissIntro();
-      }
+      if (e.key === 'Escape') dismissIntro();
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      clearTimeout(tAwakening);
+      clearTimeout(tStartAssembly);
       clearTimeout(tCircuits);
-      clearTimeout(tShield);
-      clearTimeout(tPulse);
+      clearTimeout(tCompleteSnap);
       clearTimeout(tWordmark);
-      clearTimeout(tWords);
+      clearTimeout(tLogoDoneWords);
       clearTimeout(tFadeOut);
-      clearTimeout(tComplete);
+      clearTimeout(tFinish);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isVisible, shouldReduceMotion, durationSeconds, dismissIntro]);
@@ -212,13 +264,13 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
 
   return (
     <AnimatePresence>
-      {phase < 8 && (
+      {phase < 7 && (
         <motion.div
-          key="agentguard-intro-overlay"
+          key="agentguard-cinematic-intro"
           initial={{ opacity: 1 }}
-          animate={phase === 7 ? { opacity: 0, scale: 0.985 } : { opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          animate={phase === 6 ? { opacity: 0, scale: 1.025 } : { opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.03 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           style={{
             position: 'fixed',
             inset: 0,
@@ -228,19 +280,42 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
-            pointerEvents: phase === 7 ? 'none' : 'auto',
+            pointerEvents: phase === 6 ? 'none' : 'auto',
           }}
           role="dialog"
-          aria-label="AgentGuard AI Startup Introduction"
+          aria-label="AgentGuard AI Animated Logo Intro"
         >
-          {/* Subtle Ambient Radial Glow (Cyan to Violet) */}
+          {/* Subtle Cyber Grid Background Matrix */}
           <div
             style={{
               position: 'absolute',
-              width: '800px',
-              height: '800px',
+              inset: 0,
+              backgroundImage: `
+                linear-gradient(to right, rgba(226, 232, 240, 0.45) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(226, 232, 240, 0.45) 1px, transparent 1px)
+              `,
+              backgroundSize: '48px 48px',
+              maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 80%)',
+              WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 80%)',
+              pointerEvents: 'none',
+              opacity: phase >= 1 ? 0.8 : 0,
+              transition: 'opacity 0.8s ease',
+            }}
+          />
+
+          {/* Center Radial Glow Aura */}
+          <motion.div
+            animate={{
+              scale: phase >= 3 ? [1, 1.15, 1] : 1,
+              opacity: phase >= 3 ? [0.4, 0.85, 0.6] : 0.25,
+            }}
+            transition={{ duration: 2.2, repeat: Infinity, repeatType: 'reverse' }}
+            style={{
+              position: 'absolute',
+              width: '750px',
+              height: '750px',
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.04) 0%, rgba(6, 182, 212, 0.02) 40%, rgba(255, 255, 255, 0) 70%)',
+              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, rgba(6, 182, 212, 0.04) 40%, rgba(255, 255, 255, 0) 70%)',
               pointerEvents: 'none',
               transform: 'translate(-50%, -50%)',
               left: '50%',
@@ -248,98 +323,212 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
             }}
           />
 
-          {/* ── SKIP BUTTON (Accessible & Unobtrusive) ── */}
+          {/* ── SKIP BUTTON ── */}
           <motion.button
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 0.85, y: 0 }}
             whileHover={{ opacity: 1, scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
-            transition={{ delay: 0.6, duration: 0.3 }}
+            transition={{ delay: 0.4, duration: 0.3 }}
             onClick={dismissIntro}
             style={{
               position: 'absolute',
               top: '24px',
-              right: '24px',
+              right: '28px',
               zIndex: 100,
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               padding: '6px 14px',
               borderRadius: '999px',
-              background: 'rgba(241, 245, 249, 0.85)',
-              border: '1px solid #e2e8f0',
-              color: '#475569',
+              background: 'rgba(255, 255, 255, 0.9)',
+              border: '1px solid #cbd5e1',
+              color: '#334155',
               fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
               backdropFilter: 'blur(8px)',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
             }}
-            title="Skip startup intro (Esc)"
+            title="Skip introduction (Esc)"
             aria-label="Skip introduction"
           >
             <span>Skip</span>
-            <span style={{ fontSize: '10px', color: '#94a3b8', background: '#ffffff', padding: '1px 5px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>Esc</span>
-            <X size={12} style={{ marginLeft: '2px' }} />
+            <span style={{ fontSize: '10px', color: '#64748b', background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>Esc</span>
+            <X size={13} style={{ marginLeft: '2px' }} />
           </motion.button>
 
-          {/* ── PHASE 6: BACKGROUND SECURITY WORDS LAYER ── */}
+          {/* ═══════════════════════════════════════════════════════════════
+              PHASE 5: BACKGROUND SECURITY WORDS & EFFECTS (TRIGGERED ONCE LOGO IS DONE)
+              ═══════════════════════════════════════════════════════════════ */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
               pointerEvents: 'none',
               overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
             aria-hidden="true"
           >
-            {BACKGROUND_WORDS.map((word) => {
-              const shouldShow = phase >= 6;
+            {/* 1. Large Ambient Architectural Watermarks */}
+            {BACKGROUND_WATERMARKS.map((wm) => {
+              const shouldShow = phase >= 5;
               return (
                 <motion.div
-                  key={word.id}
+                  key={wm.id}
+                  initial={{ opacity: 0, scale: 0.94 }}
+                  animate={
+                    shouldShow
+                      ? { opacity: wm.opacity, scale: 1 }
+                      : { opacity: 0, scale: 0.94 }
+                  }
+                  transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+                  style={{
+                    position: 'absolute',
+                    left: wm.x,
+                    top: wm.y,
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: wm.fontSize,
+                    fontWeight: 900,
+                    color: wm.color,
+                    letterSpacing: wm.tracking,
+                    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                    whiteSpace: 'nowrap',
+                    userSelect: 'none',
+                    zIndex: 2,
+                  }}
+                >
+                  {wm.text}
+                </motion.div>
+              );
+            })}
+
+            {/* 2. Concentric Radial Wave Emission when Logo Finishes */}
+            {phase >= 5 && (
+              <motion.div
+                initial={{ scale: 0.2, opacity: 0.9 }}
+                animate={{ scale: 2.5, opacity: 0 }}
+                transition={{ duration: 1.4, ease: 'easeOut' }}
+                style={{
+                  position: 'absolute',
+                  width: '380px',
+                  height: '380px',
+                  borderRadius: '50%',
+                  border: '2px solid rgba(37, 99, 235, 0.4)',
+                  boxShadow: '0 0 30px rgba(6, 182, 212, 0.25)',
+                  pointerEvents: 'none',
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 3,
+                }}
+              />
+            )}
+
+            {/* 3. Orbiting Security Tech Badges with Floating Kinetic Effects */}
+            {SECURITY_KEYWORD_BADGES.map((badge) => {
+              const shouldShow = phase >= 5;
+              return (
+                <motion.div
+                  key={badge.id}
                   initial={{
                     opacity: 0,
-                    x: word.initialX ? word.initialX : 0,
-                    y: word.initialY ? word.initialY : 0,
-                    filter: 'blur(6px)',
+                    scale: 0.65,
+                    y: 20,
                   }}
                   animate={
                     shouldShow
                       ? {
-                          opacity: word.targetOpacity,
-                          x: 0,
-                          y: 0,
-                          filter: 'blur(0px)',
+                          opacity: 1,
+                          scale: 1,
+                          y: [0, badge.driftRangeY, 0],
                         }
-                      : { opacity: 0 }
+                      : { opacity: 0, scale: 0.65, y: 20 }
                   }
-                  transition={{
-                    duration: 0.75,
-                    delay: word.delay - 2.0, // relative to Phase 6 entrance
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
+                  transition={
+                    shouldShow
+                      ? {
+                          opacity: { duration: 0.6, delay: badge.delayOffset, ease: [0.16, 1, 0.3, 1] },
+                          scale: { duration: 0.6, delay: badge.delayOffset, ease: [0.16, 1, 0.3, 1] },
+                          y: {
+                            duration: badge.driftDuration,
+                            repeat: Infinity,
+                            repeatType: 'reverse',
+                            ease: 'easeInOut',
+                            delay: badge.delayOffset + 0.6,
+                          },
+                        }
+                      : { duration: 0.2 }
+                  }
                   style={{
                     position: 'absolute',
-                    left: word.x,
-                    top: word.y,
+                    left: badge.x,
+                    top: badge.y,
                     transform: 'translate(-50%, -50%)',
-                    fontSize: word.fontSize,
-                    fontWeight: word.fontWeight,
-                    color: word.color,
-                    letterSpacing: word.tracking || '0.1em',
-                    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                    zIndex: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    background: badge.bgColor,
+                    border: `1px solid ${badge.borderColor}`,
+                    boxShadow: `0 4px 18px ${badge.glowColor}, 0 1px 3px rgba(0,0,0,0.04)`,
+                    backdropFilter: 'blur(8px)',
                     whiteSpace: 'nowrap',
                     userSelect: 'none',
                   }}
                 >
-                  {word.text}
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '6px',
+                      background: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {badge.icon}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span
+                      style={{
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        color: badge.textColor,
+                        letterSpacing: '0.04em',
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {badge.label}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '9.5px',
+                        color: '#64748b',
+                        fontWeight: 500,
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                      }}
+                    >
+                      {badge.sublabel}
+                    </span>
+                  </div>
                 </motion.div>
               );
             })}
           </div>
 
-          {/* ── FOREGROUND: ASSEMBLED AGENTGUARD AI LOGO & WORDMARK ── */}
+          {/* ═══════════════════════════════════════════════════════════════
+              FOREGROUND: LOGO PARTS CONNECT FROM ALL AREAS & COMPLETE LOGO
+              ═══════════════════════════════════════════════════════════════ */}
           <div
             style={{
               display: 'flex',
@@ -348,13 +537,14 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
               justifyContent: 'center',
               zIndex: 10,
               maxWidth: '92vw',
+              position: 'relative',
             }}
           >
-            {/* SVG Logo Mark Container */}
+            {/* SVG Shield & Mark Container */}
             <div
               style={{
-                width: 'clamp(140px, 22vw, 190px)',
-                height: 'clamp(150px, 23.5vw, 204px)',
+                width: 'clamp(145px, 22vw, 195px)',
+                height: 'clamp(155px, 23.5vw, 210px)',
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
@@ -371,16 +561,16 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 aria-hidden="true"
               >
                 <defs>
-                  {/* Cyan Wave Gradient for Circuit Pulse */}
-                  <linearGradient id="intro-circuit-pulse" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.1" />
-                    <stop offset="50%" stopColor="#06b6d4" stopOpacity="1" />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.2" />
+                  {/* Energy Circuit Gradients */}
+                  <linearGradient id="circuit-flow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#06b6d4" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#7c3aed" />
                   </linearGradient>
 
                   {/* Terminal Glow Filter */}
-                  <filter id="intro-glow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="3.5" result="blur" />
+                  <filter id="node-glow" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
                     <feMerge>
                       <feMergeNode in="blur" />
                       <feMergeNode in="SourceGraphic" />
@@ -388,8 +578,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   </filter>
                 </defs>
 
-                {/* ── PHASE 3: SHIELD ASSEMBLY OUTLINE (Black Geometric Strokes) ── */}
-                {/* Left Shield Perimeter */}
+                {/* ── PART 1: LEFT SHIELD PERIMETER (Flies in from Top-Left quadrant) ── */}
                 <motion.path
                   d="M 88 8 L 14 29 L 14 116 C 14 158, 48 188, 88 206"
                   fill="none"
@@ -397,12 +586,16 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   strokeWidth="9.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={phase >= 3 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ x: -90, y: -45, rotate: -12, opacity: 0, pathLength: 0 }}
+                  animate={
+                    phase >= 1
+                      ? { x: 0, y: 0, rotate: 0, opacity: 1, pathLength: 1 }
+                      : { x: -90, y: -45, rotate: -12, opacity: 0, pathLength: 0 }
+                  }
+                  transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
                 />
 
-                {/* Right Upper Shield Perimeter */}
+                {/* ── PART 2: RIGHT UPPER SHIELD (Flies in from Top-Right quadrant) ── */}
                 <motion.path
                   d="M 88 8 L 132 21 M 145 25 L 164 30 L 164 68"
                   fill="none"
@@ -410,12 +603,16 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   strokeWidth="9.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={phase >= 3 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.65, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ x: 90, y: -40, rotate: 12, opacity: 0, pathLength: 0 }}
+                  animate={
+                    phase >= 1
+                      ? { x: 0, y: 0, rotate: 0, opacity: 1, pathLength: 1 }
+                      : { x: 90, y: -40, rotate: 12, opacity: 0, pathLength: 0 }
+                  }
+                  transition={{ duration: 0.85, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
                 />
 
-                {/* Right Lower Shield Perimeter */}
+                {/* ── PART 3: RIGHT LOWER SHIELD (Flies in from Bottom-Right quadrant) ── */}
                 <motion.path
                   d="M 164 104 C 164 135, 148 168, 88 206"
                   fill="none"
@@ -423,46 +620,61 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   strokeWidth="9.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={phase >= 3 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.6, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ x: 80, y: 60, rotate: 8, opacity: 0, pathLength: 0 }}
+                  animate={
+                    phase >= 1
+                      ? { x: 0, y: 0, rotate: 0, opacity: 1, pathLength: 1 }
+                      : { x: 80, y: 60, rotate: 8, opacity: 0, pathLength: 0 }
+                  }
+                  transition={{ duration: 0.8, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
                 />
 
-                {/* ── PHASE 3 & 4: CENTRAL STYLIZED 'A' ── */}
-                {/* Right Leg (Bold Solid Stroke) */}
+                {/* ── PART 4: CENTRAL 'A' — BOLD RIGHT DIAGONAL LEG (Descends from Above) ── */}
                 <motion.path
                   d="M 88 38 L 142 142"
                   fill="none"
                   stroke="#0f172a"
                   strokeWidth="13"
                   strokeLinecap="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={phase >= 3 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.55, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ y: -75, x: 25, scaleY: 0.25, opacity: 0 }}
+                  animate={
+                    phase >= 1
+                      ? { y: 0, x: 0, scaleY: 1, opacity: 1 }
+                      : { y: -75, x: 25, scaleY: 0.25, opacity: 0 }
+                  }
+                  transition={{ duration: 0.75, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
                 />
 
-                {/* Left Leg Upper Segment */}
+                {/* ── PART 5: CENTRAL 'A' — LEFT UPPER SEGMENT (Descends from Above-Left) ── */}
                 <motion.path
                   d="M 88 38 L 65 78"
                   fill="none"
                   stroke="#0f172a"
                   strokeWidth="12"
                   strokeLinecap="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={phase >= 3 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.45, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ x: -45, y: -35, opacity: 0 }}
+                  animate={
+                    phase >= 1
+                      ? { x: 0, y: 0, opacity: 1 }
+                      : { x: -45, y: -35, opacity: 0 }
+                  }
+                  transition={{ duration: 0.65, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
                 />
 
-                {/* Left Leg Lower Parallel Bars */}
+                {/* ── PART 6: CENTRAL 'A' — LEFT LOWER DUAL SLASHES (Glides from Left) ── */}
                 <motion.path
                   d="M 54 98 L 34 140"
                   fill="none"
                   stroke="#0f172a"
                   strokeWidth="8"
                   strokeLinecap="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={phase >= 3 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.4, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ x: -55, opacity: 0 }}
+                  animate={
+                    phase >= 1
+                      ? { x: 0, opacity: 1 }
+                      : { x: -55, opacity: 0 }
+                  }
+                  transition={{ duration: 0.55, delay: 0.34, ease: [0.16, 1, 0.3, 1] }}
                 />
                 <motion.path
                   d="M 68 98 L 48 140"
@@ -470,17 +682,21 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   stroke="#0f172a"
                   strokeWidth="6"
                   strokeLinecap="round"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={phase >= 3 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.4, delay: 0.38, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ x: -55, opacity: 0 }}
+                  animate={
+                    phase >= 1
+                      ? { x: 0, opacity: 1 }
+                      : { x: -55, opacity: 0 }
+                  }
+                  transition={{ duration: 0.55, delay: 0.38, ease: [0.16, 1, 0.3, 1] }}
                 />
 
-                {/* ── PHASE 2: CONNECTING THE CIRCUITS ── */}
-                {/* Top-Right Lightning Trace */}
+                {/* ── PART 7: CIRCUITS CONNECTING ALL AREAS TO CORE (Shoots from Core outwards) ── */}
+                {/* Circuit A: Top-Right Lightning Branch */}
                 <motion.path
                   d="M 96 44 L 110 44 L 118 34 L 136 30 L 142 15"
                   fill="none"
-                  stroke={phase === 4 ? '#06b6d4' : '#0f172a'}
+                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#0f172a'}
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -489,158 +705,88 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
                 />
 
-                {/* Right Circuit Arm */}
+                {/* Circuit B: Middle-Right Arm */}
                 <motion.path
                   d="M 134 94 L 155 88 L 172 80 L 186 62"
                   fill="none"
-                  stroke={phase === 4 ? '#06b6d4' : '#0f172a'}
+                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#0f172a'}
                   strokeWidth="5.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={phase >= 2 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.55, delay: 0.2, ease: 'easeOut' }}
+                  transition={{ duration: 0.55, delay: 0.18, ease: 'easeOut' }}
                 />
 
-                {/* Bottom-Left Circuit Arm */}
+                {/* Circuit C: Bottom-Left Arm */}
                 <motion.path
                   d="M 44 126 L 30 133 L 20 133 L 12 133"
                   fill="none"
-                  stroke={phase === 4 ? '#06b6d4' : '#0f172a'}
+                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#0f172a'}
                   strokeWidth="5.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={phase >= 2 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
+                  transition={{ duration: 0.5, delay: 0.26, ease: 'easeOut' }}
                 />
 
-                {/* Internal Spine & Crossbar Track */}
+                {/* Circuit D: Internal Spine Track */}
                 <motion.path
                   d="M 85 185 L 85 160 L 87 128 L 108 112"
                   fill="none"
-                  stroke={phase === 4 ? '#06b6d4' : '#0f172a'}
+                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#0f172a'}
                   strokeWidth="5.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={phase >= 2 ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                  transition={{ duration: 0.55, delay: 0.35, ease: 'easeOut' }}
+                  transition={{ duration: 0.55, delay: 0.32, ease: 'easeOut' }}
                 />
 
-                {/* ── PHASE 1 & 4: CIRCUIT NODES (Awakening & Sequential Pulse) ── */}
-                {/* Node 1: Far Right External Terminal */}
+                {/* ── PART 8: CONNECTION NODES (Illuminates in sequence with cyber pulses) ── */}
+                {/* Node 1: Far-Right External Terminal (186, 62) */}
                 <motion.circle
                   cx="186"
                   cy="62"
                   r="7"
                   fill="#ffffff"
-                  stroke={phase === 1 ? '#06b6d4' : phase === 4 ? '#8b5cf6' : '#0f172a'}
+                  stroke={phase === 2 ? '#06b6d4' : phase >= 3 ? '#0f172a' : '#0f172a'}
                   strokeWidth="4.5"
-                  filter={phase === 1 || phase === 4 ? 'url(#intro-glow)' : 'none'}
+                  filter={phase === 2 ? 'url(#node-glow)' : 'none'}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={
-                    phase >= 1
+                    phase >= 2
                       ? {
-                          scale: phase === 1 ? [0, 1.4, 1] : phase === 4 ? [1, 1.35, 1] : 1,
+                          scale: phase === 2 ? [0, 1.5, 1] : 1,
                           opacity: 1,
                         }
                       : { scale: 0, opacity: 0 }
                   }
-                  transition={{ duration: 0.4, ease: 'backOut' }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
                 />
                 <motion.circle
                   cx="186"
                   cy="62"
                   r="2.5"
-                  fill={phase === 1 ? '#06b6d4' : phase === 4 ? '#8b5cf6' : '#0f172a'}
+                  fill={phase === 2 ? '#06b6d4' : '#0f172a'}
                   initial={{ scale: 0 }}
-                  animate={phase >= 1 ? { scale: 1 } : { scale: 0 }}
+                  animate={phase >= 2 ? { scale: 1 } : { scale: 0 }}
                 />
 
-                {/* Node 2: Crossbar Connection Node */}
+                {/* Node 2: Crossbar Hub (150, 94) */}
                 <motion.circle
                   cx="150"
                   cy="94"
                   r="5.5"
                   fill="#ffffff"
-                  stroke={phase === 4 ? '#06b6d4' : '#0f172a'}
+                  stroke={phase === 2 ? '#3b82f6' : '#0f172a'}
                   strokeWidth="3.5"
                   initial={{ scale: 0, opacity: 0 }}
                   animate={
                     phase >= 2
                       ? {
-                          scale: phase === 4 ? [1, 1.3, 1] : 1,
-                          opacity: 1,
-                        }
-                      : { scale: 0, opacity: 0 }
-                  }
-                  transition={{ duration: 0.35, delay: 0.2 }}
-                />
-
-                {/* Node 3: Spine Upper Node */}
-                <motion.circle
-                  cx="87"
-                  cy="128"
-                  r="5.5"
-                  fill="#ffffff"
-                  stroke={phase === 4 ? '#06b6d4' : '#0f172a'}
-                  strokeWidth="3.5"
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={
-                    phase >= 2
-                      ? {
-                          scale: phase === 4 ? [1, 1.3, 1] : 1,
-                          opacity: 1,
-                        }
-                      : { scale: 0, opacity: 0 }
-                  }
-                  transition={{ duration: 0.35, delay: 0.3 }}
-                />
-
-                {/* Node 4: Far Left External Terminal */}
-                <motion.circle
-                  cx="12"
-                  cy="133"
-                  r="7"
-                  fill="#ffffff"
-                  stroke={phase === 1 ? '#06b6d4' : phase === 4 ? '#06b6d4' : '#0f172a'}
-                  strokeWidth="4.5"
-                  filter={phase === 1 || phase === 4 ? 'url(#intro-glow)' : 'none'}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={
-                    phase >= 1
-                      ? {
-                          scale: phase === 1 ? [0, 1.4, 1] : phase === 4 ? [1, 1.35, 1] : 1,
-                          opacity: 1,
-                        }
-                      : { scale: 0, opacity: 0 }
-                  }
-                  transition={{ duration: 0.4, delay: 0.15, ease: 'backOut' }}
-                />
-                <motion.circle
-                  cx="12"
-                  cy="133"
-                  r="2.5"
-                  fill={phase === 1 ? '#06b6d4' : phase === 4 ? '#06b6d4' : '#0f172a'}
-                  initial={{ scale: 0 }}
-                  animate={phase >= 1 ? { scale: 1 } : { scale: 0 }}
-                />
-
-                {/* Node 5: Lower Spine Node */}
-                <motion.circle
-                  cx="85"
-                  cy="160"
-                  r="5.5"
-                  fill="#ffffff"
-                  stroke={phase === 1 ? '#8b5cf6' : phase === 4 ? '#8b5cf6' : '#0f172a'}
-                  strokeWidth="3.5"
-                  filter={phase === 1 ? 'url(#intro-glow)' : 'none'}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={
-                    phase >= 1
-                      ? {
-                          scale: phase === 1 ? [0, 1.3, 1] : phase === 4 ? [1, 1.3, 1] : 1,
+                          scale: phase === 2 ? [0, 1.4, 1] : 1,
                           opacity: 1,
                         }
                       : { scale: 0, opacity: 0 }
@@ -648,22 +794,104 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   transition={{ duration: 0.35, delay: 0.25 }}
                 />
 
-                {/* Momentary Outline Completion Flash (Phase 3 -> 4) */}
-                {phase === 3 && (
-                  <motion.circle
-                    cx="88"
-                    cy="206"
-                    r="12"
-                    fill="#06b6d4"
-                    initial={{ scale: 0.5, opacity: 0.8 }}
-                    animate={{ scale: 2.2, opacity: 0 }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                  />
+                {/* Node 3: Spine Junction Hub (87, 128) */}
+                <motion.circle
+                  cx="87"
+                  cy="128"
+                  r="5.5"
+                  fill="#ffffff"
+                  stroke={phase === 2 ? '#7c3aed' : '#0f172a'}
+                  strokeWidth="3.5"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={
+                    phase >= 2
+                      ? {
+                          scale: phase === 2 ? [0, 1.4, 1] : 1,
+                          opacity: 1,
+                        }
+                      : { scale: 0, opacity: 0 }
+                  }
+                  transition={{ duration: 0.35, delay: 0.3 }}
+                />
+
+                {/* Node 4: Far-Left Terminal (12, 133) */}
+                <motion.circle
+                  cx="12"
+                  cy="133"
+                  r="7"
+                  fill="#ffffff"
+                  stroke={phase === 2 ? '#06b6d4' : '#0f172a'}
+                  strokeWidth="4.5"
+                  filter={phase === 2 ? 'url(#node-glow)' : 'none'}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={
+                    phase >= 2
+                      ? {
+                          scale: phase === 2 ? [0, 1.5, 1] : 1,
+                          opacity: 1,
+                        }
+                      : { scale: 0, opacity: 0 }
+                  }
+                  transition={{ duration: 0.4, delay: 0.35 }}
+                />
+                <motion.circle
+                  cx="12"
+                  cy="133"
+                  r="2.5"
+                  fill={phase === 2 ? '#06b6d4' : '#0f172a'}
+                  initial={{ scale: 0 }}
+                  animate={phase >= 2 ? { scale: 1 } : { scale: 0 }}
+                />
+
+                {/* Node 5: Lower Spine Hub (85, 160) */}
+                <motion.circle
+                  cx="85"
+                  cy="160"
+                  r="5.5"
+                  fill="#ffffff"
+                  stroke={phase === 2 ? '#7c3aed' : '#0f172a'}
+                  strokeWidth="3.5"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={
+                    phase >= 2
+                      ? {
+                          scale: phase === 2 ? [0, 1.4, 1] : 1,
+                          opacity: 1,
+                        }
+                      : { scale: 0, opacity: 0 }
+                  }
+                  transition={{ duration: 0.35, delay: 0.4 }}
+                />
+
+                {/* ── PART 9: COMPLETION FLASH & CONVERGENCE SHOCKWAVE (Phase 3) ── */}
+                {phase >= 3 && (
+                  <>
+                    {/* Apex Convergence Flash */}
+                    <motion.circle
+                      cx="88"
+                      cy="8"
+                      r="9"
+                      fill="#3b82f6"
+                      initial={{ scale: 0.4, opacity: 0.9 }}
+                      animate={{ scale: 2.2, opacity: 0 }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                    />
+                    {/* Bottom Tip Convergence Flash */}
+                    <motion.circle
+                      cx="88"
+                      cy="206"
+                      r="12"
+                      fill="#06b6d4"
+                      initial={{ scale: 0.5, opacity: 0.95 }}
+                      animate={{ scale: 2.6, opacity: 0 }}
+                      transition={{ duration: 0.55, ease: 'easeOut' }}
+                    />
+                  </>
                 )}
               </svg>
             </div>
 
-            {/* ── PHASE 5: AGENTGUARD AI WORDMARK & TAGLINE ── */}
+            {/* ── PHASE 4: AGENTGUARD AI WORDMARK & TAGLINE ── */}
             <div
               style={{
                 display: 'flex',
@@ -673,7 +901,6 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 textAlign: 'center',
               }}
             >
-              {/* Main Title Row: AgentGuard + Purple AI */}
               <div
                 style={{
                   display: 'flex',
@@ -682,17 +909,17 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   lineHeight: 1.1,
                 }}
               >
-                {/* "AgentGuard" — Black Bold Sans-Serif */}
+                {/* "AgentGuard" — Black Bold Modern Wordmark */}
                 <motion.span
-                  initial={{ opacity: 0, x: -16, filter: 'blur(4px)' }}
+                  initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
                   animate={
-                    phase >= 5
-                      ? { opacity: 1, x: 0, filter: 'blur(0px)' }
-                      : { opacity: 0, x: -16, filter: 'blur(4px)' }
+                    phase >= 4
+                      ? { opacity: 1, y: 0, filter: 'blur(0px)' }
+                      : { opacity: 0, y: 12, filter: 'blur(6px)' }
                   }
-                  transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                   style={{
-                    fontSize: 'clamp(28px, 4.5vw, 46px)',
+                    fontSize: 'clamp(30px, 4.6vw, 48px)',
                     fontWeight: 800,
                     color: '#0f172a',
                     letterSpacing: '-0.035em',
@@ -702,17 +929,17 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   AgentGuard
                 </motion.span>
 
-                {/* "AI" — Vibrant Purple Lettering */}
+                {/* "AI" — Purple Gradient Lettering */}
                 <motion.span
-                  initial={{ opacity: 0, scale: 0.8, filter: 'blur(4px)' }}
+                  initial={{ opacity: 0, scale: 0.75, filter: 'blur(6px)' }}
                   animate={
-                    phase >= 5
+                    phase >= 4
                       ? { opacity: 1, scale: 1, filter: 'blur(0px)' }
-                      : { opacity: 0, scale: 0.8, filter: 'blur(4px)' }
+                      : { opacity: 0, scale: 0.75, filter: 'blur(6px)' }
                   }
-                  transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.55, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
                   style={{
-                    fontSize: 'clamp(28px, 4.5vw, 46px)',
+                    fontSize: 'clamp(30px, 4.6vw, 48px)',
                     fontWeight: 800,
                     letterSpacing: '-0.02em',
                     background: 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
@@ -728,13 +955,13 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
 
               {/* Tagline: "AI POWERED CODE SECURITY" */}
               <motion.div
-                initial={{ opacity: 0, y: 6 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={
-                  phase >= 5
+                  phase >= 4
                     ? { opacity: 1, y: 0 }
-                    : { opacity: 0, y: 6 }
+                    : { opacity: 0, y: 8 }
                 }
-                transition={{ duration: 0.5, delay: 0.4, ease: 'easeOut' }}
+                transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -744,12 +971,12 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
               >
                 <span
                   style={{
-                    fontSize: 'clamp(10px, 1.4vw, 13px)',
+                    fontSize: 'clamp(11px, 1.4vw, 13.5px)',
                     fontWeight: 700,
-                    color: '#64748b',
-                    letterSpacing: '0.18em',
+                    color: '#475569',
+                    letterSpacing: '0.2em',
                     textTransform: 'uppercase',
-                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    fontFamily: 'JetBrains Mono, monospace',
                   }}
                 >
                   AI POWERED CODE SECURITY
