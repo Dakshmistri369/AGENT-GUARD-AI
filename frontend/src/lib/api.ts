@@ -25,10 +25,31 @@ if (typeof window !== 'undefined' && window.location.protocol === 'https:' && sa
 export const API_BASE_URL = sanitizedBase;
 const BASE = API_BASE_URL;
 
+let authTokenGetter: (() => string | null | Promise<string | null>) | null = null;
+export const setAuthTokenGetter = (getter: () => string | null | Promise<string | null>) => {
+  authTokenGetter = getter;
+};
+
 const client = axios.create({
   baseURL: BASE,
   timeout: 300000, // 5 minutes for full static analysis and multi-engine cloning
   headers: { 'Content-Type': 'application/json' },
+});
+
+// Dynamic Supabase JWT bearer injection
+client.interceptors.request.use(async (config) => {
+  if (authTokenGetter) {
+    try {
+      const token = await authTokenGetter();
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (e) {
+      console.warn('[AgentGuard API] Failed to retrieve auth token:', e);
+    }
+  }
+  return config;
 });
 
 // Automatic resilience interceptor:
@@ -54,6 +75,25 @@ client.interceptors.response.use(
 );
 
 export const api = {
+  auth: {
+    status: (): Promise<{
+      auth_mode: string;
+      supabase_configured: boolean;
+      supabase_url: string;
+      supabase_publishable_key: string;
+      demo_auth_enabled: boolean;
+    }> => client.get('/api/auth/status').then(r => r.data),
+
+    me: (): Promise<{
+      id: number;
+      email: string;
+      supabase_user_id?: string;
+      email_verified: boolean;
+      auth_status: string;
+      created_at: string;
+    }> => client.get('/api/auth/me').then(r => r.data),
+  },
+
   health: {
     get: (): Promise<HealthStatus> =>
       client.get('/health').then(r => r.data),

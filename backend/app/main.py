@@ -32,6 +32,33 @@ import app.models  # noqa: F401
 settings = get_settings()
 
 
+def _sync_database_schema(connection) -> None:
+    """Migrate schema dynamically if users table columns are missing."""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(connection)
+    if "users" in inspector.get_table_names():
+        columns = {col["name"] for col in inspector.get_columns("users")}
+        dialect = connection.dialect.name
+
+        if "supabase_user_id" not in columns:
+            if dialect == "postgresql":
+                connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS supabase_user_id VARCHAR(64) UNIQUE;"))
+                connection.execute(text("CREATE INDEX IF NOT EXISTS ix_users_supabase_user_id ON users (supabase_user_id);"))
+            else:
+                connection.execute(text("ALTER TABLE users ADD COLUMN supabase_user_id VARCHAR(64);"))
+                connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_supabase_user_id ON users (supabase_user_id);"))
+
+        if "email_verified" not in columns:
+            if dialect == "postgresql":
+                connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE NOT NULL;"))
+            else:
+                connection.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 0 NOT NULL;"))
+
+        if dialect == "postgresql" and "password_hash" in columns:
+            connection.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;"))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
@@ -40,6 +67,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_sync_database_schema)
 
     yield
 

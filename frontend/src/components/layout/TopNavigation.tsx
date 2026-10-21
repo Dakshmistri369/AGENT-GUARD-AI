@@ -8,8 +8,10 @@ import {
   RefreshCw,
   ExternalLink,
   Play,
+  LogOut,
 } from 'lucide-react';
 import type { Repository } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 export interface TopNavigationProps {
   repositories?: Repository[];
@@ -29,6 +31,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   onOpenAiAssistant,
 }) => {
   const location = useLocation();
+  const { user, signOut, isConfigured } = useAuth();
 
   // Determine page title for breadcrumb
   const getPageTitle = () => {
@@ -206,39 +209,113 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           <Settings size={15} />
         </Link>
 
-        {/* User Pill matching screenshot */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '4px 10px',
-            borderRadius: '8px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-          }}
-        >
+        {/* User Pill dynamic */}
+        {user ? (
           <div
             style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '6px',
-              background: 'linear-gradient(135deg, #2563eb 0%, #0d9488 100%)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              fontSize: '11px',
-              fontWeight: 700,
+              gap: '8px',
+              padding: '4px 10px',
+              borderRadius: '8px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
             }}
           >
-            D
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '6px',
+                background: 'linear-gradient(135deg, #2563eb 0%, #0d9488 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+              }}
+            >
+              {user.email ? user.email[0] : 'U'}
+            </div>
+            <div style={{ lineHeight: 1.1 }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
+                {user.email ? user.email.split('@')[0] : 'User'}
+              </div>
+              <div style={{ fontSize: '10px', color: '#64748b' }}>Security Auditor</div>
+            </div>
+            <button
+              onClick={() => signOut()}
+              title="Sign Out"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#94a3b8',
+                padding: '2px',
+                marginLeft: '4px',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+            >
+              <LogOut size={13} />
+            </button>
           </div>
-          <div style={{ lineHeight: 1.1 }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>demo</div>
-            <div style={{ fontSize: '10px', color: '#64748b' }}>Security Auditor</div>
+        ) : isConfigured ? (
+          <Link
+            to="/login"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              background: '#2563eb',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
+          >
+            Sign In
+          </Link>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '4px 10px',
+              borderRadius: '8px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '6px',
+                background: 'linear-gradient(135deg, #2563eb 0%, #0d9488 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: 700,
+              }}
+            >
+              D
+            </div>
+            <div style={{ lineHeight: 1.1 }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>demo</div>
+              <div style={{ fontSize: '10px', color: '#64748b' }}>Demo Mode</div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </header>
   );
