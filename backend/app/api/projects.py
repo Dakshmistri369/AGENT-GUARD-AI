@@ -8,6 +8,7 @@ to avoid leaking the existence of other users' projects.
 from __future__ import annotations
 
 import math
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
@@ -55,6 +56,7 @@ async def list_projects(
     response: Response,
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(20, ge=1, le=MAX_PAGE_SIZE, description="Items per page (max 100)"),
+    schedule_enabled: Optional[bool] = Query(None, description="Filter for scheduled automation"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProjectListResponse:

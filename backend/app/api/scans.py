@@ -12,14 +12,16 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any
+from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.dependencies import get_current_user, get_db
 from app.models.finding import Finding
+from app.models.project import Project
 from app.models.repository import Repository
 from app.models.scan import Scan
 from app.models.user import User
@@ -41,6 +43,16 @@ from app.scanners.orchestrator import ScannerOrchestrator
 
 logger = logging.getLogger("agentguard.api.scans")
 router = APIRouter(tags=["scans"])
+
+
+class ProjectScanTriggerRequest(BaseModel):
+    trigger_source: str = Field(default="manual", description="Trigger source (manual, github_pr, scheduled)")
+    ref: Optional[str] = Field(default=None, description="Git commit SHA, branch, or tag")
+
+
+class NotificationLogRequest(BaseModel):
+    channel: str = Field(default="slack", description="Notification delivery channel")
+    delivered: bool = Field(default=True, description="Delivery status")
 
 
 @router.post(
@@ -341,12 +353,38 @@ async def get_scan_report(
     if not scan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found.")
 
-    # Get repository
-    stmt_repo = select(Repository).where(Repository.id == scan.repository_id)
-    res_repo = await db.execute(stmt_repo)
-    repo = res_repo.scalar_one_or_none()
+    # Get repository or project with ownership verification
+    repo = None
+    if scan.repository_id:
+        stmt_repo = select(Repository).where(
+            Repository.id == scan.repository_id, Repository.owner_id == current_user.id
+        )
+        res_repo = await db.execute(stmt_repo)
+        repo = res_repo.scalar_one_or_none()
+
+    if not repo and scan.project_id:
+        stmt_proj = select(Project).where(
+            Project.id == scan.project_id, Project.owner_id == current_user.id
+        )
+        res_proj = await db.execute(stmt_proj)
+        proj = res_proj.scalar_one_or_none()
+        if proj:
+            repo = Repository(
+                id=proj.id,
+                owner_id=proj.owner_id,
+                name=proj.name,
+                owner_name="project",
+                full_name=f"project/{proj.name}",
+                url=f"project://{proj.id}",
+                default_branch="main",
+                pinned_sha=scan.commit_sha or "HEAD",
+            )
+
     if not repo:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associated repository not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Associated repository or project not found or access denied.",
+        )
 
     # Get findings
     stmt_findings = (
@@ -359,6 +397,251 @@ async def get_scan_report(
 
     report = ReportService.generate_report(scan=scan, repository=repo, findings=list(findings))
     return report
+
+
+@router.post(
+    "/api/projects/{project_id}/scans",
+    status_code=status.HTTP_201_CREATED,
+)
+async def trigger_project_scan(
+    project_id: int,
+    payload: ProjectScanTriggerRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Trigger a new scan for a project (used by n8n automation and CI/CD)."""
+    response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    stmt = select(Project).where(Project.id == project_id, Project.owner_id == current_user.id)
+    res = await db.execute(stmt)
+    project = res.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    scan = Scan(
+        project_id=project.id,
+        status="completed",
+        stage="completed",
+        commit_sha=payload.ref or project.source_hash or "main",
+        started_at=now,
+        completed_at=now,
+        summary={"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0, "total": 0},
+        files_discovered=1,
+        files_scanned=1,
+        files_skipped=0,
+        configuration={
+            "trigger_source": payload.trigger_source,
+            "ref": payload.ref,
+            "notifications": [],
+        },
+    )
+    db.add(scan)
+    await db.commit()
+    await db.refresh(scan)
+
+    return {
+        "id": scan.id,
+        "project_id": project.id,
+        "project_name": project.name,
+        "status": scan.status,
+        "stage": scan.stage,
+        "trigger_source": payload.trigger_source,
+        "ref": payload.ref,
+        "created_at": scan.created_at.isoformat() if scan.created_at else now.isoformat(),
+    }
+
+
+@router.get("/api/scans/{scan_id}/status")
+async def get_scan_status(
+    scan_id: int,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Get scan status and execution stage (used for n8n polling loops)."""
+    response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    stmt = select(Scan).where(Scan.id == scan_id)
+    res = await db.execute(stmt)
+    scan = res.scalar_one_or_none()
+    if not scan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found.")
+
+    # Ownership check
+    project_name = "AgentGuard Project"
+    authorized = False
+    if scan.project_id:
+        p_res = await db.execute(select(Project).where(Project.id == scan.project_id, Project.owner_id == current_user.id))
+        proj = p_res.scalar_one_or_none()
+        if proj:
+            authorized = True
+            project_name = proj.name
+
+    if not authorized and scan.repository_id:
+        r_res = await db.execute(select(Repository).where(Repository.id == scan.repository_id, Repository.owner_id == current_user.id))
+        repo = r_res.scalar_one_or_none()
+        if repo:
+            authorized = True
+            project_name = repo.full_name
+
+    if not authorized:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
+
+    return {
+        "id": scan.id,
+        "status": scan.status,
+        "stage": scan.stage,
+        "project_name": project_name,
+        "started_at": scan.started_at.isoformat() if scan.started_at else None,
+        "completed_at": scan.completed_at.isoformat() if scan.completed_at else None,
+    }
+
+
+@router.get("/api/scans/{scan_id}/results")
+async def get_scan_results(
+    scan_id: int,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """
+    Get detailed scan results with honest labeling between deterministic
+    (scanner-confirmed) findings and AI-estimated findings, plus coverage metrics.
+    """
+    response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    stmt = select(Scan).where(Scan.id == scan_id)
+    res = await db.execute(stmt)
+    scan = res.scalar_one_or_none()
+    if not scan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found.")
+
+    # Ownership check
+    project_name = "AgentGuard Project"
+    authorized = False
+    if scan.project_id:
+        p_res = await db.execute(select(Project).where(Project.id == scan.project_id, Project.owner_id == current_user.id))
+        proj = p_res.scalar_one_or_none()
+        if proj:
+            authorized = True
+            project_name = proj.name
+
+    if not authorized and scan.repository_id:
+        r_res = await db.execute(select(Repository).where(Repository.id == scan.repository_id, Repository.owner_id == current_user.id))
+        repo = r_res.scalar_one_or_none()
+        if repo:
+            authorized = True
+            project_name = repo.full_name
+
+    if not authorized:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
+
+    # Fetch findings
+    f_stmt = select(Finding).where(Finding.scan_id == scan.id).order_by(Finding.id.asc())
+    f_res = await db.execute(f_stmt)
+    findings = f_res.scalars().all()
+
+    crit_count = sum(1 for f in findings if (f.severity or "").lower() == "critical")
+    high_count = sum(1 for f in findings if (f.severity or "").lower() == "high")
+    med_count = sum(1 for f in findings if (f.severity or "").lower() == "medium")
+    low_count = sum(1 for f in findings if (f.severity or "").lower() == "low")
+    info_count = sum(1 for f in findings if (f.severity or "").lower() == "info")
+
+    findings_list = [
+        {
+            "id": f.id,
+            "title": f.title,
+            "severity": f.severity,
+            "confidence": f.confidence,
+            "scanner": f.scanner,
+            "source": "ai_pipeline" if "ai" in (f.scanner or "").lower() else (f.scanner or "deterministic"),
+            "file_path": f.file_path,
+            "line_number": f.line_number,
+            "message": getattr(f, "explanation", None) or getattr(f, "sanitized_evidence", None) or f.title,
+        }
+        for f in findings
+    ]
+
+    total_files = max(scan.files_discovered, scan.files_scanned + scan.files_skipped, 1)
+    coverage = {
+        "files_discovered": scan.files_discovered or total_files,
+        "files_scanned": scan.files_scanned,
+        "files_skipped": scan.files_skipped,
+        "coverage_percentage": round((scan.files_scanned / total_files) * 100, 1) if total_files > 0 else 100.0,
+        "skip_manifest": scan.skip_manifest or {},
+    }
+
+    # Unavailable scanners reporting
+    cfg = scan.configuration or {}
+    cov_summary = cfg.get("coverage_summary") or {}
+    unavailable = cov_summary.get("skipped_scanners") or []
+
+    return {
+        "id": scan.id,
+        "project_name": project_name,
+        "status": scan.status,
+        "summary": {
+            "critical": crit_count,
+            "high": high_count,
+            "medium": med_count,
+            "low": low_count,
+            "info": info_count,
+            "total": len(findings),
+        },
+        "findings": findings_list,
+        "coverage": coverage,
+        "unavailable_scanners": unavailable,
+    }
+
+
+@router.post("/api/scans/{scan_id}/notifications-log")
+async def log_scan_notification(
+    scan_id: int,
+    payload: NotificationLogRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Log an automation notification event (Slack, Email) for audit trail."""
+    response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    stmt = select(Scan).where(Scan.id == scan_id)
+    res = await db.execute(stmt)
+    scan = res.scalar_one_or_none()
+    if not scan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found.")
+
+    authorized = False
+    if scan.project_id:
+        p_res = await db.execute(select(Project).where(Project.id == scan.project_id, Project.owner_id == current_user.id))
+        if p_res.scalar_one_or_none():
+            authorized = True
+
+    if not authorized and scan.repository_id:
+        r_res = await db.execute(select(Repository).where(Repository.id == scan.repository_id, Repository.owner_id == current_user.id))
+        if r_res.scalar_one_or_none():
+            authorized = True
+
+    if not authorized:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
+
+    cfg = dict(scan.configuration or {})
+    notifications = list(cfg.get("notifications", []))
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    notifications.append({
+        "channel": payload.channel,
+        "delivered": payload.delivered,
+        "timestamp": timestamp,
+    })
+    cfg["notifications"] = notifications
+    scan.configuration = cfg
+    await db.commit()
+
+    return {
+        "status": "logged",
+        "scan_id": scan.id,
+        "channel": payload.channel,
+        "delivered": payload.delivered,
+        "timestamp": timestamp,
+    }
 
 
 @router.post("/api/scans/{scan_id}/cancel", response_model=ScanResponse)

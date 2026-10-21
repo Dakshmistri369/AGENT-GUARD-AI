@@ -1,0 +1,323 @@
+{
+  "name": "AgentGuard - New Scan Orchestration",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agentguard/new-scan",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "New Scan Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1200, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{$headers['x-agentguard-automation-token']}}",
+              "rightValue": "={{$credentials.agentguardAutomationToken.token}}",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "verify-caller",
+      "name": "Verify Caller Token",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-980, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"unauthorized\" } }}",
+        "options": { "responseCode": 401 }
+      },
+      "id": "reject-unauthorized",
+      "name": "Reject Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-760, 120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/projects/{{$json.project_id}}/scans",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"trigger_source\": $json.trigger_source || \"manual\", \"ref\": $json.ref || null } }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "create-scan",
+      "name": "Create Scan (POST /scans)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-760, -100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"scan_id\": $json.id, \"status\": $json.status } }}",
+        "options": { "responseCode": 202 }
+      },
+      "id": "respond-queued",
+      "name": "Respond: Queued",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-540, -200]
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "wait-poll",
+      "name": "Wait 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-540, -40]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$json.id}}/status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "poll-status",
+      "name": "Poll Scan Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-320, -40]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "conditions": [{ "leftValue": "={{$json.status}}", "rightValue": "completed", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "completed" },
+            { "conditions": { "conditions": [{ "leftValue": "={{$json.status}}", "rightValue": "failed", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "failed" },
+            { "conditions": { "conditions": [{ "leftValue": "={{$json.status}}", "rightValue": "running", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "running" }
+          ]
+        }
+      },
+      "id": "switch-status",
+      "name": "Switch on Status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-100, -40]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "poll_count", "value": "={{(Number($json.poll_count) || 0) + 1}}", "type": "number" }
+          ]
+        }
+      },
+      "id": "increment-poll-count",
+      "name": "Increment Poll Count",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-100, -220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            { "leftValue": "={{$json.poll_count}}", "rightValue": 60, "operator": { "type": "number", "operation": "lte" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-max-poll",
+      "name": "Check Max Poll Limit (<= 60)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-320, -220]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$json.id}}/results",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}" }
+          ]
+        }
+      },
+      "id": "fetch-results",
+      "name": "Fetch Scan Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [120, -140]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "critical_count", "value": "={{$json.summary.critical || 0}}", "type": "number" },
+            { "name": "high_count", "value": "={{$json.summary.high || 0}}", "type": "number" },
+            { "name": "deterministic_findings", "value": "={{$json.findings.filter(f => f.source !== 'ai_pipeline')}}", "type": "array" },
+            { "name": "ai_estimated_findings", "value": "={{$json.findings.filter(f => f.source === 'ai_pipeline')}}", "type": "array" },
+            { "name": "scan_coverage", "value": "={{$json.coverage}}", "type": "object" },
+            { "name": "unavailable_scanners", "value": "={{$json.unavailable_scanners || []}}", "type": "array" }
+          ]
+        }
+      },
+      "id": "extract-summary",
+      "name": "Extract & Label Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [340, -140]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            { "leftValue": "={{$json.critical_count}}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }
+          ],
+          "combinator": "or"
+        }
+      },
+      "id": "if-critical",
+      "name": "If Critical/High Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [560, -140]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": "={{$env.SLACK_SECURITY_CHANNEL_ID}}",
+        "text": "=:rotating_light: *AgentGuard Scan Alert*\nProject: {{$json.project_name}}\nScan ID: {{$json.id}}\nDeterministic findings (scanner-confirmed): Critical={{$json.critical_count}}, High={{$json.high_count}}\nAI-estimated items (NOT a measured CVSS score): {{$json.ai_estimated_findings.length}}\nScanners unavailable this run: {{$json.unavailable_scanners.join(', ') || 'none'}}\nThis report reflects scan coverage only — see full report before assuming completeness: {{$env.FRONTEND_BASE}}/reports/{{$json.id}}",
+        "otherOptions": {}
+      },
+      "id": "slack-alert",
+      "name": "Slack: Critical/High Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [780, -220],
+      "credentials": { "slackApi": { "id": "SLACK_CRED_ID", "name": "AgentGuard Slack" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$json.id}}/notifications-log",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"channel\": \"slack\", \"delivered\": true } }}"
+      },
+      "id": "log-notification",
+      "name": "Log Notification Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1000, -220]
+    },
+    {
+      "parameters": {},
+      "id": "noop-ok",
+      "name": "No Critical Findings (No-Op)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [780, -40]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$json.id}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth"
+      },
+      "id": "fetch-failure-detail",
+      "name": "Fetch Failure Detail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-100, 220]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": "={{$env.SLACK_OPS_CHANNEL_ID}}",
+        "text": "=:x: *AgentGuard Scan Failed*\nScan ID: {{$json.id}}\nProject: {{$json.project_name}}\nError: {{$json.error_message || 'Scan timeout or unexpected failure'}}\nThis is a scan execution failure, not a security finding — treat as ops incident."
+      },
+      "id": "slack-scan-failed",
+      "name": "Slack: Scan Failed",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [120, 220],
+      "credentials": { "slackApi": { "id": "SLACK_CRED_ID", "name": "AgentGuard Slack" } }
+    }
+  ],
+  "connections": {
+    "New Scan Webhook": { "main": [[{ "node": "Verify Caller Token", "type": "main", "index": 0 }]] },
+    "Verify Caller Token": {
+      "main": [
+        [{ "node": "Create Scan (POST /scans)", "type": "main", "index": 0 }],
+        [{ "node": "Reject Unauthorized", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Scan (POST /scans)": {
+      "main": [[
+        { "node": "Respond: Queued", "type": "main", "index": 0 },
+        { "node": "Wait 10s", "type": "main", "index": 0 }
+      ]]
+    },
+    "Wait 10s": { "main": [[{ "node": "Poll Scan Status", "type": "main", "index": 0 }]] },
+    "Poll Scan Status": { "main": [[{ "node": "Switch on Status", "type": "main", "index": 0 }]] },
+    "Switch on Status": {
+      "main": [
+        [{ "node": "Fetch Scan Results", "type": "main", "index": 0 }],
+        [{ "node": "Fetch Failure Detail", "type": "main", "index": 0 }],
+        [{ "node": "Increment Poll Count", "type": "main", "index": 0 }]
+      ]
+    },
+    "Increment Poll Count": { "main": [[{ "node": "Check Max Poll Limit (<= 60)", "type": "main", "index": 0 }]] },
+    "Check Max Poll Limit (<= 60)": {
+      "main": [
+        [{ "node": "Wait 10s", "type": "main", "index": 0 }],
+        [{ "node": "Slack: Scan Failed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Scan Results": { "main": [[{ "node": "Extract & Label Summary", "type": "main", "index": 0 }]] },
+    "Extract & Label Summary": { "main": [[{ "node": "If Critical/High Found", "type": "main", "index": 0 }]] },
+    "If Critical/High Found": {
+      "main": [
+        [{ "node": "Slack: Critical/High Alert", "type": "main", "index": 0 }],
+        [{ "node": "No Critical Findings (No-Op)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Slack: Critical/High Alert": { "main": [[{ "node": "Log Notification Sent", "type": "main", "index": 0 }]] },
+    "Fetch Failure Detail": { "main": [[{ "node": "Slack: Scan Failed", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "errorWorkflow": "AGENTGUARD_ERROR_HANDLER_WORKFLOW_ID",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  }
+}

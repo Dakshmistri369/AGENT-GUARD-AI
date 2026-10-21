@@ -1,0 +1,48 @@
+{
+  "name": "AgentGuard - Error & Dead-Letter Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Workflow Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [-500, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sanitization guard: mask bearer tokens, nvapi keys, and secrets before posting\nconst errorData = $json.execution?.error || {};\nlet rawMsg = errorData.message || JSON.stringify(errorData);\n\n// Redact Bearer tokens\nrawMsg = rawMsg.replace(/Bearer\\s+[a-zA-Z0-9_\\-\\.]+/gi, 'Bearer [REDACTED_TOKEN]');\n// Redact NVAPI and OpenAI style keys\nrawMsg = rawMsg.replace(/nvapi-[a-zA-Z0-9_\\-]+/gi, 'nvapi-[REDACTED]');\nrawMsg = rawMsg.replace(/sk-[a-zA-Z0-9_\\-]+/gi, 'sk-[REDACTED]');\n// Redact passwords\nrawMsg = rawMsg.replace(/password[:=]\\s*[^\\s&,]+/gi, 'password=[REDACTED]');\n\nreturn [{\n  json: {\n    workflow_name: $json.workflow?.name || 'Unknown Workflow',\n    execution_id: $json.execution?.id || 'N/A',\n    failed_node: errorData.node?.name || 'Unknown Node',\n    sanitized_error: rawMsg,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "redact-secrets",
+      "name": "Redact Credentials",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-280, 0]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": "={{$env.SLACK_OPS_CHANNEL_ID}}",
+        "text": "=:rotating_light: *AgentGuard Automation Dead-Letter Alert*\nWorkflow: {{$json.workflow_name}}\nFailed Node: {{$json.failed_node}}\nExecution ID: {{$json.execution_id}}\nTimestamp: {{$json.timestamp}}\nError Details (Redacted):\n```\n{{$json.sanitized_error}}\n```",
+        "otherOptions": {}
+      },
+      "id": "slack-dead-letter",
+      "name": "Slack: Dead-Letter Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [-60, 0],
+      "credentials": { "slackApi": { "id": "SLACK_CRED_ID", "name": "AgentGuard Slack" } }
+    }
+  ],
+  "connections": {
+    "Workflow Error Trigger": {
+      "main": [[{ "node": "Redact Credentials", "type": "main", "index": 0 }]]
+    },
+    "Redact Credentials": {
+      "main": [[{ "node": "Slack: Dead-Letter Alert", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "saveExecutionProgress": true
+  }
+}
