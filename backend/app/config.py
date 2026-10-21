@@ -96,8 +96,10 @@ class Settings(BaseSettings):
     osv_api_key: str = ""
 
     # ── Supabase ──────────────────────────────────────────────────────────────
-    supabase_url: str = "https://ohnwhldqnemjvpjvpclw.supabase.co"
-    supabase_publishable_key: str = "sb_publishable_EZSCRcATGUomHAV_lkbxSQ_00pzuyN1"
+    supabase_url: str = ""
+    supabase_publishable_key: str = ""
+    supabase_jwt_secret: str = ""
+    enable_demo_auth: bool = False
 
     # ── Derived properties ────────────────────────────────────────────────────
     @property
@@ -132,14 +134,13 @@ class Settings(BaseSettings):
 
             # Auto-route direct Supabase host to IPv4-compatible pooler
             # Direct db.<ref>.supabase.co is IPv6-only, which fails on IPv4 networks and Render
-            if "db.ohnwhldqnemjvpjvpclw.supabase.co" in v:
-                v = v.replace(
-                    "postgres:M.daksh!369@db.ohnwhldqnemjvpjvpclw.supabase.co:5432",
-                    "postgres.ohnwhldqnemjvpjvpclw:M.daksh%21369@aws-0-ap-northeast-2.pooler.supabase.com:5432"
-                ).replace(
-                    "postgres:M.daksh%21369@db.ohnwhldqnemjvpjvpclw.supabase.co:5432",
-                    "postgres.ohnwhldqnemjvpjvpclw:M.daksh%21369@aws-0-ap-northeast-2.pooler.supabase.com:5432"
-                )
+            # Generic host replacement preserving user credentials securely without hardcoding secrets:
+            import re
+            v = re.sub(
+                r"@db\.([a-z0-9_-]+)\.supabase\.co:5432",
+                r"@aws-0-ap-northeast-2.pooler.supabase.com:5432",
+                v,
+            )
         return v
 
     @field_validator("max_upload_size_mb")
