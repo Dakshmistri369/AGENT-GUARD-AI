@@ -35,43 +35,46 @@ export const ForgotPasswordPage: React.FC = () => {
     <div
       style={{
         minHeight: '100vh',
+        width: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '24px',
-        background: 'radial-gradient(ellipse at top, rgba(14,165,233,0.12), transparent 70%), var(--bg-primary)',
+        padding: '24px 16px',
+        backgroundColor: '#f8fafc',
+        backgroundImage: 'radial-gradient(ellipse at top, rgba(37,99,235,0.08) 0%, rgba(248,250,252,1) 75%)',
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       }}
     >
       <div
-        className="glass-card"
         style={{
           width: '100%',
           maxWidth: '420px',
-          padding: '36px',
+          backgroundColor: '#ffffff',
           borderRadius: '16px',
-          boxShadow: '0 20px 40px -15px rgba(0,0,0,0.5)',
-          border: '1px solid var(--border-color)',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03)',
+          padding: '36px 32px',
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{ display: 'inline-block', marginBottom: '16px' }}>
-            <AnimatedBrandLogo size="lg" variant="icon" />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <AnimatedBrandLogo variant="full" size="md" />
           </div>
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.3px', marginBottom: '6px' }}>
             Reset Password
           </h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+          <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>
             Enter your email to receive recovery instructions
           </p>
         </div>
 
         {isSuccess ? (
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <CheckCircle2 size={48} color="var(--teal)" style={{ margin: '0 auto 16px' }} />
-            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+            <CheckCircle2 size={48} color="#0d9488" style={{ margin: '0 auto 16px' }} />
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a', marginBottom: '8px' }}>
               Check Your Inbox
             </h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '24px' }}>
+            <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6, marginBottom: '24px' }}>
               If an account exists for {email}, a password reset link has been dispatched.
             </p>
             <Link
@@ -80,7 +83,7 @@ export const ForgotPasswordPage: React.FC = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                color: 'var(--electric-blue)',
+                color: '#2563eb',
                 fontSize: '13px',
                 fontWeight: 600,
                 textDecoration: 'none',
@@ -97,16 +100,16 @@ export const ForgotPasswordPage: React.FC = () => {
                 style={{
                   padding: '12px 14px',
                   borderRadius: '8px',
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
                   marginBottom: '20px',
                   display: 'flex',
                   gap: '10px',
                   alignItems: 'center',
                 }}
               >
-                <AlertCircle size={16} color="var(--accent-rose)" style={{ flexShrink: 0 }} />
-                <div style={{ fontSize: '12px', color: 'var(--accent-rose)', lineHeight: 1.5 }}>
+                <AlertCircle size={16} color="#dc2626" style={{ flexShrink: 0 }} />
+                <div style={{ fontSize: '12px', color: '#991b1b', lineHeight: 1.5 }}>
                   {error}
                 </div>
               </div>
@@ -114,14 +117,14 @@ export const ForgotPasswordPage: React.FC = () => {
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                   Email Address
                 </label>
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Mail
                     size={16}
-                    color="var(--text-muted)"
-                    style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
+                    color="#94a3b8"
+                    style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }}
                   />
                   <input
                     type="email"
@@ -133,12 +136,14 @@ export const ForgotPasswordPage: React.FC = () => {
                       width: '100%',
                       padding: '10px 14px 10px 38px',
                       borderRadius: '8px',
-                      backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      color: '#0f172a',
                       fontSize: '13px',
                       outline: 'none',
                     }}
+                    onFocus={(e) => (e.target.style.borderColor = '#2563eb')}
+                    onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
                   />
                 </div>
               </div>
@@ -146,7 +151,6 @@ export const ForgotPasswordPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="btn-primary"
                 style={{
                   width: '100%',
                   padding: '11px',
@@ -159,6 +163,10 @@ export const ForgotPasswordPage: React.FC = () => {
                   gap: '8px',
                   marginTop: '8px',
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
                   opacity: isSubmitting ? 0.7 : 1,
                 }}
               >
@@ -181,7 +189,7 @@ export const ForgotPasswordPage: React.FC = () => {
                   alignItems: 'center',
                   gap: '6px',
                   fontSize: '12px',
-                  color: 'var(--text-secondary)',
+                  color: '#64748b',
                   textDecoration: 'none',
                 }}
               >
