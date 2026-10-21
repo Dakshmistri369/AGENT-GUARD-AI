@@ -264,56 +264,41 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               <LogOut size={13} />
             </button>
           </div>
-        ) : isConfigured ? (
-          <Link
-            to="/login"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '5px 12px',
-              borderRadius: '6px',
-              background: '#2563eb',
-              color: '#ffffff',
-              fontSize: '12px',
-              fontWeight: 600,
-              textDecoration: 'none',
-            }}
-          >
-            Sign In
-          </Link>
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '4px 10px',
-              borderRadius: '8px',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-            }}
-          >
-            <div
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {!isConfigured && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  color: '#d97706',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  fontWeight: 500,
+                }}
+              >
+                Demo
+              </span>
+            )}
+            <Link
+              to="/login"
               style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '6px',
-                background: 'linear-gradient(135deg, #2563eb 0%, #0d9488 100%)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                gap: '6px',
+                padding: '5px 14px',
+                borderRadius: '6px',
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                 color: '#ffffff',
-                fontSize: '11px',
-                fontWeight: 700,
+                fontSize: '12px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
               }}
             >
-              D
-            </div>
-            <div style={{ lineHeight: 1.1 }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>demo</div>
-              <div style={{ fontSize: '10px', color: '#64748b' }}>Demo Mode</div>
-            </div>
+              Sign In
+            </Link>
           </div>
         )}
       </div>

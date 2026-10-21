@@ -118,6 +118,18 @@ def create_app() -> FastAPI:
             "health": "/health",
             "environment": settings.environment,
             "message": "Backend service is operational and connected to Supabase PostgreSQL.",
+            "note": "This is the backend API. The React UI & Login page are served by your frontend deployment (Vercel or localhost:5173).",
+        }
+
+    @app.get("/login", tags=["Root"])
+    async def login_route_helper():
+        """Guidance route for users visiting the backend URL looking for the frontend login page."""
+        return {
+            "service": "AgentGuard AI Backend (FastAPI / Render)",
+            "message": "This is the backend API server. The interactive UI and Login page are hosted on your frontend deployment (Vercel or localhost:5173).",
+            "frontend_origin": settings.frontend_origin,
+            "api_documentation": "/api/docs",
+            "auth_status": "/api/auth/status",
         }
 
     return app
