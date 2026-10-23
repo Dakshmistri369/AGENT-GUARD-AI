@@ -1,0 +1,757 @@
+{
+  "name": "AgentGuard - GitHub PR CI/CD Security Gate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agentguard/github-pr",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "github-webhook",
+      "name": "GitHub PR Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1600, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$headers['x-github-event']}}",
+              "rightValue": "pull_request",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "leftValue": "={{['opened', 'synchronize', 'reopened'].includes($json.body?.action)}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-pr-events",
+      "name": "Is Actionable PR Event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-1380, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"ignored\", \"reason\": \"Event is not an actionable pull_request action (opened, synchronize, reopened)\" } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ignore-event",
+      "name": "Ignore Non-PR Event",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-1160, 160]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "repo_full_name",
+              "value": "={{$json.body.repository.full_name}}",
+              "type": "string"
+            },
+            {
+              "name": "repo_owner",
+              "value": "={{$json.body.repository.owner.login}}",
+              "type": "string"
+            },
+            {
+              "name": "repo_name",
+              "value": "={{$json.body.repository.name}}",
+              "type": "string"
+            },
+            {
+              "name": "pr_number",
+              "value": "={{$json.body.pull_request.number}}",
+              "type": "number"
+            },
+            {
+              "name": "head_sha",
+              "value": "={{$json.body.pull_request.head.sha}}",
+              "type": "string"
+            },
+            {
+              "name": "branch",
+              "value": "={{$json.body.pull_request.head.ref}}",
+              "type": "string"
+            },
+            {
+              "name": "author",
+              "value": "={{$json.body.pull_request.user.login}}",
+              "type": "string"
+            },
+            {
+              "name": "pr_title",
+              "value": "={{$json.body.pull_request.title}}",
+              "type": "string"
+            },
+            {
+              "name": "project_id",
+              "value": "={{$json.body.project_id || 1}}",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "extract-pr-meta",
+      "name": "Extract PR Metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-1160, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/{{$json.repo_full_name}}/statuses/{{$json.head_sha}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"state\": \"pending\", \"description\": \"AgentGuard AI: Multi-scanner analysis running...\", \"context\": \"agentguard/security-gate\", \"target_url\": `${$env.FRONTEND_BASE}/repositories` } }}",
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "set-pending-status",
+      "name": "GitHub: Set Status Pending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-940, -80],
+      "credentials": {
+        "githubApi": {
+          "id": "GITHUB_CRED_ID",
+          "name": "AgentGuard GitHub App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/projects/{{$('Extract PR Metadata').first().json.project_id}}/scans",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"trigger_source\": \"pull_request\", \"ref\": $('Extract PR Metadata').first().json.head_sha } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "trigger-pr-scan",
+      "name": "Trigger AgentGuard Scan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-720, -80],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AGENTGUARD_JWT_CRED_ID",
+          "name": "AgentGuard Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"accepted\", \"scan_id\": $json.id, \"head_sha\": $('Extract PR Metadata').first().json.head_sha } }}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "ack-pr-webhook",
+      "name": "Respond (202 Accepted)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-500, -220]
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "wait-for-scanner",
+      "name": "Wait 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-500, -60]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$('Trigger AgentGuard Scan').first().json.id}}/status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "check-pr-scan-status",
+      "name": "Check PR Scan Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-280, -60],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AGENTGUARD_JWT_CRED_ID",
+          "name": "AgentGuard Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.status}}",
+                    "rightValue": "completed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "completed"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.status}}",
+                    "rightValue": "failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "failed"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.status}}",
+                    "rightValue": "running",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "running"
+            }
+          ]
+        }
+      },
+      "id": "switch-pr-scan-status",
+      "name": "Status Finished?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-60, -60]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "poll_count",
+              "value": "={{(Number($json.poll_count) || 0) + 1}}",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "inc-pr-counter",
+      "name": "Increment Poll Count",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-60, -220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{$json.poll_count}}",
+              "rightValue": 60,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-pr-poll-circuit",
+      "name": "Poll Count <= 60?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-280, -220]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$('Trigger AgentGuard Scan').first().json.id}}/results",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}"
+            }
+          ]
+        }
+      },
+      "id": "fetch-pr-results",
+      "name": "Fetch Scan Findings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [160, -100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AGENTGUARD_JWT_CRED_ID",
+          "name": "AgentGuard Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$('Trigger AgentGuard Scan').first().json.id}}/solutions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "fetch-pr-solutions",
+      "name": "Fetch AI Remediation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [380, -100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AGENTGUARD_JWT_CRED_ID",
+          "name": "AgentGuard Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const scan = $('Fetch Scan Findings').first().json;\nconst solutions = $json;\nconst prMeta = $('Extract PR Metadata').first().json;\n\nconst crit = scan.summary?.critical || 0;\nconst high = scan.summary?.high || 0;\nconst med = scan.summary?.medium || 0;\nconst low = scan.summary?.low || 0;\n\n// Strict deterministic gate rule\nconst decision = (crit > 0 || high > 0) ? 'BLOCK' : 'ALLOW';\nconst statusIcon = decision === 'ALLOW' ? '✅' : '❌';\nconst statusTitle = decision === 'ALLOW' ? 'PASSED — Safe to Merge' : 'BLOCKED — Security Fixes Required';\n\nconst detFindings = (scan.findings || []).filter(f => f.source !== 'ai_pipeline');\nconst aiFindings = (scan.findings || []).filter(f => f.source === 'ai_pipeline');\n\n// Format honest markdown comment\nlet comment = `### ${statusIcon} AgentGuard AI Security Gate: ${statusTitle}\\n\\n`;\ncomment += `**Target Branch:** \\\`${prMeta.branch}\\\` | **Commit:** \\\`${prMeta.head_sha.substring(0, 8)}\\\`\\n\\n`;\ncomment += `| Severity | Count | Classification |\\n|---|---|---|\\n`;\ncomment += `| 🔴 Critical | **${crit}** | ${crit > 0 ? '⛔ BLOCKS PR' : 'None'} |\\n`;\ncomment += `| 🟠 High | **${high}** | ${high > 0 ? '⛔ BLOCKS PR' : 'None'} |\\n`;\ncomment += `| 🟡 Medium | ${med} | Advisory |\\n`;\ncomment += `| 🔵 Low / Info | ${low} | Advisory |\\n\\n`;\n\ncomment += `> ℹ️ **Evidence Source Transparency:**\\n`;\ncomment += `> - **Deterministic Findings (${detFindings.length}):** Verified by Semgrep, Bandit, detect-secrets, and OSV-Scanner.\\n`;\nif (aiFindings.length > 0) {\n  comment += `> - **AI-Estimated Findings (${aiFindings.length}):** Flagged by Nemotron AI; subject to developer review.\\n`;\n}\n\nif (solutions.total_plans > 0) {\n  comment += `\\n#### 🤖 Evidence-Based Remediation (AI-Generated)\\n`;\n  comment += `AgentGuard generated **${solutions.total_plans}** automated remediation plan(s).\\n`;\n  if (solutions.unified_diff) {\n    comment += `\\n<details><summary><b>View Unified Remediation Diff</b></summary>\\n\\n\\\`\\\`\\\`diff\\n${solutions.unified_diff.substring(0, 2000)}\\n\\\`\\\`\\\`\\n</details>\\n`;\n  }\n}\n\ncomment += `\\n---\\n[Inspect Full Audit Report & Patches](${$env.FRONTEND_BASE}/repositories?tab=solutions)`;\n\nreturn [{\n  json: {\n    decision: decision,\n    github_state: decision === 'ALLOW' ? 'success' : 'failure',\n    description: decision === 'ALLOW' ? 'AgentGuard: All security checks passed' : `AgentGuard BLOCKED: ${crit} crit, ${high} high findings`,\n    repo_full_name: prMeta.repo_full_name,\n    pr_number: prMeta.pr_number,\n    head_sha: prMeta.head_sha,\n    project_id: prMeta.project_id,\n    scan_id: scan.id,\n    critical_count: crit,\n    high_count: high,\n    medium_count: med,\n    low_count: low,\n    comment_body: comment\n  }\n}];"
+      },
+      "id": "evaluate-pr-policy",
+      "name": "Evaluate Gate & Format Comment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, -100]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO automation_pr_checks (user_id, project_id, scan_id, pr_number, commit_sha, repo_full_name, decision, critical_count, high_count, medium_count, low_count, comment_body)\nVALUES (1, {{$json.project_id}}, {{$json.scan_id}}, {{$json.pr_number}}, '{{$json.head_sha}}', '{{$json.repo_full_name}}', '{{$json.decision}}', {{$json.critical_count}}, {{$json.high_count}}, {{$json.medium_count}}, {{$json.low_count}}, '{{$json.comment_body.replace(/'/g, \"''\")}}')\nRETURNING id;"
+      },
+      "id": "postgres-pr-insert",
+      "name": "Postgres: Ingest PR Check",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [820, -100],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CRED_ID",
+          "name": "AgentGuard Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/{{$('Evaluate Gate & Format Comment').first().json.repo_full_name}}/statuses/{{$('Evaluate Gate & Format Comment').first().json.head_sha}}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"state\": $('Evaluate Gate & Format Comment').first().json.github_state, \"description\": $('Evaluate Gate & Format Comment').first().json.description, \"context\": \"agentguard/security-gate\", \"target_url\": `${$env.FRONTEND_BASE}/repositories` } }}",
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "update-github-status",
+      "name": "GitHub: Update Final Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1040, -100],
+      "credentials": {
+        "githubApi": {
+          "id": "GITHUB_CRED_ID",
+          "name": "AgentGuard GitHub App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.github.com/repos/{{$('Evaluate Gate & Format Comment').first().json.repo_full_name}}/issues/{{$('Evaluate Gate & Format Comment').first().json.pr_number}}/comments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"body\": $('Evaluate Gate & Format Comment').first().json.comment_body } }}",
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "post-pr-comment",
+      "name": "GitHub: Post Review Comment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1260, -100],
+      "credentials": {
+        "githubApi": {
+          "id": "GITHUB_CRED_ID",
+          "name": "AgentGuard GitHub App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{$('Evaluate Gate & Format Comment').first().json.decision}}",
+              "rightValue": "BLOCK",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-if-blocked-alert",
+      "name": "Is PR Blocked?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1480, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SLACK_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"text\": `🚨 *AgentGuard Security Gate BLOCKED PR #${$('Evaluate Gate & Format Comment').first().json.pr_number}* in \\\`${$('Evaluate Gate & Format Comment').first().json.repo_full_name}\\\`\\n*Critical:* ${$('Evaluate Gate & Format Comment').first().json.critical_count} | *High:* ${$('Evaluate Gate & Format Comment').first().json.high_count}\\n<${$env.FRONTEND_BASE}/repositories|View Audit Findings & Remediation>` } }}",
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "slack-pr-alert",
+      "name": "Slack: Security Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, -200]
+    }
+  ],
+  "connections": {
+    "GitHub PR Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is Actionable PR Event?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Actionable PR Event?": {
+      "main": [
+        [
+          {
+            "node": "Extract PR Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignore Non-PR Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PR Metadata": {
+      "main": [
+        [
+          {
+            "node": "GitHub: Set Status Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: Set Status Pending": {
+      "main": [
+        [
+          {
+            "node": "Trigger AgentGuard Scan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger AgentGuard Scan": {
+      "main": [
+        [
+          {
+            "node": "Respond (202 Accepted)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s": {
+      "main": [
+        [
+          {
+            "node": "Check PR Scan Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check PR Scan Status": {
+      "main": [
+        [
+          {
+            "node": "Status Finished?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status Finished?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Scan Findings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Increment Poll Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Poll Count": {
+      "main": [
+        [
+          {
+            "node": "Poll Count <= 60?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Count <= 60?": {
+      "main": [
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Scan Findings": {
+      "main": [
+        [
+          {
+            "node": "Fetch AI Remediation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch AI Remediation": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Gate & Format Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Gate & Format Comment": {
+      "main": [
+        [
+          {
+            "node": "Postgres: Ingest PR Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres: Ingest PR Check": {
+      "main": [
+        [
+          {
+            "node": "GitHub: Update Final Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: Update Final Status": {
+      "main": [
+        [
+          {
+            "node": "GitHub: Post Review Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: Post Review Comment": {
+      "main": [
+        [
+          {
+            "node": "Is PR Blocked?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is PR Blocked?": {
+      "main": [
+        [
+          {
+            "node": "Slack: Security Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

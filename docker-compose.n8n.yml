@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: agentguard-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - GENERIC_TIMEZONE=UTC
+      - TZ=UTC
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      # AgentGuard AI integration targets
+      - AGENTGUARD_API_BASE=http://host.docker.internal:8000
+      - FRONTEND_BASE=http://localhost:5173
+      # Webhook URL for external callbacks (GitHub, Slack)
+      - WEBHOOK_URL=http://localhost:5678/
+      # Executions data retention (14 days)
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=336
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./automation/n8n:/automation-workflows:ro
+
+volumes:
+  n8n_data:
+    driver: local

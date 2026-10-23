@@ -236,3 +236,61 @@ async def test_n8n_cross_user_isolation(client: AsyncClient, other_user_client: 
         json={"channel": "slack", "delivered": True},
     )
     assert log_b.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_n8n_audit_log_lifecycle(client: AsyncClient):
+    """POST /api/automation/audit and GET /api/automation/audit."""
+    # Record audit entry
+    resp = await client.post(
+        "/api/automation/audit",
+        json={
+            "workflow_name": "agentguard_master_pipeline",
+            "execution_id": "exec_12345",
+            "event_type": "pr_commented",
+            "status": "success",
+            "payload": {"pr": 42, "comments": 1},
+        },
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["workflow_name"] == "agentguard_master_pipeline"
+    assert data["event_type"] == "pr_commented"
+
+    # List entries
+    list_resp = await client.get("/api/automation/audit?event_type=pr_commented")
+    assert list_resp.status_code == 200
+    items = list_resp.json()
+    assert len(items) >= 1
+    assert items[0]["execution_id"] == "exec_12345"
+
+
+@pytest.mark.asyncio
+async def test_n8n_pr_check_and_metrics(client: AsyncClient):
+    """POST /api/automation/pr-checks and GET /api/automation/metrics."""
+    pr_resp = await client.post(
+        "/api/automation/pr-checks",
+        json={
+            "repository_full_name": "octocat/Hello-World",
+            "pr_number": 99,
+            "commit_sha": "abc123456789",
+            "decision": "BLOCK",
+            "critical_count": 2,
+            "high_count": 1,
+            "deterministic_count": 2,
+            "ai_estimated_count": 1,
+            "comment_url": "https://github.com/octocat/Hello-World/pull/99#issuecomment-1",
+        },
+    )
+    assert pr_resp.status_code == 201
+    pr_data = pr_resp.json()
+    assert pr_data["decision"] == "BLOCK"
+    assert pr_data["critical_count"] == 2
+
+    # Verify metrics aggregation
+    metrics_resp = await client.get("/api/automation/metrics")
+    assert metrics_resp.status_code == 200
+    metrics = metrics_resp.json()
+    assert metrics["total_pr_checks"] >= 1
+    assert metrics["prs_blocked"] >= 1
+    assert metrics["total_critical_detected"] >= 2

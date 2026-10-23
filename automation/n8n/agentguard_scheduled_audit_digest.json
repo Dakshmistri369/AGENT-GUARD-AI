@@ -1,0 +1,477 @@
+{
+  "name": "AgentGuard - Scheduled Security Audit & Executive Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule: Weekly Monday 08:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1600, 0]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, repository_url, owner_id FROM projects ORDER BY id ASC LIMIT 50;"
+      },
+      "id": "postgres-get-projects",
+      "name": "Postgres: Fetch Active Projects",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-1380, 0],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CRED_ID",
+          "name": "AgentGuard Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-projects",
+      "name": "Split Projects into Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [-1160, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/projects/{{$json.id}}/scans",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"trigger_source\": \"scheduled\", \"ref\": \"main\" } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "trigger-scheduled-scan",
+      "name": "Trigger Scheduled Scan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-940, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AGENTGUARD_JWT_CRED_ID",
+          "name": "AgentGuard Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "wait-for-completion",
+      "name": "Wait 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-720, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$('Trigger Scheduled Scan').first().json.id}}/status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "check-batch-status",
+      "name": "Check Scan Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-500, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AGENTGUARD_JWT_CRED_ID",
+          "name": "AgentGuard Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.status}}",
+                    "rightValue": "completed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "completed"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.status}}",
+                    "rightValue": "failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "failed"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.status}}",
+                    "rightValue": "running",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "running"
+            }
+          ]
+        }
+      },
+      "id": "switch-batch-status",
+      "name": "Is Scan Complete?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-280, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "poll_count",
+              "value": "={{(Number($json.poll_count) || 0) + 1}}",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "inc-scheduled-poll",
+      "name": "Increment Poll Count",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-280, -180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{$json.poll_count}}",
+              "rightValue": 60,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "scheduled-circuit-guard",
+      "name": "Poll <= 60?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-500, -180]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$('Trigger Scheduled Scan').first().json.id}}/results",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}"
+            }
+          ]
+        }
+      },
+      "id": "fetch-scheduled-results",
+      "name": "Fetch Scan Findings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-60, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AGENTGUARD_JWT_CRED_ID",
+          "name": "AgentGuard Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO automation_audit_logs (user_id, workflow_name, execution_id, scan_id, event_type, status, payload)\nVALUES (1, 'AgentGuard Scheduled Audit Digest', '{{$execution.id}}', {{$json.id}}, 'scheduled_scan_completed', 'success', '{{JSON.stringify($json.summary)}}'::jsonb)\nRETURNING id;"
+      },
+      "id": "postgres-log-batch",
+      "name": "Postgres: Ingest Batch Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [160, 0],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CRED_ID",
+          "name": "AgentGuard Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate findings across batch\nconst projectMeta = $('Split Projects into Batches').first().json;\nconst scanResults = $('Fetch Scan Findings').first().json;\n\nreturn [{\n  json: {\n    project_id: projectMeta.id,\n    project_name: projectMeta.name,\n    scan_id: scanResults.id,\n    critical: scanResults.summary?.critical || 0,\n    high: scanResults.summary?.high || 0,\n    medium: scanResults.summary?.medium || 0,\n    low: scanResults.summary?.low || 0,\n    status: (scanResults.summary?.critical > 0 || scanResults.summary?.high > 0) ? 'NEEDS_ATTENTION' : 'HEALTHY'\n  }\n}];"
+      },
+      "id": "collect-project-summary",
+      "name": "Collect Project Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [380, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nlet totalCrit = 0;\nlet totalHigh = 0;\nlet totalMed = 0;\nlet totalLow = 0;\nlet needsAttentionCount = 0;\n\nlet rows = '';\nfor (const item of allItems) {\n  const p = item.json;\n  totalCrit += p.critical || 0;\n  totalHigh += p.high || 0;\n  totalMed += p.medium || 0;\n  totalLow += p.low || 0;\n  if (p.status === 'NEEDS_ATTENTION') needsAttentionCount++;\n  \n  const badge = p.status === 'HEALTHY' ? '🟢 Pass' : '🔴 Action Req.';\n  rows += `| ${p.project_name} | ${badge} | ${p.critical} | ${p.high} | ${p.medium} | ${p.low} |\\n`;\n}\n\nlet digest = `## 🛡️ AgentGuard AI — Enterprise Scheduled Audit Digest\\n\\n`;\ndigest += `**Execution Date:** ${new Date().toUTCString()}\\n`;\ndigest += `**Scanned Projects:** ${allItems.length} | **Attention Required:** ${needsAttentionCount}\\n\\n`;\ndigest += `### Summary Metrics\\n`;\ndigest += `- 🔴 **Critical:** ${totalCrit}\\n`;\ndigest += `- 🟠 **High:** ${totalHigh}\\n`;\ndigest += `- 🟡 **Medium:** ${totalMed}\\n`;\ndigest += `- 🔵 **Low / Info:** ${totalLow}\\n\\n`;\ndigest += `### Project Status Breakdown\\n`;\ndigest += `| Project | Security Gate | Critical | High | Medium | Low |\\n|---|---|---|---|---|---|\\n`;\ndigest += rows;\ndigest += `\\n> ℹ️ *All findings are confirmed by deterministic scanners (Semgrep, Bandit, detect-secrets, OSV-Scanner). Remediations are generated by Nemotron AI and must be reviewed prior to deployment.*\\n\\n`;\ndigest += `[Open AgentGuard Dashboard](${$env.FRONTEND_BASE}/repositories)`;\n\nreturn [{\n  json: {\n    total_projects: allItems.length,\n    needs_attention: needsAttentionCount,\n    critical: totalCrit,\n    high: totalHigh,\n    medium: totalMed,\n    low: totalLow,\n    digest_markdown: digest\n  }\n}];"
+      },
+      "id": "generate-executive-digest",
+      "name": "Generate Executive Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SLACK_WEBHOOK_URL}}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"text\": $json.digest_markdown } }}",
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "slack-digest",
+      "name": "Slack: Send Executive Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [820, 160]
+    }
+  ],
+  "connections": {
+    "Schedule: Weekly Monday 08:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Postgres: Fetch Active Projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres: Fetch Active Projects": {
+      "main": [
+        [
+          {
+            "node": "Split Projects into Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Projects into Batches": {
+      "main": [
+        [
+          {
+            "node": "Trigger Scheduled Scan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Executive Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Scheduled Scan": {
+      "main": [
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s": {
+      "main": [
+        [
+          {
+            "node": "Check Scan Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Scan Status": {
+      "main": [
+        [
+          {
+            "node": "Is Scan Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Scan Complete?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Scan Findings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Increment Poll Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Increment Poll Count": {
+      "main": [
+        [
+          {
+            "node": "Poll <= 60?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll <= 60?": {
+      "main": [
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Scan Findings": {
+      "main": [
+        [
+          {
+            "node": "Postgres: Ingest Batch Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres: Ingest Batch Log": {
+      "main": [
+        [
+          {
+            "node": "Collect Project Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Project Summary": {
+      "main": [
+        [
+          {
+            "node": "Split Projects into Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Executive Digest": {
+      "main": [
+        [
+          {
+            "node": "Slack: Send Executive Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

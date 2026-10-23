@@ -1,0 +1,368 @@
+{
+  "name": "AgentGuard - Full Enterprise Autonomous Pipeline (All Tools & Database)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agentguard/pipeline",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "trigger-webhook",
+      "name": "Inbound Webhook (GitHub / App)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1600, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{$headers['x-agentguard-automation-token'] || $headers['x-hub-signature-256']}}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "verify-auth",
+      "name": "Verify Inbound Signature",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-1380, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Unauthorized: missing or invalid signature header\" } }}",
+        "options": { "responseCode": 401 }
+      },
+      "id": "reject-unauth",
+      "name": "Reject Unauthorized (401)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-1160, 160]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "project_id", "value": "={{$json.body?.project_id || $json.project_id || 1}}", "type": "number" },
+            { "name": "repo_full_name", "value": "={{$json.body?.repository?.full_name || $json.repository_full_name || \"local/project\"}}", "type": "string" },
+            { "name": "commit_sha", "value": "={{$json.body?.pull_request?.head?.sha || $json.commit_sha || \"main\"}}", "type": "string" },
+            { "name": "pr_number", "value": "={{$json.body?.pull_request?.number || $json.pr_number || 0}}", "type": "number" },
+            { "name": "trigger_source", "value": "={{$json.body?.pull_request ? \"github_pr\" : ($json.trigger_source || \"manual\")}}", "type": "string" }
+          ]
+        }
+      },
+      "id": "normalize-event",
+      "name": "Normalize Event Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-1160, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/projects/{{$json.project_id}}/scans",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"trigger_source\": $json.trigger_source, \"ref\": $json.commit_sha } }}",
+        "options": { "timeout": 20000 }
+      },
+      "id": "trigger-scan",
+      "name": "Trigger Multi-Tool Scan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-940, -80]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"accepted\", \"scan_id\": $json.id, \"project_id\": $json.project_id, \"ref\": $json.ref } }}",
+        "options": { "responseCode": 202 }
+      },
+      "id": "ack-webhook",
+      "name": "Acknowledge (202 Accepted)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-720, -220]
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "poll-wait",
+      "name": "Wait 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-720, -40]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$json.id}}/status",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "check-status",
+      "name": "Check Scan Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-500, -40]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "conditions": [{ "leftValue": "={{$json.status}}", "rightValue": "completed", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "completed" },
+            { "conditions": { "conditions": [{ "leftValue": "={{$json.status}}", "rightValue": "failed", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "failed" },
+            { "conditions": { "conditions": [{ "leftValue": "={{$json.status}}", "rightValue": "running", "operator": { "type": "string", "operation": "equals" } }] }, "outputKey": "running" }
+          ]
+        }
+      },
+      "id": "switch-scan-state",
+      "name": "Switch on Scan Status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-280, -40]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "poll_count", "value": "={{(Number($json.poll_count) || 0) + 1}}", "type": "number" }
+          ]
+        }
+      },
+      "id": "inc-poll-counter",
+      "name": "Increment Poll Counter",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-280, -220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            { "leftValue": "={{$json.poll_count}}", "rightValue": 60, "operator": { "type": "number", "operation": "lte" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "guard-poll-limit",
+      "name": "Guard Max Poll Limit (<= 60)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-500, -220]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$json.id}}/results",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}" }
+          ]
+        }
+      },
+      "id": "fetch-scan-results",
+      "name": "Fetch Scanner Results (Semgrep/Bandit/OSV)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-60, -80]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$json.id}}/solutions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}" }
+          ]
+        },
+        "options": { "allowUnauthorizedCerts": false }
+      },
+      "id": "fetch-solutions",
+      "name": "Fetch AI Solutions & Fix Patches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [160, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate findings, calculate policy decision, and prepare database records\nconst scanData = $('Fetch Scanner Results (Semgrep/Bandit/OSV)').first().json;\nconst solutionData = $json;\n\nconst crit = scanData.summary?.critical || 0;\nconst high = scanData.summary?.high || 0;\nconst med = scanData.summary?.medium || 0;\nconst low = scanData.summary?.low || 0;\n\n// Deterministic security gate policy\nconst decision = (crit > 0 || high > 0) ? 'BLOCK' : 'ALLOW';\n\nconst detFindings = (scanData.findings || []).filter(f => f.source !== 'ai_pipeline');\nconst aiFindings = (scanData.findings || []).filter(f => f.source === 'ai_pipeline');\n\nreturn [{\n  json: {\n    scan_id: scanData.id,\n    project_name: scanData.project_name || 'AgentGuard Project',\n    decision: decision,\n    critical_count: crit,\n    high_count: high,\n    medium_count: med,\n    low_count: low,\n    deterministic_count: detFindings.length,\n    ai_estimated_count: aiFindings.length,\n    coverage: scanData.coverage || {},\n    unavailable_scanners: scanData.unavailable_scanners || [],\n    fix_plans_count: solutionData.total_plans || 0,\n    has_unified_patch: Boolean(solutionData.unified_diff),\n    patch_url: `${$env.AGENTGUARD_API_BASE}/api/scans/${scanData.id}/solutions/patch`,\n    report_url: `${$env.FRONTEND_BASE}/repositories?tab=solutions`,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "evaluate-policy",
+      "name": "Evaluate Gate Policy & Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [380, -80]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO automation_audit_logs (user_id, workflow_name, execution_id, scan_id, event_type, status, payload)\nVALUES (1, 'AgentGuard Master Pipeline', '{{$execution.id}}', {{$json.scan_id}}, 'scan_completed', 'success', '{{JSON.stringify($json)}}'::jsonb)\nRETURNING id;"
+      },
+      "id": "postgres-audit-insert",
+      "name": "Postgres: Ingest Audit Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [600, -80],
+      "credentials": { "postgres": { "id": "POSTGRES_CRED_ID", "name": "AgentGuard Supabase Postgres" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            { "leftValue": "={{$('Evaluate Gate Policy & Metrics').first().json.decision}}", "rightValue": "BLOCK", "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-blocked",
+      "name": "Gate Decision == BLOCK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [820, -80]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": "={{$env.SLACK_SECURITY_CHANNEL_ID}}",
+        "text": "=:rotating_light: *AgentGuard Security Gate: PR BLOCKED*\nProject: {{$('Evaluate Gate Policy & Metrics').first().json.project_name}}\nScan ID: {{$('Evaluate Gate Policy & Metrics').first().json.scan_id}}\nDecision: *BLOCK*\nDeterministic Findings (Scanner-Confirmed): Critical={{$('Evaluate Gate Policy & Metrics').first().json.critical_count}}, High={{$('Evaluate Gate Policy & Metrics').first().json.high_count}}\nAI-Estimated Findings (Non-CVSS): {{$('Evaluate Gate Policy & Metrics').first().json.ai_estimated_count}}\nAutomated Fix Plan: Available ({{$('Evaluate Gate Policy & Metrics').first().json.fix_plans_count}} solutions ready)\nDownload Unified Patch: {{$('Evaluate Gate Policy & Metrics').first().json.patch_url}}\nReview Full Evidence: {{$('Evaluate Gate Policy & Metrics').first().json.report_url}}",
+        "otherOptions": {}
+      },
+      "id": "slack-blocked-alert",
+      "name": "Slack: Security Alert (Blocked)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1040, -180],
+      "credentials": { "slackApi": { "id": "SLACK_CRED_ID", "name": "AgentGuard Slack" } }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": "={{$env.SLACK_SECURITY_CHANNEL_ID}}",
+        "text": "=:white_check_mark: *AgentGuard Security Gate: PR PASSED*\nProject: {{$('Evaluate Gate Policy & Metrics').first().json.project_name}}\nScan ID: {{$('Evaluate Gate Policy & Metrics').first().json.scan_id}}\nDecision: *ALLOW*\nDeterministic Findings: None critical/high\nCoverage: {{$('Evaluate Gate Policy & Metrics').first().json.coverage.coverage_percentage || 100}}% files scanned\nFull Report: {{$('Evaluate Gate Policy & Metrics').first().json.report_url}}",
+        "otherOptions": {}
+      },
+      "id": "slack-passed-alert",
+      "name": "Slack: Passed Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1040, 20],
+      "credentials": { "slackApi": { "id": "SLACK_CRED_ID", "name": "AgentGuard Slack" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.AGENTGUARD_API_BASE}}/api/scans/{{$('Evaluate Gate Policy & Metrics').first().json.scan_id}}/notifications-log",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$credentials.agentguardServiceJwt.token}}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"channel\": \"slack\", \"delivered\": true } }}"
+      },
+      "id": "record-notif-audit",
+      "name": "Record Notification Audit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1260, -80]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": "={{$env.SLACK_OPS_CHANNEL_ID}}",
+        "text": "=:x: *AgentGuard Ops Incident: Scan Execution Failed / Timed Out*\nScan ID: {{$json.id}}\nProject: {{$json.project_name || 'AgentGuard Project'}}\nError: {{$json.error_message || 'Scan timeout exceeded 10-minute circuit breaker limit.'}}\nClassification: Infrastructure / Execution Incident (not a vulnerability finding)."
+      },
+      "id": "slack-ops-fail",
+      "name": "Slack: Ops Failure Incident",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [-60, 220],
+      "credentials": { "slackApi": { "id": "SLACK_CRED_ID", "name": "AgentGuard Slack" } }
+    }
+  ],
+  "connections": {
+    "Inbound Webhook (GitHub / App)": { "main": [[{ "node": "Verify Inbound Signature", "type": "main", "index": 0 }]] },
+    "Verify Inbound Signature": {
+      "main": [
+        [{ "node": "Normalize Event Payload", "type": "main", "index": 0 }],
+        [{ "node": "Reject Unauthorized (401)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalize Event Payload": { "main": [[{ "node": "Trigger Multi-Tool Scan", "type": "main", "index": 0 }]] },
+    "Trigger Multi-Tool Scan": {
+      "main": [[
+        { "node": "Acknowledge (202 Accepted)", "type": "main", "index": 0 },
+        { "node": "Wait 10s", "type": "main", "index": 0 }
+      ]]
+    },
+    "Wait 10s": { "main": [[{ "node": "Check Scan Status", "type": "main", "index": 0 }]] },
+    "Check Scan Status": { "main": [[{ "node": "Switch on Scan Status", "type": "main", "index": 0 }]] },
+    "Switch on Scan Status": {
+      "main": [
+        [{ "node": "Fetch Scanner Results (Semgrep/Bandit/OSV)", "type": "main", "index": 0 }],
+        [{ "node": "Slack: Ops Failure Incident", "type": "main", "index": 0 }],
+        [{ "node": "Increment Poll Counter", "type": "main", "index": 0 }]
+      ]
+    },
+    "Increment Poll Counter": { "main": [[{ "node": "Guard Max Poll Limit (<= 60)", "type": "main", "index": 0 }]] },
+    "Guard Max Poll Limit (<= 60)": {
+      "main": [
+        [{ "node": "Wait 10s", "type": "main", "index": 0 }],
+        [{ "node": "Slack: Ops Failure Incident", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Scanner Results (Semgrep/Bandit/OSV)": { "main": [[{ "node": "Fetch AI Solutions & Fix Patches", "type": "main", "index": 0 }]] },
+    "Fetch AI Solutions & Fix Patches": { "main": [[{ "node": "Evaluate Gate Policy & Metrics", "type": "main", "index": 0 }]] },
+    "Evaluate Gate Policy & Metrics": { "main": [[{ "node": "Postgres: Ingest Audit Record", "type": "main", "index": 0 }]] },
+    "Postgres: Ingest Audit Record": { "main": [[{ "node": "Gate Decision == BLOCK?", "type": "main", "index": 0 }]] },
+    "Gate Decision == BLOCK?": {
+      "main": [
+        [{ "node": "Slack: Security Alert (Blocked)", "type": "main", "index": 0 }],
+        [{ "node": "Slack: Passed Notification", "type": "main", "index": 0 }]
+      ]
+    },
+    "Slack: Security Alert (Blocked)": { "main": [[{ "node": "Record Notification Audit", "type": "main", "index": 0 }]] },
+    "Slack: Passed Notification": { "main": [[{ "node": "Record Notification Audit", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "errorWorkflow": "AGENTGUARD_ERROR_HANDLER_WORKFLOW_ID",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  }
+}

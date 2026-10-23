@@ -9,6 +9,7 @@ from app.api.scans import router as scans_router
 from app.api.solutions import router as solutions_router
 from app.api.dashboard import router as dashboard_router
 from app.api.auth import router as auth_router
+from app.api.automation import router as automation_router
 
 api_router = APIRouter()
 
@@ -17,6 +18,7 @@ api_router.include_router(health_router)
 
 # Resource endpoints under /api
 api_router.include_router(auth_router, prefix="/api")
+api_router.include_router(automation_router, prefix="/api")
 api_router.include_router(projects_router, prefix="/api")
 api_router.include_router(ai_router, prefix="/api")
 api_router.include_router(repositories_router, prefix="/api")
