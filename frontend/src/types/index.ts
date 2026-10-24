@@ -104,6 +104,9 @@ export interface Finding {
   explanation: string | null;
   remediation: string | null;
   verification_status: string;
+  classification?: 'confirmed_secret' | 'likely_placeholder' | 'needs_review' | string | null;
+  classification_reason?: string | null;
+  secret_redacted_preview?: string | null;
   commit_sha: string | null;
   fingerprint: string | null;
   repository_id?: number | null;

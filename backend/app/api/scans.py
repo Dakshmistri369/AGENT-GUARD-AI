@@ -270,6 +270,9 @@ async def analyze_repository(
                 explanation=rf.get("explanation"),
                 remediation=rf.get("remediation"),
                 verification_status=rf.get("verification_status", "unverified"),
+                classification=rf.get("classification"),
+                classification_reason=rf.get("classification_reason"),
+                secret_redacted_preview=rf.get("secret_redacted_preview"),
             )
             db.add(finding_obj)
             db_findings.append(finding_obj)
@@ -575,6 +578,9 @@ async def get_scan_results(
             "column_number": f.column_number,
             "code_snippet": f.code_snippet,
             "location_type": f.location_type or ("manifest" if f.line_number is None else "file_level"),
+            "classification": getattr(f, "classification", None),
+            "classification_reason": getattr(f, "classification_reason", None),
+            "secret_redacted_preview": getattr(f, "secret_redacted_preview", None),
             "message": getattr(f, "explanation", None) or getattr(f, "sanitized_evidence", None) or f.title,
         }
         for f in findings
@@ -855,6 +861,9 @@ async def list_user_findings(
             "explanation": f.explanation,
             "remediation": f.remediation,
             "verification_status": f.verification_status,
+            "classification": getattr(f, "classification", None),
+            "classification_reason": getattr(f, "classification_reason", None),
+            "secret_redacted_preview": getattr(f, "secret_redacted_preview", None),
             "commit_sha": f.commit_sha,
             "fingerprint": f.fingerprint,
             "created_at": f.created_at.isoformat() if f.created_at else None,

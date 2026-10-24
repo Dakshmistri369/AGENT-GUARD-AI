@@ -31,6 +31,7 @@ import {
   FileSpreadsheet,
   FileText,
   Layers,
+  Info,
 } from 'lucide-react';
 import { api, API_BASE_URL } from '../lib/api';
 import type {
@@ -109,6 +110,8 @@ export const RepositoriesPage: React.FC = () => {
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedScanner, setSelectedScanner] = useState<string>('all');
   const [selectedVerification, setSelectedVerification] = useState<string>('all');
+  const [selectedClassification, setSelectedClassification] = useState<string>('all');
+  const [showPlaceholdersSection, setShowPlaceholdersSection] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFindingId, setExpandedFindingId] = useState<number | null>(null);
 
@@ -507,6 +510,9 @@ export const RepositoriesPage: React.FC = () => {
       'Exact Location',
       'Confidence',
       'Verification Status',
+      'Classification',
+      'Classification Reason',
+      'Masked Secret Preview',
       'Evidence',
       'Remediation',
       'Commit SHA',
@@ -537,6 +543,9 @@ export const RepositoriesPage: React.FC = () => {
         escapeCsv(exactLocation),
         escapeCsv(f.confidence),
         escapeCsv(f.verification_status),
+        escapeCsv(f.classification || 'N/A'),
+        escapeCsv(f.classification_reason || ''),
+        escapeCsv(f.secret_redacted_preview || ''),
         escapeCsv(f.sanitized_evidence || ''),
         escapeCsv(f.remediation || ''),
         escapeCsv(f.commit_sha || activeRepo?.pinned_sha || ''),
@@ -588,6 +597,12 @@ export const RepositoriesPage: React.FC = () => {
       md += `- **Exact Location:** \`${exactLocation}\`\n`;
       md += `- **Scanner & Rule:** ${f.scanner} (\`${f.rule_id || 'GENERAL'}\`)\n`;
       md += `- **Verification:** ${f.verification_status} (Confidence: ${f.confidence})\n`;
+      if (f.classification) {
+        md += `- **Classification:** \`${f.classification}\`${f.secret_redacted_preview ? ` (Masked Preview: \`${f.secret_redacted_preview}\`)` : ''}\n`;
+        if (f.classification_reason) {
+          md += `- **Classification Reason:** ${f.classification_reason}\n`;
+        }
+      }
       if (f.sanitized_evidence) {
         md += `- **Sanitized Evidence:**\n\`\`\`\n${f.sanitized_evidence}\n\`\`\`\n`;
       }
@@ -640,6 +655,9 @@ export const RepositoriesPage: React.FC = () => {
           exact_location: f.file_path ? `${f.file_path}${lineRangeStr ? `:${lineRangeStr}` : ''}` : 'Manifest-level',
           confidence: f.confidence,
           verification_status: f.verification_status,
+          classification: f.classification,
+          classification_reason: f.classification_reason,
+          secret_redacted_preview: f.secret_redacted_preview,
           sanitized_evidence: f.sanitized_evidence,
           remediation: f.remediation,
           commit_sha: f.commit_sha || activeRepo?.pinned_sha,
@@ -831,6 +849,9 @@ export const RepositoriesPage: React.FC = () => {
     const matchesVerification =
       selectedVerification === 'all' ||
       f.verification_status.toLowerCase() === selectedVerification.toLowerCase();
+    const matchesClassification =
+      selectedClassification === 'all' ||
+      (f.classification && f.classification.toLowerCase() === selectedClassification.toLowerCase());
     const matchesSearch =
       !searchQuery.trim() ||
       f.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -839,7 +860,7 @@ export const RepositoriesPage: React.FC = () => {
       (f.explanation && f.explanation.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (f.repository_name && f.repository_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       f.scanner.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSev && matchesScanner && matchesVerification && matchesSearch;
+    return matchesSev && matchesScanner && matchesVerification && matchesClassification && matchesSearch;
   });
 
   const metricsSource = findingsScope === 'all' || !scanReport
@@ -1868,6 +1889,20 @@ export const RepositoriesPage: React.FC = () => {
                           <option value="unverified">Unverified</option>
                           <option value="fixed">Fixed</option>
                         </select>
+
+                        {/* Classification Filter */}
+                        <select
+                          className="input"
+                          style={{ height: '34px', fontSize: '12px', width: '160px' }}
+                          value={selectedClassification}
+                          onChange={(e) => setSelectedClassification(e.target.value)}
+                          aria-label="Filter by credential classification"
+                        >
+                          <option value="all">All Classifications</option>
+                          <option value="confirmed_secret">Confirmed Secrets</option>
+                          <option value="likely_placeholder">Likely Placeholders</option>
+                          <option value="needs_review">Needs Review</option>
+                        </select>
                       </div>
                     </div>
 
@@ -1918,9 +1953,17 @@ export const RepositoriesPage: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {filteredFindings.map((finding) => {
-                              const isExpanded = expandedFindingId === finding.id;
-                              const sevClass = `severity-${finding.severity}`;
+                            {(() => {
+                              const primaryFindings = filteredFindings.filter(
+                                (f) => f.classification !== 'likely_placeholder'
+                              );
+                              const placeholderFindings = filteredFindings.filter(
+                                (f) => f.classification === 'likely_placeholder'
+                              );
+
+                              const renderFindingRow = (finding: Finding) => {
+                                const isExpanded = expandedFindingId === finding.id;
+                                const sevClass = `severity-${finding.severity}`;
 
                               return (
                                 <React.Fragment key={finding.id}>
@@ -1985,7 +2028,46 @@ export const RepositoriesPage: React.FC = () => {
                                       </td>
                                     )}
                                     <td style={{ padding: '12px', color: 'var(--text-primary)', fontWeight: 500 }}>
-                                      {finding.title}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                        <span>{finding.title}</span>
+                                        {finding.classification && (
+                                          <span
+                                            style={{
+                                              fontSize: '10px',
+                                              padding: '2px 7px',
+                                              borderRadius: '4px',
+                                              fontWeight: 700,
+                                              textTransform: 'uppercase',
+                                              letterSpacing: '0.3px',
+                                              background:
+                                                finding.classification === 'confirmed_secret'
+                                                  ? '#fef2f2'
+                                                  : finding.classification === 'likely_placeholder'
+                                                  ? '#fffbeb'
+                                                  : '#faf5ff',
+                                              color:
+                                                finding.classification === 'confirmed_secret'
+                                                  ? '#dc2626'
+                                                  : finding.classification === 'likely_placeholder'
+                                                  ? '#b45309'
+                                                  : '#7e22ce',
+                                              border:
+                                                finding.classification === 'confirmed_secret'
+                                                  ? '1px solid #fecaca'
+                                                  : finding.classification === 'likely_placeholder'
+                                                  ? '1px solid #fde68a'
+                                                  : '1px solid #e9d5ff',
+                                            }}
+                                            title={`Classification: ${finding.classification}${finding.classification_reason ? ` — ${finding.classification_reason}` : ''}`}
+                                          >
+                                            {finding.classification === 'confirmed_secret'
+                                              ? 'Confirmed Secret'
+                                              : finding.classification === 'likely_placeholder'
+                                              ? 'Likely Placeholder'
+                                              : 'Needs Review'}
+                                          </span>
+                                        )}
+                                      </div>
                                     </td>
                                     <td style={{ padding: '12px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
                                       {(() => {
@@ -2152,6 +2234,87 @@ export const RepositoriesPage: React.FC = () => {
                                               {copiedLocationId === finding.id + 500000 ? 'Copied Location' : 'Copy File:Line'}
                                             </button>
                                           </div>
+
+                                          {/* Evidence-Based Credential Classification Card */}
+                                          {finding.classification && (
+                                            <div
+                                              style={{
+                                                padding: '12px 16px',
+                                                borderRadius: '8px',
+                                                background:
+                                                  finding.classification === 'likely_placeholder'
+                                                    ? '#fffbeb'
+                                                    : finding.classification === 'needs_review'
+                                                    ? '#faf5ff'
+                                                    : '#fef2f2',
+                                                border:
+                                                  finding.classification === 'likely_placeholder'
+                                                    ? '1px solid #fde68a'
+                                                    : finding.classification === 'needs_review'
+                                                    ? '1px solid #e9d5ff'
+                                                    : '1px solid #fecaca',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '8px',
+                                              }}
+                                            >
+                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                  <span
+                                                    style={{
+                                                      fontSize: '11px',
+                                                      fontWeight: 800,
+                                                      textTransform: 'uppercase',
+                                                      padding: '2px 8px',
+                                                      borderRadius: '4px',
+                                                      background: '#ffffff',
+                                                      border:
+                                                        finding.classification === 'likely_placeholder'
+                                                          ? '1px solid #fde68a'
+                                                          : finding.classification === 'needs_review'
+                                                          ? '1px solid #e9d5ff'
+                                                          : '1px solid #fecaca',
+                                                      color:
+                                                        finding.classification === 'likely_placeholder'
+                                                          ? '#b45309'
+                                                          : finding.classification === 'needs_review'
+                                                          ? '#7e22ce'
+                                                          : '#dc2626',
+                                                    }}
+                                                  >
+                                                    {finding.classification === 'confirmed_secret'
+                                                      ? '🛡 Confirmed Secret'
+                                                      : finding.classification === 'likely_placeholder'
+                                                      ? 'ℹ Likely Placeholder (Tutorial/Documentation Example)'
+                                                      : '⚠ Needs Review'}
+                                                  </span>
+                                                </div>
+                                                {finding.secret_redacted_preview && (
+                                                  <span
+                                                    style={{
+                                                      fontFamily: 'JetBrains Mono, monospace',
+                                                      fontSize: '12px',
+                                                      background: '#ffffff',
+                                                      padding: '2px 8px',
+                                                      borderRadius: '4px',
+                                                      border: '1px solid #cbd5e1',
+                                                      fontWeight: 700,
+                                                      color: '#1e293b',
+                                                    }}
+                                                    title="Safe masked preview of detected secret string (raw value is never stored or exposed)"
+                                                  >
+                                                    Masked Preview: <code>{finding.secret_redacted_preview}</code>
+                                                  </span>
+                                                )}
+                                              </div>
+                                              {finding.classification_reason && (
+                                                <div style={{ fontSize: '12px', color: '#334155', lineHeight: 1.5 }}>
+                                                  <strong>Classification Evidence:</strong> {finding.classification_reason}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+
                                           {/* Flagged Code Snippet */}
                                           {finding.code_snippet && (
                                             <div>
@@ -2491,8 +2654,82 @@ export const RepositoriesPage: React.FC = () => {
                                   )}
                                 </React.Fragment>
                               );
-                            })}
-                          </tbody>
+                            };
+
+                            return (
+                              <>
+                                {primaryFindings.map(renderFindingRow)}
+
+                                {placeholderFindings.length > 0 && (
+                                  <>
+                                    <tr
+                                      style={{
+                                        background: '#fffbeb',
+                                        borderTop: '2px solid #fde68a',
+                                        borderBottom: '2px solid #fde68a',
+                                      }}
+                                    >
+                                      <td
+                                        colSpan={findingsScope === 'all' ? 7 : 6}
+                                        style={{ padding: '12px 16px' }}
+                                      >
+                                        <div
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            flexWrap: 'wrap',
+                                            gap: '8px',
+                                          }}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Info size={16} color="#b45309" />
+                                            <span style={{ fontWeight: 700, fontSize: '13px', color: '#92400e' }}>
+                                              Likely Placeholders / Documentation Examples ({placeholderFindings.length})
+                                            </span>
+                                            <span
+                                              style={{
+                                                fontSize: '11px',
+                                                color: '#b45309',
+                                                background: '#fef3c7',
+                                                padding: '2px 8px',
+                                                borderRadius: '12px',
+                                                border: '1px solid #fde68a',
+                                              }}
+                                            >
+                                              Documented example credentials & non-production placeholders
+                                            </span>
+                                          </div>
+                                          <button
+                                            onClick={() => setShowPlaceholdersSection(!showPlaceholdersSection)}
+                                            className="btn-outline"
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '6px',
+                                              fontSize: '12px',
+                                              padding: '4px 10px',
+                                              borderColor: '#fde68a',
+                                              color: '#92400e',
+                                              background: '#ffffff',
+                                              cursor: 'pointer',
+                                              borderRadius: '6px',
+                                            }}
+                                            type="button"
+                                          >
+                                            {showPlaceholdersSection ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                            {showPlaceholdersSection ? 'Hide Placeholders' : `Show Placeholders (${placeholderFindings.length})`}
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                    {showPlaceholdersSection && placeholderFindings.map(renderFindingRow)}
+                                  </>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </tbody>
                         </table>
                       </div>
                     )}

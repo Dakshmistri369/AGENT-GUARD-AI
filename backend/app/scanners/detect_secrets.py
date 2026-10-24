@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app.scanners.base import BaseScanner, ScannerResult, find_scanner_executable
+from app.scanners.classifier import enrich_finding_with_classification
 from app.security.workspace import redact_sensitive_text
 
 logger = logging.getLogger("agentguard.scanners.detect_secrets")
@@ -152,7 +153,7 @@ class DetectSecretsScanner(BaseScanner):
                             sev = "medium"
 
                         rule_slug = f"DS-{sec_type.replace(' ', '-').upper()}"
-                        findings.append({
+                        finding_item = {
                             "scanner": "detect_secrets",
                             "scanner_version": version or "1.5.0",
                             "rule_id": rule_slug[:64],
@@ -172,7 +173,9 @@ class DetectSecretsScanner(BaseScanner):
                             "remediation": "Revoke the credential from the respective provider and migrate to an environment variable or secrets manager.",
                             "verification_status": "unverified",
                             "commit_sha": commit_sha,
-                        })
+                        }
+                        enrich_finding_with_classification(finding_item, workspace_path=workspace_path)
+                        findings.append(finding_item)
             except json.JSONDecodeError as exc:
                 logger.warning("Scanner parser encountered invalid JSON output from detect-secrets utility: %s", exc)
 

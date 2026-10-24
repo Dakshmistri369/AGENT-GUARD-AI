@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app.scanners.base import BaseScanner, ScannerResult, find_scanner_executable
+from app.scanners.classifier import enrich_finding_with_classification
 from app.security.workspace import redact_sensitive_text
 
 logger = logging.getLogger("agentguard.scanners.bandit")
@@ -149,7 +150,7 @@ class BanditScanner(BaseScanner):
                     else:
                         title = issue_text
 
-                    findings.append({
+                    finding_item = {
                         "scanner": "bandit",
                         "scanner_version": version or "1.8.x",
                         "rule_id": test_id,
@@ -166,7 +167,9 @@ class BanditScanner(BaseScanner):
                         "remediation": f"Review Bandit {issue.get('test_id')} guidance: {issue.get('more_info', '')}",
                         "verification_status": "unverified",
                         "commit_sha": commit_sha,
-                    })
+                    }
+                    enrich_finding_with_classification(finding_item, workspace_path=workspace_path)
+                    findings.append(finding_item)
             except json.JSONDecodeError as exc:
                 logger.warning("Bandit output was not valid JSON: %s (stderr: %s)", exc, stderr[:200])
 

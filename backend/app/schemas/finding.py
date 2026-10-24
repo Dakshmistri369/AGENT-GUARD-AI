@@ -28,6 +28,9 @@ class FindingResponse(BaseModel):
     explanation: str | None = None
     remediation: str | None = None
     verification_status: str = "unverified"  # unverified | confirmed | resolved | false_positive
+    classification: str | None = None  # confirmed_secret | likely_placeholder | needs_review
+    classification_reason: str | None = None
+    secret_redacted_preview: str | None = None
     commit_sha: str | None = None
     fingerprint: str | None = None
     created_at: datetime.datetime

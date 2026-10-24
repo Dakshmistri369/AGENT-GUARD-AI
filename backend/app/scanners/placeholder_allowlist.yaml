@@ -1,0 +1,115 @@
+# ==============================================================================
+# AgentGuard AI — Narrowly-Scoped Secret Placeholder Allowlist
+# ==============================================================================
+# This configuration file defines known dummy, tutorial, and documentation
+# placeholder values along with supporting context keywords.
+#
+# AUDIT & SAFETY RULES:
+# 1. Matches against this allowlist are NEVER sufficient alone to classify a finding
+#    as a placeholder — supporting nearby context is strictly required.
+# 2. Values matching real structured token signatures (e.g. AWS AKIA, GitHub ghp_,
+#    OpenAI sk-, Private Keys) are PROTECTED and will NEVER be downgraded to
+#    likely_placeholder regardless of whether they appear in this file.
+# 3. This file is user-auditable and can be extended with organization-specific
+#    placeholder conventions.
+# ==============================================================================
+
+placeholder_values:
+  # Common tutorial & documentation passwords
+  - "password@123"
+  - "password123"
+  - "Password@123"
+  - "Password123"
+  - "P@ssw0rd123"
+  - "P@ssword123"
+  - "admin@123"
+  - "admin123"
+  - "Admin@123"
+  - "Admin123"
+  - "changeme"
+  - "ChangeMe"
+  - "CHANGEME"
+  - "change-me"
+  - "change_me"
+  - "letmein"
+  - "welcome1"
+  - "welcome123"
+  - "demo123"
+  - "demo@123"
+  - "sample123"
+  - "sample@123"
+  - "test1234"
+  - "test@123"
+  - "testpassword"
+  - "secretpassword"
+  - "mysecretpassword"
+  - "supersecretpassword"
+  - "examplepassword"
+  - "dummy_password"
+  - "fake_password"
+
+  # Generic placeholder API keys and tokens
+  - "your-api-key-here"
+  - "your_api_key_here"
+  - "YOUR_API_KEY_HERE"
+  - "your-api-key"
+  - "your_api_key"
+  - "YOUR_API_KEY"
+  - "insert-api-key-here"
+  - "insert_api_key_here"
+  - "insert-key-here"
+  - "replace-with-your-key"
+  - "replace_with_your_key"
+  - "replace-this-key"
+  - "replace_this_key"
+  - "your-token-here"
+  - "your_token_here"
+  - "YOUR_TOKEN_HERE"
+  - "your-secret-key-here"
+  - "your_secret_key_here"
+  - "YOUR_SECRET_KEY"
+  - "your-secret-key"
+  - "your_secret_key"
+  - "your-client-secret"
+  - "your_client_secret"
+  - "my-secret-key"
+  - "my_secret_key"
+  - "dummy_secret_key"
+  - "dummy-secret-key"
+  - "fake_secret_key"
+  - "fake-api-key"
+  - "test_secret_key"
+  - "test-secret-key"
+
+  # Masked pattern strings
+  - "xxx-xxx-xxx"
+  - "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  - "00000000-0000-0000-0000-000000000000"
+  - "11111111-1111-1111-1111-111111111111"
+  - "1234567890abcdef"
+  - "abcdef123456"
+
+context_keywords:
+  # Nearby text context markers (same line or ±3 lines)
+  - "example"
+  - "sample"
+  - "placeholder"
+  - "tutorial"
+  - "demo"
+  - "replace this"
+  - "replace with"
+  - "replace after"
+  - "replace in production"
+  - "do not use in production"
+  - "never use in production"
+  - "for demonstration"
+  - "for testing only"
+  - "for illustration"
+  - "dummy"
+  - "fake"
+  - "mock"
+  - "change this"
+  - "change before"
+  - "default test"
+  - "signup example"
+  - "sample credential"

@@ -36,6 +36,11 @@ class Finding(Base):
     verification_status: Mapped[str] = mapped_column(
         String(32), nullable=False, default="unverified"
     )  # unverified|confirmed|resolved|false_positive
+    classification: Mapped[str | None] = mapped_column(
+        String(32), nullable=True, default="confirmed_secret"
+    )  # confirmed_secret | likely_placeholder | needs_review
+    classification_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    secret_redacted_preview: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

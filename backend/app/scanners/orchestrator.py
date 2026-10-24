@@ -12,6 +12,7 @@ from typing import Any
 
 from app.scanners.bandit import BanditScanner
 from app.scanners.base import BaseScanner, ScannerResult
+from app.scanners.classifier import enrich_finding_with_classification
 from app.scanners.detect_secrets import DetectSecretsScanner
 from app.scanners.filters import build_scan_file_list
 from app.scanners.osv import OSVScanner
@@ -277,9 +278,10 @@ class ScannerOrchestrator:
                         "duration_seconds": res.duration_seconds,
                     })
 
-        # Deduplicate findings by fingerprint
+        # Deduplicate findings by fingerprint and ensure evidence-based classification
         unique_findings: dict[str, dict[str, Any]] = {}
         for f in all_findings:
+            enrich_finding_with_classification(f, workspace_path=workspace_path)
             fp = f.get("fingerprint") or generate_finding_fingerprint(
                 f.get("scanner", "agentguard"),
                 f.get("rule_id"),
