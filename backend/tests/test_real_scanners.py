@@ -338,4 +338,5 @@ class TestOSVApiIntegration:
             assert "scan" in call_cmd
             assert "source" in call_cmd
             assert "--format" in call_cmd
+            assert "--no-resolve" in call_cmd
 

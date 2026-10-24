@@ -238,10 +238,11 @@ class OSVScanner(BaseScanner):
 
         # ── Case A: osv-scanner binary IS available on host ─────────────────
         if available and exe:
-            # osv-scanner v2.x requires subcommand: osv-scanner scan source --no-ignore --format json -r <path>
+            # osv-scanner v2.x requires subcommand: osv-scanner scan source --no-ignore --no-resolve --format json -r <path>
+            # The --no-resolve flag skips remote deps.dev graph queries, preventing slow network hangs and timeouts
             # osv-scanner v1.x uses: osv-scanner --json -r <path>
             if version and str(version).startswith("2"):
-                cmd = [exe, "scan", "source", "--no-ignore", "--format", "json", "-r", str(workspace_path)]
+                cmd = [exe, "scan", "source", "--no-ignore", "--no-resolve", "--format", "json", "-r", str(workspace_path)]
             else:
                 cmd = [exe, "--json", "-r", str(workspace_path)]
 
@@ -255,7 +256,7 @@ class OSVScanner(BaseScanner):
                     alt_cmd = (
                         [exe, "--json", "-r", str(workspace_path)]
                         if "scan" in cmd
-                        else [exe, "scan", "source", "--no-ignore", "--format", "json", "-r", str(workspace_path)]
+                        else [exe, "scan", "source", "--no-ignore", "--no-resolve", "--format", "json", "-r", str(workspace_path)]
                     )
                     exit_code, stdout, stderr = await self.execute_cmd(
                         cmd=alt_cmd,
@@ -283,7 +284,9 @@ class OSVScanner(BaseScanner):
             raw = stdout.strip()
             if raw:
                 try:
-                    data = json.loads(raw)
+                    brace_pos = raw.find("{")
+                    clean_json = raw[brace_pos:] if brace_pos != -1 else raw
+                    data = json.loads(clean_json)
                     for pkg_res in data.get("results", []):
                         manifest_path = pkg_res.get("source", {}).get("path", "")
                         try:

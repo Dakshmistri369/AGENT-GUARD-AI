@@ -62,13 +62,31 @@ def _get_windows_registry_paths() -> list[str]:
 
 def find_scanner_executable(tool_name: str) -> str | None:
     """
-    Search for executable binary on system PATH, user Scripts directories,
-    Windows Registry PATHs, and WinGet packages directories.
+    Search for executable binary on project bin directories, system PATH,
+    user Scripts directories, Windows Registry PATHs, and WinGet packages directories.
     Handles Windows .exe and POSIX binaries transparently.
     """
     tools_to_check = [tool_name]
     if os.name == "nt" and tool_name == "semgrep":
         tools_to_check = ["pysemgrep", "semgrep"]
+
+    # 0. Check Project bin directories first (repo_root / bin, backend / bin, cwd / bin)
+    try:
+        base_dir = Path(__file__).resolve().parent
+        search_dirs = [
+            base_dir.parent.parent.parent / "bin",  # repo_root / bin
+            base_dir.parent.parent / "bin",         # backend / bin
+            Path.cwd() / "bin",
+            Path.cwd() / "backend" / "bin",
+        ]
+        for p_dir in search_dirs:
+            if p_dir.exists():
+                for t_name in tools_to_check:
+                    candidate = p_dir / (f"{t_name}.exe" if os.name == "nt" else t_name)
+                    if candidate.exists() and candidate.is_file():
+                        return str(candidate)
+    except Exception:
+        pass
 
     # 1. Standard PATH search
     for t_name in tools_to_check:
@@ -165,10 +183,28 @@ class BaseScanner(ABC):
         """
         import subprocess  # nosec B404
 
-        # Ensure user Scripts and WinGet directories are included in PATH for subprocesses
+        # Ensure user Scripts, WinGet, and project bin directories are included in PATH for subprocesses
         env = {**os.environ}
         if extra_env:
             env.update(extra_env)
+
+        # Prepend project bin directories so project-bundled tools (e.g. osv-scanner) are always executable
+        try:
+            base_dir = Path(__file__).resolve().parent
+            project_bin_dirs = [
+                str(base_dir.parent.parent.parent / "bin"),
+                str(base_dir.parent.parent / "bin"),
+                str(Path.cwd() / "bin"),
+                str(Path.cwd() / "backend" / "bin"),
+            ]
+            current_path = env.get("PATH", "")
+            for pbd in project_bin_dirs:
+                if os.path.isdir(pbd) and pbd not in current_path:
+                    sep = ";" if os.name == "nt" else ":"
+                    env["PATH"] = f"{pbd}{sep}{current_path}"
+                    current_path = env["PATH"]
+        except Exception:
+            pass
 
         if os.name == "nt":
             appdata = os.environ.get("APPDATA")

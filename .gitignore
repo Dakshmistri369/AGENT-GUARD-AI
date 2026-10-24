@@ -22,4 +22,10 @@ scan_workspaces/
 .scan_workspaces/
 **/scan_workspaces/
 *.log
+bin/*.exe
+bin/*.bin
+backend/bin/*.exe
+backend/bin/*.bin
+!bin/.gitkeep
+!backend/bin/.gitkeep
 
