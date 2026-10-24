@@ -741,3 +741,132 @@ async def query_osv_endpoint(
         "normalized_findings": normalized,
     }
 
+
+@router.get("/api/findings")
+async def list_user_findings(
+    response: Response,
+    repository_id: Optional[int] = None,
+    severity: Optional[str] = None,
+    scanner: Optional[str] = None,
+    verification_status: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """
+    List all security findings across user repositories with exact file paths and lines.
+    Allows filtering by repository, severity, scanner engine, and verification status.
+    Returns findings with attached repository context for consolidated reporting.
+    """
+    response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+
+    # 1. Fetch user's repositories
+    repo_stmt = select(Repository).where(Repository.owner_id == current_user.id)
+    if repository_id is not None:
+        repo_stmt = repo_stmt.where(Repository.id == repository_id)
+    repo_res = await db.execute(repo_stmt)
+    user_repos = list(repo_res.scalars().all())
+
+    if not user_repos:
+        return {"total": 0, "repository_count": 0, "findings": [], "repositories": []}
+
+    repo_map = {r.id: r for r in user_repos}
+    repo_ids = list(repo_map.keys())
+
+    # 2. For each repository, fetch latest completed scan
+    scans_stmt = (
+        select(Scan)
+        .where(
+            Scan.repository_id.in_(repo_ids),
+            Scan.status.in_(["completed", "timed_out_partial"]),
+        )
+        .order_by(Scan.created_at.desc())
+    )
+    scans_res = await db.execute(scans_stmt)
+    all_scans = list(scans_res.scalars().all())
+
+    # Map each repo to its latest scan
+    latest_scan_by_repo: dict[int, Scan] = {}
+    for s in all_scans:
+        if s.repository_id and s.repository_id not in latest_scan_by_repo:
+            latest_scan_by_repo[s.repository_id] = s
+
+    if not latest_scan_by_repo:
+        return {
+            "total": 0,
+            "repository_count": len(user_repos),
+            "findings": [],
+            "repositories": [
+                {"id": r.id, "name": r.name, "full_name": r.full_name, "url": r.url}
+                for r in user_repos
+            ],
+        }
+
+    latest_scan_ids = [s.id for s in latest_scan_by_repo.values()]
+    scan_to_repo_id = {s.id: s.repository_id for s in latest_scan_by_repo.values()}
+
+    # 3. Query findings for these latest scans
+    findings_stmt = (
+        select(Finding)
+        .where(Finding.scan_id.in_(latest_scan_ids))
+        .order_by(Finding.id.asc())
+    )
+    if severity and severity.lower() != "all":
+        findings_stmt = findings_stmt.where(Finding.severity.ilike(severity))
+    if scanner and scanner.lower() != "all":
+        findings_stmt = findings_stmt.where(Finding.scanner.ilike(scanner))
+    if verification_status and verification_status.lower() != "all":
+        findings_stmt = findings_stmt.where(Finding.verification_status.ilike(verification_status))
+
+    findings_res = await db.execute(findings_stmt)
+    findings = list(findings_res.scalars().all())
+
+    items = []
+    for f in findings:
+        r_id = scan_to_repo_id.get(f.scan_id)
+        repo_obj = repo_map.get(r_id) if r_id else None
+
+        line_str = (
+            f"{f.line_number}-{f.line_end}"
+            if (f.line_number and f.line_end and f.line_end != f.line_number)
+            else (str(f.line_number) if f.line_number else None)
+        )
+        loc_formatted = f"{f.file_path}:{line_str}" if (f.file_path and line_str) else (f.file_path or "Manifest-level")
+
+        items.append({
+            "id": f.id,
+            "scan_id": f.scan_id,
+            "repository_id": repo_obj.id if repo_obj else None,
+            "repository_name": repo_obj.full_name if repo_obj else None,
+            "repository_url": repo_obj.url if repo_obj else None,
+            "scanner": f.scanner,
+            "scanner_version": f.scanner_version,
+            "rule_id": f.rule_id,
+            "title": f.title,
+            "severity": f.severity,
+            "confidence": f.confidence,
+            "file_path": f.file_path,
+            "line_number": f.line_number,
+            "line_end": f.line_end,
+            "column_number": f.column_number,
+            "code_snippet": f.code_snippet,
+            "location_type": f.location_type,
+            "location_formatted": loc_formatted,
+            "sanitized_evidence": f.sanitized_evidence,
+            "explanation": f.explanation,
+            "remediation": f.remediation,
+            "verification_status": f.verification_status,
+            "commit_sha": f.commit_sha,
+            "fingerprint": f.fingerprint,
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+        })
+
+    return {
+        "total": len(items),
+        "repository_count": len(user_repos),
+        "findings": items,
+        "repositories": [
+            {"id": r.id, "name": r.name, "full_name": r.full_name, "url": r.url}
+            for r in user_repos
+        ],
+    }
+

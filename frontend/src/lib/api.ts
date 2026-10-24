@@ -170,6 +170,19 @@ export const api = {
   },
 
   findings: {
+    list: (params?: {
+      repository_id?: number;
+      severity?: string;
+      scanner?: string;
+      verification_status?: string;
+    }): Promise<{
+      total: number;
+      repository_count: number;
+      findings: Finding[];
+      repositories: { id: number; name: string; full_name: string; url: string }[];
+    }> =>
+      client.get('/api/findings', { params }).then(r => r.data),
+
     updateStatus: (
       findingId: number,
       status: 'unverified' | 'confirmed' | 'resolved' | 'false_positive',

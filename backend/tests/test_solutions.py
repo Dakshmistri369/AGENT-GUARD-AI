@@ -301,6 +301,18 @@ class TestSolutionsAPI:
         assert ai_data["finding_id"] == f1.id
         assert ai_data["explanation"] != ""
 
+        # Test GET /api/findings (cross-repository findings with folder/file lines)
+        findings_resp = await client.get("/api/findings")
+        assert findings_resp.status_code == 200
+        findings_data = findings_resp.json()
+        assert findings_data["total"] >= 2
+        assert findings_data["repository_count"] >= 1
+        f_item = next(item for item in findings_data["findings"] if item["id"] == f1.id)
+        assert f_item["file_path"] == "app.py"
+        assert f_item["line_number"] == 22
+        assert f_item["location_formatted"] == "app.py:22"
+        assert f_item["repository_name"] == repo.full_name
+
         # Test 404 for non-existent scan and finding
         not_found_scan = await client.get("/api/scans/999999/solutions")
         assert not_found_scan.status_code == 404

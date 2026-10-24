@@ -106,6 +106,9 @@ export interface Finding {
   verification_status: string;
   commit_sha: string | null;
   fingerprint: string | null;
+  repository_id?: number | null;
+  repository_name?: string | null;
+  repository_url?: string | null;
   created_at: string;
 }
 

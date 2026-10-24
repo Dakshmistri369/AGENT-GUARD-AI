@@ -20,7 +20,10 @@ class FindingResponse(BaseModel):
     confidence: str  # high | medium | low
     file_path: str | None = None
     line_number: int | None = None
+    line_end: int | None = None
     column_number: int | None = None
+    code_snippet: str | None = None
+    location_type: str | None = None
     sanitized_evidence: str | None = None
     explanation: str | None = None
     remediation: str | None = None

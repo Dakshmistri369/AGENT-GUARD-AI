@@ -27,6 +27,10 @@ import {
   Terminal,
   FileCode,
   Code2,
+  Folder,
+  FileSpreadsheet,
+  FileText,
+  Layers,
 } from 'lucide-react';
 import { api, API_BASE_URL } from '../lib/api';
 import type {
@@ -108,6 +112,12 @@ export const RepositoriesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFindingId, setExpandedFindingId] = useState<number | null>(null);
 
+  // All repositories issues state & scope
+  const [findingsScope, setFindingsScope] = useState<'current' | 'all'>('current');
+  const [allRepoFindings, setAllRepoFindings] = useState<Finding[]>([]);
+  const [isLoadingAllFindings, setIsLoadingAllFindings] = useState(false);
+  const [copiedIssuesList, setCopiedIssuesList] = useState(false);
+
   // Initial load
   useEffect(() => {
     loadRepositories();
@@ -124,6 +134,9 @@ export const RepositoriesPage: React.FC = () => {
       tabParam === 'history'
     ) {
       setActiveTab(tabParam as TabType);
+      if (tabParam === 'findings') {
+        loadAllRepositoryFindings();
+      }
     }
   }, [searchParams]);
 
@@ -159,6 +172,7 @@ export const RepositoriesPage: React.FC = () => {
     try {
       const res = await api.repositories.list();
       setRepositories(res.items);
+      loadAllRepositoryFindings();
       if (res.items.length > 0 && !activeRepo) {
         const repoIdParam = searchParams.get('repoId');
         const initial = repoIdParam
@@ -466,6 +480,206 @@ export const RepositoriesPage: React.FC = () => {
     }
   };
 
+  const loadAllRepositoryFindings = async () => {
+    setIsLoadingAllFindings(true);
+    try {
+      const res = await api.findings.list();
+      setAllRepoFindings(res.findings);
+    } catch (e) {
+      console.warn('Failed to load all repository findings:', e);
+    } finally {
+      setIsLoadingAllFindings(false);
+    }
+  };
+
+  const downloadIssuesCsv = () => {
+    const listToExport = filteredFindings;
+    if (listToExport.length === 0) return;
+    const headers = [
+      'Repository',
+      'Severity',
+      'Scanner',
+      'Rule ID',
+      'Title',
+      'Folder / File Location',
+      'Line Start',
+      'Line End',
+      'Exact Location',
+      'Confidence',
+      'Verification Status',
+      'Evidence',
+      'Remediation',
+      'Commit SHA',
+    ];
+
+    const escapeCsv = (val: any) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = listToExport.map((f) => {
+      const lineRangeStr = f.line_number
+        ? (f.line_end && f.line_end !== f.line_number ? `${f.line_number}-${f.line_end}` : `${f.line_number}`)
+        : '';
+      const exactLocation = f.file_path ? `${f.file_path}${lineRangeStr ? `:${lineRangeStr}` : ''}` : 'Manifest-level';
+      const repoName = f.repository_name || activeRepo?.full_name || 'Repository';
+
+      return [
+        escapeCsv(repoName),
+        escapeCsv(f.severity),
+        escapeCsv(f.scanner),
+        escapeCsv(f.rule_id || ''),
+        escapeCsv(f.title),
+        escapeCsv(f.file_path || ''),
+        escapeCsv(f.line_number || ''),
+        escapeCsv(f.line_end || ''),
+        escapeCsv(exactLocation),
+        escapeCsv(f.confidence),
+        escapeCsv(f.verification_status),
+        escapeCsv(f.sanitized_evidence || ''),
+        escapeCsv(f.remediation || ''),
+        escapeCsv(f.commit_sha || activeRepo?.pinned_sha || ''),
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const filename = findingsScope === 'all'
+      ? `agentguard-all-issues-${new Date().toISOString().slice(0, 10)}.csv`
+      : `agentguard-issues-${(activeRepo?.name || 'repo').replace(/[^a-zA-Z0-9_-]/g, '_')}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadIssuesMarkdown = () => {
+    const listToExport = filteredFindings;
+    if (listToExport.length === 0) return;
+    const scopeTitle = findingsScope === 'all'
+      ? 'All Connected Repositories'
+      : (activeRepo?.full_name || 'Repository');
+
+    let md = `# AgentGuard AI — Security Issues Report\n\n`;
+    md += `**Scope:** ${scopeTitle}\n`;
+    md += `**Generated:** ${new Date().toUTCString()}\n`;
+    md += `**Total Issues:** ${listToExport.length}\n\n`;
+
+    md += `## Summary by Severity\n\n`;
+    md += `| Critical | High | Medium | Low / Info |\n`;
+    md += `| :---: | :---: | :---: | :---: |\n`;
+    md += `| ${listToExport.filter((f) => f.severity === 'critical').length} | ${listToExport.filter((f) => f.severity === 'high').length} | ${listToExport.filter((f) => f.severity === 'medium').length} | ${listToExport.filter((f) => f.severity === 'low' || f.severity === 'info').length} |\n\n`;
+
+    md += `## Detailed Issues List with Folder/File Locations & Lines\n\n`;
+    listToExport.forEach((f, idx) => {
+      const lineRangeStr = f.line_number
+        ? (f.line_end && f.line_end !== f.line_number ? `${f.line_number}-${f.line_end}` : `${f.line_number}`)
+        : '';
+      const exactLocation = f.file_path ? `${f.file_path}${lineRangeStr ? `:${lineRangeStr}` : ''}` : 'Manifest-level';
+      const repoName = f.repository_name || activeRepo?.full_name || 'Repository';
+
+      md += `### ${idx + 1}. [${f.severity.toUpperCase()}] ${f.title}\n\n`;
+      md += `- **Repository:** \`${repoName}\`\n`;
+      md += `- **Exact Location:** \`${exactLocation}\`\n`;
+      md += `- **Scanner & Rule:** ${f.scanner} (\`${f.rule_id || 'GENERAL'}\`)\n`;
+      md += `- **Verification:** ${f.verification_status} (Confidence: ${f.confidence})\n`;
+      if (f.sanitized_evidence) {
+        md += `- **Sanitized Evidence:**\n\`\`\`\n${f.sanitized_evidence}\n\`\`\`\n`;
+      }
+      if (f.explanation) {
+        md += `- **Explanation:** ${f.explanation}\n`;
+      }
+      if (f.remediation) {
+        md += `- **Remediation:** ${f.remediation}\n`;
+      }
+      md += `\n---\n\n`;
+    });
+
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const filename = findingsScope === 'all'
+      ? `agentguard-all-issues-${new Date().toISOString().slice(0, 10)}.md`
+      : `agentguard-issues-${(activeRepo?.name || 'repo').replace(/[^a-zA-Z0-9_-]/g, '_')}-${new Date().toISOString().slice(0, 10)}.md`;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadIssuesJson = () => {
+    const listToExport = filteredFindings;
+    if (listToExport.length === 0) return;
+    const data = {
+      report_name: 'AgentGuard Security Issues',
+      generated_at: new Date().toISOString(),
+      scope: findingsScope === 'all' ? 'all_repositories' : activeRepo?.full_name,
+      total_issues: listToExport.length,
+      issues: listToExport.map((f) => {
+        const lineRangeStr = f.line_number
+          ? (f.line_end && f.line_end !== f.line_number ? `${f.line_number}-${f.line_end}` : `${f.line_number}`)
+          : null;
+        return {
+          id: f.id,
+          repository: f.repository_name || activeRepo?.full_name,
+          severity: f.severity,
+          scanner: f.scanner,
+          rule_id: f.rule_id,
+          title: f.title,
+          file_path: f.file_path,
+          line_number: f.line_number,
+          line_end: f.line_end,
+          line_formatted: lineRangeStr,
+          exact_location: f.file_path ? `${f.file_path}${lineRangeStr ? `:${lineRangeStr}` : ''}` : 'Manifest-level',
+          confidence: f.confidence,
+          verification_status: f.verification_status,
+          sanitized_evidence: f.sanitized_evidence,
+          remediation: f.remediation,
+          commit_sha: f.commit_sha || activeRepo?.pinned_sha,
+        };
+      }),
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const filename = findingsScope === 'all'
+      ? `agentguard-all-issues-${new Date().toISOString().slice(0, 10)}.json`
+      : `agentguard-issues-${(activeRepo?.name || 'repo').replace(/[^a-zA-Z0-9_-]/g, '_')}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyAllIssuesText = () => {
+    const listToExport = filteredFindings;
+    if (listToExport.length === 0) return;
+    const lines = listToExport.map((f) => {
+      const lineRangeStr = f.line_number
+        ? (f.line_end && f.line_end !== f.line_number ? `:${f.line_number}-${f.line_end}` : `:${f.line_number}`)
+        : '';
+      const location = f.file_path ? `${f.file_path}${lineRangeStr}` : 'Manifest-level';
+      const repoPrefix = findingsScope === 'all' && f.repository_name ? `[${f.repository_name}] ` : '';
+      return `${repoPrefix}${f.severity}\t${f.scanner}\t${f.rule_id || 'RULE'}\t${f.title}\t${location}`;
+    });
+
+    const formattedText = lines.join('\n');
+    copyToClipboard(formattedText, () => {
+      setCopiedIssuesList(true);
+      setTimeout(() => setCopiedIssuesList(false), 2000);
+    });
+  };
+
   // Load solutions whenever scanReport changes
   useEffect(() => {
     if (scanReport?.scan_id) {
@@ -601,9 +815,14 @@ export const RepositoriesPage: React.FC = () => {
     );
   };
 
-  // Filtered findings
-  const findings: Finding[] = scanReport?.findings || [];
-  const filteredFindings = findings.filter((f) => {
+  // Active findings based on scope (selected repository vs all connected repositories)
+  const activeFindingsList: Finding[] = findingsScope === 'all'
+    ? allRepoFindings
+    : (scanReport?.findings || []);
+
+  const findings: Finding[] = activeFindingsList;
+
+  const filteredFindings = activeFindingsList.filter((f) => {
     const matchesSev = selectedSeverity === 'all' || f.severity === selectedSeverity;
     const matchesScanner =
       selectedScanner === 'all' ||
@@ -618,9 +837,26 @@ export const RepositoriesPage: React.FC = () => {
       (f.file_path && f.file_path.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (f.rule_id && f.rule_id.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (f.explanation && f.explanation.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (f.repository_name && f.repository_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       f.scanner.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSev && matchesScanner && matchesVerification && matchesSearch;
   });
+
+  const metricsSource = findingsScope === 'all' || !scanReport
+    ? {
+        total: activeFindingsList.length,
+        critical: activeFindingsList.filter((f) => f.severity === 'critical').length,
+        high: activeFindingsList.filter((f) => f.severity === 'high').length,
+        medium: activeFindingsList.filter((f) => f.severity === 'medium').length,
+        low: activeFindingsList.filter((f) => f.severity === 'low' || f.severity === 'info').length,
+      }
+    : {
+        total: scanReport.summary.total_findings,
+        critical: scanReport.summary.critical,
+        high: scanReport.summary.high,
+        medium: scanReport.summary.medium,
+        low: scanReport.summary.low + scanReport.summary.info,
+      };
 
   const meta = activeRepo?.metadata_json;
 
@@ -1244,18 +1480,18 @@ export const RepositoriesPage: React.FC = () => {
               aria-selected={activeTab === 'findings'}
             >
               <AlertTriangle size={15} />
-              Security Findings
-              {scanReport?.findings && (
+              Issues & Findings
+              {activeFindingsList.length > 0 && (
                 <span
                   style={{
                     fontSize: '10px',
                     padding: '1px 6px',
                     borderRadius: '10px',
-                    background: scanReport.findings.length > 0 ? 'rgba(244, 63, 94, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                    color: scanReport.findings.length > 0 ? '#f87171' : '#34d399',
+                    background: activeFindingsList.length > 0 ? 'rgba(244, 63, 94, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                    color: activeFindingsList.length > 0 ? '#f87171' : '#34d399',
                   }}
                 >
-                  {scanReport.findings.length}
+                  {activeFindingsList.length}
                 </span>
               )}
             </button>
@@ -1369,10 +1605,10 @@ export const RepositoriesPage: React.FC = () => {
           {/* TAB 1: FINDINGS */}
           {activeTab === 'findings' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {scanReport ? (
+              {(scanReport || (findingsScope === 'all' && allRepoFindings.length > 0)) ? (
                 <>
-                  {/* Coverage Notice Banner */}
-                  {((scanReport.files_skipped && scanReport.files_skipped > 0) ||
+                  {/* Coverage Notice Banner (if active repo has skipped files) */}
+                  {scanReport && ((scanReport.files_skipped && scanReport.files_skipped > 0) ||
                     (scanReport.coverage_summary?.files_skipped && scanReport.coverage_summary.files_skipped > 0)) && (
                     <div
                       style={{
@@ -1410,7 +1646,7 @@ export const RepositoriesPage: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                     <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
                       <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                        {scanReport.summary.total_findings}
+                        {metricsSource.total}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
                         Total Findings
@@ -1418,7 +1654,7 @@ export const RepositoriesPage: React.FC = () => {
                     </div>
                     <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid var(--accent-rose)' }}>
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#f87171' }}>
-                        {scanReport.summary.critical}
+                        {metricsSource.critical}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
                         Critical
@@ -1426,7 +1662,7 @@ export const RepositoriesPage: React.FC = () => {
                     </div>
                     <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid var(--accent-amber)' }}>
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#fbbf24' }}>
-                        {scanReport.summary.high}
+                        {metricsSource.high}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
                         High
@@ -1434,7 +1670,7 @@ export const RepositoriesPage: React.FC = () => {
                     </div>
                     <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid var(--electric-blue)' }}>
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#60a5fa' }}>
-                        {scanReport.summary.medium}
+                        {metricsSource.medium}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
                         Medium
@@ -1442,7 +1678,7 @@ export const RepositoriesPage: React.FC = () => {
                     </div>
                     <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid var(--accent-green)' }}>
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#34d399' }}>
-                        {scanReport.summary.low + scanReport.summary.info}
+                        {metricsSource.low}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
                         Low / Info
@@ -1452,12 +1688,128 @@ export const RepositoriesPage: React.FC = () => {
 
                   {/* Findings Filters & Table */}
                   <div className="glass-card" style={{ padding: '20px 24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
-                      <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                        Security Findings ({filteredFindings.length})
-                      </h3>
+                    {/* Header Row: Title, Scope Switcher, and Save/Export Action Toolbar */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px', paddingBottom: '14px', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                          <AlertTriangle size={18} color="var(--electric-blue-bright)" />
+                          Issues in Repositories ({filteredFindings.length})
+                        </h3>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        {/* Scope Switcher Pills */}
+                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                          <button
+                            onClick={() => setFindingsScope('current')}
+                            style={{
+                              background: findingsScope === 'current' ? '#ffffff' : 'transparent',
+                              color: findingsScope === 'current' ? '#1d4ed8' : '#64748b',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              fontSize: '11px',
+                              fontWeight: findingsScope === 'current' ? 700 : 500,
+                              cursor: 'pointer',
+                              boxShadow: findingsScope === 'current' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Show issues in selected repository only"
+                          >
+                            <GitBranch size={12} color={findingsScope === 'current' ? '#1d4ed8' : '#64748b'} />
+                            <span>{activeRepo?.name || 'Current Repo'}</span>
+                            <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', background: findingsScope === 'current' ? '#dbeafe' : '#e2e8f0' }}>
+                              {scanReport?.findings?.length || 0}
+                            </span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setFindingsScope('all');
+                              loadAllRepositoryFindings();
+                            }}
+                            style={{
+                              background: findingsScope === 'all' ? '#ffffff' : 'transparent',
+                              color: findingsScope === 'all' ? '#1d4ed8' : '#64748b',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              fontSize: '11px',
+                              fontWeight: findingsScope === 'all' ? 700 : 500,
+                              cursor: 'pointer',
+                              boxShadow: findingsScope === 'all' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title="Show and save all issues across all connected repositories"
+                          >
+                            {isLoadingAllFindings ? <RotateCw size={12} className="animate-spin" /> : <Layers size={12} color={findingsScope === 'all' ? '#1d4ed8' : '#64748b'} />}
+                            <span>All Repositories</span>
+                            <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', background: findingsScope === 'all' ? '#dbeafe' : '#e2e8f0' }}>
+                              {isLoadingAllFindings ? '...' : allRepoFindings.length}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Save & Export Action Toolbar */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={downloadIssuesCsv}
+                          disabled={filteredFindings.length === 0}
+                          className="btn btn-secondary"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', padding: '5px 10px' }}
+                          title="Save issues with exact file path and line numbers to CSV"
+                          aria-label="Save CSV report"
+                        >
+                          <FileSpreadsheet size={13} color="#15803d" />
+                          Save CSV
+                        </button>
+
+                        <button
+                          onClick={downloadIssuesMarkdown}
+                          disabled={filteredFindings.length === 0}
+                          className="btn btn-secondary"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', padding: '5px 10px' }}
+                          title="Save issues report with remediation steps to Markdown (.md)"
+                          aria-label="Save Markdown report"
+                        >
+                          <FileText size={13} color="#2563eb" />
+                          Save Markdown
+                        </button>
+
+                        <button
+                          onClick={downloadIssuesJson}
+                          disabled={filteredFindings.length === 0}
+                          className="btn btn-secondary"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', padding: '5px 10px' }}
+                          title="Save structured issues JSON dataset"
+                          aria-label="Save JSON report"
+                        >
+                          <Download size={13} color="#7c3aed" />
+                          Save JSON
+                        </button>
+
+                        <button
+                          onClick={copyAllIssuesText}
+                          disabled={filteredFindings.length === 0}
+                          className="btn btn-secondary"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', padding: '5px 10px' }}
+                          title="Copy issues formatted line-by-line with folder/file:line location"
+                          aria-label="Copy All Issues text"
+                        >
+                          {copiedIssuesList ? <Check size={13} color="var(--accent-green)" /> : <Copy size={13} />}
+                          {copiedIssuesList ? 'All Issues Copied!' : 'Copy Lines'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Filter controls row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: '100%' }}>
                         {/* Search */}
                         <div style={{ position: 'relative', width: '220px' }}>
                           <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} aria-hidden="true" />
@@ -1559,8 +1911,9 @@ export const RepositoriesPage: React.FC = () => {
                               <th style={{ padding: '10px 12px', width: '32px' }}></th>
                               <th style={{ padding: '10px 12px' }}>Severity</th>
                               <th style={{ padding: '10px 12px' }}>Scanner & Rule</th>
+                              {findingsScope === 'all' && <th style={{ padding: '10px 12px' }}>Repository</th>}
                               <th style={{ padding: '10px 12px' }}>Title</th>
-                              <th style={{ padding: '10px 12px' }}>File Path & Line</th>
+                              <th style={{ padding: '10px 12px' }}>Folder / File Location & Line</th>
                               <th style={{ padding: '10px 12px' }}>Verification</th>
                             </tr>
                           </thead>
@@ -1608,6 +1961,29 @@ export const RepositoriesPage: React.FC = () => {
                                       <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{finding.scanner}</div>
                                       <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{finding.rule_id || 'GENERAL'}</div>
                                     </td>
+                                    {findingsScope === 'all' && (
+                                      <td style={{ padding: '12px' }}>
+                                        <span
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontSize: '11px',
+                                            padding: '2px 8px',
+                                            borderRadius: '6px',
+                                            background: '#f1f5f9',
+                                            color: '#1e293b',
+                                            fontWeight: 600,
+                                            border: '1px solid #cbd5e1',
+                                            whiteSpace: 'nowrap',
+                                          }}
+                                          title={`Repository: ${finding.repository_name || 'Repository'}`}
+                                        >
+                                          <GitBranch size={11} color="#64748b" />
+                                          {finding.repository_name || 'Repository'}
+                                        </span>
+                                      </td>
+                                    )}
                                     <td style={{ padding: '12px', color: 'var(--text-primary)', fontWeight: 500 }}>
                                       {finding.title}
                                     </td>
@@ -1620,10 +1996,11 @@ export const RepositoriesPage: React.FC = () => {
                                         const fullLocationStr = finding.file_path ? `${finding.file_path}${lineRangeStr}` : 'Manifest-level';
 
                                         let gitDeepLink: string | null = null;
-                                        if (activeRepo?.url && finding.file_path && finding.line_number) {
-                                          const cleanUrl = activeRepo.url.trim().replace(/\.git$/, '');
+                                        const targetRepoUrl = finding.repository_url || activeRepo?.url;
+                                        if (targetRepoUrl && finding.file_path && finding.line_number) {
+                                          const cleanUrl = targetRepoUrl.trim().replace(/\.git$/, '');
                                           if (cleanUrl.startsWith('https://github.com') || cleanUrl.startsWith('https://gitlab.com')) {
-                                            const sha = finding.commit_sha || activeRepo.pinned_sha || 'main';
+                                            const sha = finding.commit_sha || activeRepo?.pinned_sha || 'main';
                                             const lineFragment = finding.line_end && finding.line_end !== finding.line_number
                                               ? `#L${finding.line_number}-L${finding.line_end}`
                                               : `#L${finding.line_number}`;
@@ -1633,6 +2010,7 @@ export const RepositoriesPage: React.FC = () => {
 
                                         return finding.file_path ? (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                            <Folder size={12} color="#3b82f6" style={{ flexShrink: 0 }} />
                                             {isManifest && (
                                               <span
                                                 style={{
@@ -1727,8 +2105,53 @@ export const RepositoriesPage: React.FC = () => {
                                   {/* Expanded Detail Row */}
                                   {isExpanded && (
                                     <tr>
-                                      <td colSpan={6} style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                                      <td colSpan={findingsScope === 'all' ? 7 : 6} style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                          {/* Exact Location & Repository Header Banner */}
+                                          <div
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'space-between',
+                                              flexWrap: 'wrap',
+                                              gap: '8px',
+                                              padding: '10px 14px',
+                                              borderRadius: '6px',
+                                              background: '#eff6ff',
+                                              border: '1px solid #bfdbfe',
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                              <Folder size={14} color="#2563eb" />
+                                              <span style={{ color: '#1e3a8a', fontWeight: 600 }}>File & Line Location:</span>
+                                              <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#1d4ed8', fontWeight: 700 }}>
+                                                {finding.file_path ? `${finding.file_path}${finding.line_number ? `:${finding.line_number}${finding.line_end && finding.line_end !== finding.line_number ? `-${finding.line_end}` : ''}` : ''}` : 'Manifest-level'}
+                                              </span>
+                                              {finding.repository_name && (
+                                                <span style={{ color: '#64748b', fontSize: '11px', marginLeft: '6px' }}>
+                                                  (Repository: <strong>{finding.repository_name}</strong>)
+                                                </span>
+                                              )}
+                                            </div>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const lineRange = finding.line_number
+                                                  ? (finding.line_end && finding.line_end !== finding.line_number ? `:${finding.line_number}-${finding.line_end}` : `:${finding.line_number}`)
+                                                  : '';
+                                                const loc = finding.file_path ? `${finding.file_path}${lineRange}` : '';
+                                                copyToClipboard(loc, () => {
+                                                  setCopiedLocationId(finding.id + 500000);
+                                                  setTimeout(() => setCopiedLocationId(null), 1500);
+                                                });
+                                              }}
+                                              className="btn btn-secondary"
+                                              style={{ fontSize: '11px', padding: '3px 8px' }}
+                                            >
+                                              {copiedLocationId === finding.id + 500000 ? <Check size={12} color="var(--accent-green)" /> : <Copy size={12} />}
+                                              {copiedLocationId === finding.id + 500000 ? 'Copied Location' : 'Copy File:Line'}
+                                            </button>
+                                          </div>
                                           {/* Flagged Code Snippet */}
                                           {finding.code_snippet && (
                                             <div>
@@ -2085,10 +2508,26 @@ export const RepositoriesPage: React.FC = () => {
                   <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '520px', margin: '8px auto 20px' }}>
                     Click <strong>Analyze Repository</strong> above to clone into an isolated ephemeral workspace, execute static analyzers (Semgrep, Bandit, OSV-Scanner, detect-secrets), and review evidence.
                   </p>
-                  <button onClick={handleStartAnalysis} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                    <Shield size={14} />
-                    Start Security Analysis Now
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button onClick={handleStartAnalysis} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <Shield size={14} />
+                      Start Security Analysis Now
+                    </button>
+                    {allRepoFindings.length > 0 && (
+                      <button
+                        onClick={() => {
+                          switchTab('findings');
+                          setFindingsScope('all');
+                          loadAllRepositoryFindings();
+                        }}
+                        className="btn btn-secondary"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Layers size={14} />
+                        View All Issues Across Repositories ({allRepoFindings.length})
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -2483,10 +2922,26 @@ export const RepositoriesPage: React.FC = () => {
                   <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '520px', margin: '8px auto 20px' }}>
                     Click <strong>Analyze Repository</strong> above to run security analysis and generate automated exact solutions.
                   </p>
-                  <button onClick={handleStartAnalysis} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                    <Shield size={14} />
-                    Start Security Analysis Now
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button onClick={handleStartAnalysis} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <Shield size={14} />
+                      Start Security Analysis Now
+                    </button>
+                    {allRepoFindings.length > 0 && (
+                      <button
+                        onClick={() => {
+                          switchTab('findings');
+                          setFindingsScope('all');
+                          loadAllRepositoryFindings();
+                        }}
+                        className="btn btn-secondary"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Layers size={14} />
+                        View All Issues Across Repositories ({allRepoFindings.length})
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
