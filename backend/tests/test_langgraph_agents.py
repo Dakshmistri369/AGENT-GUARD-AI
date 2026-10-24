@@ -310,7 +310,7 @@ class TestContextGuardrails:
             "name": "repo",
             "languages": ["Python"],
             "manifests": large_manifests,
-            "secret": "ghp_1234567890abcdefghijklmnopqrstuvwxyz",
+            "secret": "ghp_1234567890abcdefghijklmnopqrstuvwxyz",  # nosec # pragma: whitelist secret
         }
         sanitized = prepare_sanitized_context(meta, max_chars=500)
         assert len(sanitized) <= 500

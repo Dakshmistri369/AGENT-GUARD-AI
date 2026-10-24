@@ -25,7 +25,7 @@ from app.main import create_app
 
 settings = get_settings()
 
-TEST_JWT_SECRET = "test-secret-key-for-unit-testing-32-chars-long"
+TEST_JWT_SECRET = "test-secret-key-for-unit-testing-32-chars-long"  # nosec B105 # pragma: whitelist secret
 
 
 def create_test_token(
@@ -121,7 +121,7 @@ async def test_auth_me_expired_token_returns_401(auth_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_auth_me_wrong_secret_signature_returns_401(auth_client: AsyncClient):
     """GET /api/auth/me with token signed by wrong key returns 401."""
-    wrong_token = create_test_token(secret="totally-wrong-secret-key-32-chars!!")
+    wrong_token = create_test_token(secret="totally-wrong-secret-key-32-chars!!")  # nosec B106 # pragma: whitelist secret
     resp = await auth_client.get(
         "/api/auth/me",
         headers={"Authorization": f"Bearer {wrong_token}"},

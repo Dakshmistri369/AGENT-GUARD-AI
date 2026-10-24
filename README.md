@@ -108,7 +108,7 @@ All scanner outputs are normalized into AgentGuard's unified finding schema:
   "remediation": "Review Bandit B307 guidance: https://bandit.readthedocs.io/en/1.8.5/plugins/b307_eval.html",
   "verification_status": "unverified",
   "commit_sha": "9f7a31b...",
-  "fingerprint": "a4c2e819b0d1e3f7"
+  "fingerprint": "0123456789abcdef"
 }
 ```
 

@@ -130,17 +130,18 @@ class BanditScanner(BaseScanner):
                     test_id = issue.get("test_id", "B000")
                     test_name = issue.get("test_name", "")
 
-                    # Suppress standard assert statements (B101) inside unit test suites
-                    lower_rel = rel_file.lower()
+                    # Suppress standard assert statements (B101) and mock test fixtures (B105, B106) inside unit test suites
+                    norm_rel = rel_file.replace("\\", "/").lower()
                     is_test_file = (
-                        lower_rel.startswith("tests/")
-                        or "/tests/" in lower_rel
-                        or lower_rel.startswith("test/")
-                        or "/test/" in lower_rel
-                        or Path(lower_rel).name.startswith("test_")
-                        or Path(lower_rel).name.endswith("_test.py")
+                        norm_rel.startswith("tests/")
+                        or "/tests/" in f"/{norm_rel}"
+                        or norm_rel.startswith("test/")
+                        or "/test/" in f"/{norm_rel}"
+                        or Path(norm_rel).name.startswith("test_")
+                        or Path(norm_rel).name.endswith("_test.py")
+                        or Path(norm_rel).name == "conftest.py"
                     )
-                    if test_id == "B101" and is_test_file:
+                    if is_test_file and test_id in ("B101", "B105", "B106", "B107", "B108"):
                         continue
 
                     if "eval" in issue_text.lower() or test_name == "eval" or test_id == "B307":

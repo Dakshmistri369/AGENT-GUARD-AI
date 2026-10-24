@@ -8,7 +8,7 @@ services:
       - no-new-privileges:true
     environment:
       POSTGRES_USER: agentguard
-      POSTGRES_PASSWORD: agentguard_dev   # Change in staging/prod via secrets manager
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agentguard_dev}   # Change in staging/prod via secrets manager # pragma: whitelist secret
       POSTGRES_DB: agentguard
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -31,7 +31,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+asyncpg://agentguard:agentguard_dev@db:5432/agentguard
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://agentguard:agentguard_dev@db:5432/agentguard}  # pragma: whitelist secret
       AI_PROVIDER: mock
       FRONTEND_ORIGIN: http://localhost:5173
       ENVIRONMENT: development

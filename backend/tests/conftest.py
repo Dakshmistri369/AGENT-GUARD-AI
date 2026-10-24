@@ -70,7 +70,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     demo_user = User(
         id=DEMO_USER_ID,
         email=DEMO_USER_EMAIL,
-        password_hash="DEMO_TEST_NO_AUTH",
+        password_hash="DEMO_TEST_NO_AUTH",  # nosec B106 # pragma: whitelist secret
     )
 
     app = create_app()
@@ -115,7 +115,7 @@ async def other_user_client(db_session: AsyncSession) -> AsyncGenerator[AsyncCli
     other_user = User(
         id=2,
         email="other@agentguard.local",
-        password_hash="OTHER_USER_NO_AUTH",
+        password_hash="OTHER_USER_NO_AUTH",  # nosec B106 # pragma: whitelist secret
     )
 
     app = create_app()

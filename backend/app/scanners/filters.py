@@ -30,8 +30,11 @@ SKIP_DIRS = {
     ".tox",
     "coverage",
     ".pytest_cache",
+    ".ruff_cache",
     ".turbo",
     ".cache",
+    "scan_workspaces",
+    ".scan_workspaces",
     ".idea",
     ".vscode",
 }

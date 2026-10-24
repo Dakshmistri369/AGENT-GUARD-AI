@@ -51,7 +51,7 @@ def validate_and_normalize_github_url(url: str) -> tuple[str, str, str]:
             f"Invalid URL scheme '{parsed.scheme}'. Only secure HTTPS GitHub URLs (https://) are accepted."
         )
 
-    # 2. Reject embedded credentials (e.g. https://user:pass@github.com/...)
+    # 2. Reject embedded credentials (e.g. https://<user>:<token>@github.com/...)
     if parsed.username or parsed.password or "@" in (parsed.netloc or ""):
         raise URLValidationError("URLs containing embedded credentials or userinfo are strictly prohibited.")
 
