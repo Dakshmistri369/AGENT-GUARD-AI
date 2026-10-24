@@ -243,6 +243,7 @@ class BaseScanner(ABC):
                 process = await asyncio.create_subprocess_exec(
                     *cmd,
                     cwd=str(cwd) if cwd else None,
+                    stdin=asyncio.subprocess.DEVNULL,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                     env=env,
@@ -258,6 +259,7 @@ class BaseScanner(ABC):
                     return subprocess.run(  # nosec B603
                         cmd,
                         cwd=str(cwd) if cwd else None,
+                        stdin=subprocess.DEVNULL,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         env=env,
