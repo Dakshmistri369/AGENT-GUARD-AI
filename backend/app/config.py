@@ -48,7 +48,15 @@ class Settings(BaseSettings):
 
     # ── Pre-Scan Source File Filters ──────────────────────────────────────────
     max_scannable_file_bytes: int = 1 * 1024 * 1024  # 1 MB source limit
-    scanner_timeout_seconds: int = 300               # 5 min per scanner
+
+    # 🔒 Scanner Timeouts — Three independent layers:
+    # Layer 1: Semgrep internal per-rule timeout (0 = no per-rule limit, Semgrep official)
+    semgrep_rule_timeout_seconds: int = 0
+    # Layer 2: Per-scanner process timeout (each individual scanner subprocess)
+    scanner_timeout_seconds: int = 600              # 10 min per scanner subprocess
+    # Layer 3: Outer job safety timeout (entire scan job across ALL scanners)
+    scanner_job_max_runtime_seconds: int = 1800     # 30 min — configurable via env var
+    # Legacy alias kept for backwards compat; use scanner_timeout_seconds instead
 
     # ── AI Snippet Extraction ─────────────────────────────────────────────────
     ai_context_lines: int = 15
@@ -87,7 +95,7 @@ class Settings(BaseSettings):
     max_repo_files: int = 5000
     max_file_size_bytes: int = 5 * 1024 * 1024  # 5 MB per file
     max_tree_depth: int = 20
-    scan_timeout_seconds: int = 120
+    scan_timeout_seconds: int = 600
 
     # ── OSV Vulnerability Service ─────────────────────────────────────────────
     # Google OSV API (https://api.osv.dev/v1) is free and public (zero API key needed).

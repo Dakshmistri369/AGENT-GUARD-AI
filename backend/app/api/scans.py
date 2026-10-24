@@ -150,6 +150,7 @@ async def analyze_repository(
         scanners_run: list[dict[str, Any]] = []
         coverage_summary: dict[str, Any] = {}
         scanner_matrix: dict[str, Any] = {}
+        scan_timed_out: bool = False
 
         orchestrator = ScannerOrchestrator()
         git_svc = GitService(timeout_seconds=settings.scan_timeout_seconds)
@@ -167,8 +168,10 @@ async def analyze_repository(
                     workspace_path=workspace_dir,
                     metadata=repo.metadata_json or {},
                     commit_sha=scan.commit_sha,
-                    timeout_seconds=settings.scan_timeout_seconds,
+                    timeout_seconds=settings.scanner_timeout_seconds,
+                    job_max_runtime_seconds=settings.scanner_job_max_runtime_seconds,
                 )
+                scan_timed_out = coverage_summary.get("job_timed_out", False)
             except GitExecutionError as git_err:
                 logger.warning("Git clone failed, falling back to metadata-only analysis: %s", git_err)
                 scanner_matrix = orchestrator.get_scanner_matrix(repo.metadata_json or {})
@@ -258,7 +261,10 @@ async def analyze_repository(
                 rule_id=rf.get("rule_id"),
                 file_path=rf.get("file_path"),
                 line_number=rf.get("line_number"),
+                line_end=rf.get("line_end"),
                 column_number=rf.get("column_number"),
+                code_snippet=rf.get("code_snippet"),
+                location_type=rf.get("location_type"),
                 commit_sha=rf.get("commit_sha") or scan.commit_sha,
                 sanitized_evidence=rf.get("sanitized_evidence"),
                 explanation=rf.get("explanation"),
@@ -278,8 +284,17 @@ async def analyze_repository(
             "scanner_breakdown": scanner_counts,
         }
 
-        scan.status = "completed"
-        scan.stage = "completed"
+        if scan_timed_out:
+            scan.status = "timed_out_partial"
+            scan.stage = "timed_out_partial"
+            logger.warning(
+                "Scan %s timed out at job level after %ss. "
+                "Partial findings (%d) preserved. Status: timed_out_partial",
+                scan.id, settings.scanner_job_max_runtime_seconds, len(raw_findings),
+            )
+        else:
+            scan.status = "completed"
+            scan.stage = "completed"
         scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
         scan.summary = summary_dict
         scan.files_discovered = coverage_summary.get("files_discovered", 0)
@@ -556,6 +571,10 @@ async def get_scan_results(
             "source": "ai_pipeline" if "ai" in (f.scanner or "").lower() else (f.scanner or "deterministic"),
             "file_path": f.file_path,
             "line_number": f.line_number,
+            "line_end": f.line_end,
+            "column_number": f.column_number,
+            "code_snippet": f.code_snippet,
+            "location_type": f.location_type or ("manifest" if f.line_number is None else "file_level"),
             "message": getattr(f, "explanation", None) or getattr(f, "sanitized_evidence", None) or f.title,
         }
         for f in findings

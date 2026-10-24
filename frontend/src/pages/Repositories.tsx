@@ -88,6 +88,7 @@ export const RepositoriesPage: React.FC = () => {
   const [copiedSha, setCopiedSha] = useState(false);
   const [copiedReportJson, setCopiedReportJson] = useState(false);
   const [copiedEvidenceId, setCopiedEvidenceId] = useState<number | null>(null);
+  const [copiedLocationId, setCopiedLocationId] = useState<number | null>(null);
 
   // Solution state
   const [solutionPlan, setSolutionPlan] = useState<RepositorySolutionPlan | null>(null);
@@ -1610,8 +1611,102 @@ export const RepositoriesPage: React.FC = () => {
                                     <td style={{ padding: '12px', color: 'var(--text-primary)', fontWeight: 500 }}>
                                       {finding.title}
                                     </td>
-                                    <td style={{ padding: '12px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: 'var(--electric-blue-bright)' }}>
-                                      {finding.file_path ? `${finding.file_path}${finding.line_number ? `:${finding.line_number}` : ''}` : 'N/A'}
+                                    <td style={{ padding: '12px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
+                                      {(() => {
+                                        const isManifest = finding.location_type === 'manifest' || (!finding.line_number && Boolean(finding.file_path));
+                                        const lineRangeStr = finding.line_number
+                                          ? (finding.line_end && finding.line_end !== finding.line_number ? `:${finding.line_number}-${finding.line_end}` : `:${finding.line_number}`)
+                                          : '';
+                                        const fullLocationStr = finding.file_path ? `${finding.file_path}${lineRangeStr}` : 'Manifest-level';
+
+                                        let gitDeepLink: string | null = null;
+                                        if (activeRepo?.url && finding.file_path && finding.line_number) {
+                                          const cleanUrl = activeRepo.url.trim().replace(/\.git$/, '');
+                                          if (cleanUrl.startsWith('https://github.com') || cleanUrl.startsWith('https://gitlab.com')) {
+                                            const sha = finding.commit_sha || activeRepo.pinned_sha || 'main';
+                                            const lineFragment = finding.line_end && finding.line_end !== finding.line_number
+                                              ? `#L${finding.line_number}-L${finding.line_end}`
+                                              : `#L${finding.line_number}`;
+                                            gitDeepLink = `${cleanUrl}/blob/${sha}/${finding.file_path}${lineFragment}`;
+                                          }
+                                        }
+
+                                        return finding.file_path ? (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                            {isManifest && (
+                                              <span
+                                                style={{
+                                                  fontSize: '10px',
+                                                  background: '#fef3c7',
+                                                  color: '#b45309',
+                                                  border: '1px solid #fde68a',
+                                                  padding: '1px 5px',
+                                                  borderRadius: '4px',
+                                                  fontWeight: 700,
+                                                  textTransform: 'uppercase',
+                                                }}
+                                                title="Manifest-level dependency finding (package manifest)"
+                                              >
+                                                Manifest
+                                              </span>
+                                            )}
+                                            <span
+                                              style={{
+                                                color: isManifest ? '#b45309' : 'var(--electric-blue-bright)',
+                                                fontWeight: 600,
+                                              }}
+                                              title={`Exact repository location: ${fullLocationStr}`}
+                                            >
+                                              {fullLocationStr}
+                                            </span>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                copyToClipboard(fullLocationStr, () => {
+                                                  setCopiedLocationId(finding.id);
+                                                  setTimeout(() => setCopiedLocationId(null), 1500);
+                                                });
+                                              }}
+                                              className="btn-icon"
+                                              style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                padding: '2px',
+                                                color: copiedLocationId === finding.id ? 'var(--accent-green)' : '#94a3b8',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                              }}
+                                              title="Copy path:line"
+                                              aria-label="Copy exact location path"
+                                            >
+                                              {copiedLocationId === finding.id ? <Check size={12} /> : <Copy size={12} />}
+                                            </button>
+                                            {gitDeepLink && (
+                                              <a
+                                                href={gitDeepLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                title="Open in GitHub at this exact line"
+                                                style={{
+                                                  color: '#64748b',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  textDecoration: 'none',
+                                                }}
+                                                aria-label="Open source line in repository"
+                                              >
+                                                <ExternalLink size={12} />
+                                              </a>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                            Manifest-level finding
+                                          </span>
+                                        );
+                                      })()}
                                     </td>
                                     <td style={{ padding: '12px' }}>
                                       <span
@@ -1634,6 +1729,57 @@ export const RepositoriesPage: React.FC = () => {
                                     <tr>
                                       <td colSpan={6} style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                          {/* Flagged Code Snippet */}
+                                          {finding.code_snippet && (
+                                            <div>
+                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                                <span style={{ fontSize: '11px', color: '#0284c7', textTransform: 'uppercase', fontWeight: 600 }}>
+                                                  Flagged Code Snippet ({finding.file_path}{finding.line_number ? `:${finding.line_number}` : ''}):
+                                                </span>
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    copyToClipboard(finding.code_snippet || '', () => {
+                                                      setCopiedEvidenceId(finding.id + 999999);
+                                                      setTimeout(() => setCopiedEvidenceId(null), 1500);
+                                                    });
+                                                  }}
+                                                  className="btn btn-secondary"
+                                                  style={{ fontSize: '11px', padding: '2px 8px' }}
+                                                  aria-label="Copy flagged code snippet"
+                                                >
+                                                  {copiedEvidenceId === (finding.id + 999999) ? (
+                                                    <>
+                                                      <Check size={12} color="var(--accent-green)" />
+                                                      Copied!
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <Copy size={12} />
+                                                      Copy Code
+                                                    </>
+                                                  )}
+                                                </button>
+                                              </div>
+                                              <pre
+                                                style={{
+                                                  padding: '12px 14px',
+                                                  borderRadius: '6px',
+                                                  background: '#0f172a',
+                                                  border: '1px solid #334155',
+                                                  fontFamily: 'JetBrains Mono, monospace',
+                                                  fontSize: '12px',
+                                                  color: '#38bdf8',
+                                                  overflowX: 'auto',
+                                                  whiteSpace: 'pre-wrap',
+                                                  lineHeight: 1.5,
+                                                }}
+                                              >
+                                                {finding.code_snippet}
+                                              </pre>
+                                            </div>
+                                          )}
+
                                           {/* Redacted Evidence */}
                                           {finding.sanitized_evidence && (
                                             <div>

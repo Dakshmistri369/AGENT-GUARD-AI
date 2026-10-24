@@ -58,7 +58,7 @@ class BanditScanner(BaseScanner):
         workspace_path: Path,
         metadata: dict[str, Any],
         commit_sha: str | None = None,
-        timeout_seconds: int = 120,
+        timeout_seconds: int = 600,
     ) -> ScannerResult:
         start_time = time.time()
         available, version = self.is_available()
@@ -157,7 +157,9 @@ class BanditScanner(BaseScanner):
                         "confidence": conf if conf in ["high", "medium", "low"] else "medium",
                         "file_path": rel_file,
                         "line_number": issue.get("line_number"),
+                        "line_end": None,
                         "column_number": issue.get("col_offset"),
+                        "code_snippet": redact_sensitive_text(code.strip()[:1500]),
                         "sanitized_evidence": redact_sensitive_text(code.strip()[:300]),
                         "explanation": issue.get("issue_text", ""),
                         "remediation": f"Review Bandit {issue.get('test_id')} guidance: {issue.get('more_info', '')}",

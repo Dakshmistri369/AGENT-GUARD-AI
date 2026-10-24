@@ -96,7 +96,10 @@ export interface Finding {
   confidence: 'high' | 'medium' | 'low';
   file_path: string | null;
   line_number: number | null;
+  line_end?: number | null;
   column_number: number | null;
+  code_snippet?: string | null;
+  location_type?: string | null;
   sanitized_evidence: string | null;
   explanation: string | null;
   remediation: string | null;

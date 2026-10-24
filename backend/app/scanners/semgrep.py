@@ -57,7 +57,7 @@ class SemgrepScanner(BaseScanner):
         workspace_path: Path,
         metadata: dict[str, Any],
         commit_sha: str | None = None,
-        timeout_seconds: int = 120,
+        timeout_seconds: int = 600,
     ) -> ScannerResult:
         start_time = time.time()
         available, version = self.is_available()
@@ -103,8 +103,7 @@ class SemgrepScanner(BaseScanner):
             "--exclude", "*.min.js",
             "--exclude", "*.min.css",
             "--max-target-bytes", "1000000",
-            "--timeout", "30",
-            "--timeout-threshold", "3",
+            "--timeout", "0",           # 0 = no per-rule timeout (Semgrep official flag)
             "--max-memory", "2048",
             "--json",
             "--quiet",
@@ -183,7 +182,9 @@ class SemgrepScanner(BaseScanner):
                     )
 
                     start_info = res.get("start", {})
+                    end_info = res.get("end", {})
                     line_no = start_info.get("line")
+                    line_end_no = end_info.get("line")
                     col_no = start_info.get("col")
 
                     findings.append({
@@ -195,7 +196,9 @@ class SemgrepScanner(BaseScanner):
                         "confidence": "high",
                         "file_path": rel_file,
                         "line_number": line_no,
+                        "line_end": line_end_no,
                         "column_number": col_no,
+                        "code_snippet": redact_sensitive_text(lines_str.strip()[:1500]),
                         "sanitized_evidence": redact_sensitive_text(lines_str.strip()[:300]),
                         "explanation": extra.get("message", ""),
                         "remediation": str(remediation),

@@ -21,7 +21,7 @@ class Scan(Base):
     )
     status: Mapped[str] = mapped_column(
         String(32), nullable=False, default="pending"
-    )  # pending | running | completed | failed | cancelled
+    )  # pending | queued | running | completed | failed | cancelled | timed_out_partial
     stage: Mapped[str | None] = mapped_column(
         String(64), nullable=True
     )  # validating | fetching_metadata | inspecting_file_tree | running_scanners | reviewing_evidence | generating_report | completed

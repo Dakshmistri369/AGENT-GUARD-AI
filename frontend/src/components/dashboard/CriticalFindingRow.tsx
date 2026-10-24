@@ -132,9 +132,15 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
           {issue.file_path && (
             <>
               <span>·</span>
-              <span style={{ color: '#64748b' }}>
-                {issue.file_path.split('/').pop()}
-                {issue.line_number ? `:${issue.line_number}` : ''}
+              <span
+                style={{
+                  color: '#64748b',
+                  fontFamily: 'JetBrains Mono, monospace',
+                  fontSize: '11px',
+                }}
+                title={`Exact repository location: ${issue.file_path}${issue.line_number ? `:${issue.line_number}` : ''}`}
+              >
+                {issue.file_path}{issue.line_number ? `:${issue.line_number}` : ''}
               </span>
             </>
           )}

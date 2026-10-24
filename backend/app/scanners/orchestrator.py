@@ -102,12 +102,14 @@ class ScannerOrchestrator:
         workspace_path: Path,
         metadata: dict[str, Any],
         commit_sha: str | None = None,
-        timeout_seconds: int = 120,
+        timeout_seconds: int = 600,
+        job_max_runtime_seconds: int = 1800,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
         """
         Execute applicable and available scanners on workspace_path.
         Returns:
             (findings, scanners_run, coverage_summary, scanner_matrix)
+        coverage_summary['job_timed_out'] is True if the outer job limit was hit.
         """
         effective_metadata = dict(metadata or {})
         # Always inspect the local cloned workspace to guarantee extensions/manifests/languages are complete
@@ -176,9 +178,26 @@ class ScannerOrchestrator:
             tasks.append(_execute_scanner(sc, available, mat))
 
         # Run applicable scanners concurrently
+        timed_out_job = False
         if tasks:
             import asyncio
-            results = await asyncio.gather(*tasks)
+            try:
+                results = await asyncio.wait_for(
+                    asyncio.gather(*tasks),
+                    timeout=float(job_max_runtime_seconds),
+                )
+            except asyncio.TimeoutError:
+                timed_out_job = True
+                logger.error(
+                    "OUTER JOB TIMEOUT: Scan exceeded %ss job limit. "
+                    "Partial findings preserved. Incomplete scanners listed.",
+                    job_max_runtime_seconds,
+                )
+                results = []
+                coverage_notes.append(
+                    f"⚠️ Outer job safety timeout reached ({job_max_runtime_seconds}s). "
+                    "Some scanners did not complete. Results are PARTIAL, not a full audit."
+                )
             for sc, is_avail, mat, res, exc in results:
                 if exc is not None:
                     logger.error("Unexpected error in scanner %s: %s", sc.name, exc)
@@ -272,9 +291,10 @@ class ScannerOrchestrator:
                 unique_findings[fp] = f
 
         # Coverage evaluation
-        is_complete = len(missing_scanners) == 0 and len(failed_scanners) == 0
+        is_complete = len(missing_scanners) == 0 and len(failed_scanners) == 0 and not timed_out_job
         coverage_summary = {
             "is_complete": is_complete,
+            "job_timed_out": timed_out_job,
             "applicable_scanners": applicable_scanners,
             "executed_scanners": executed_scanners,
             "missing_scanners": missing_scanners,

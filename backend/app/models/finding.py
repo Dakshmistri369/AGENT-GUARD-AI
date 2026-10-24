@@ -25,6 +25,9 @@ class Finding(Base):
     rule_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     file_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     line_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    line_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    code_snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
+    location_type: Mapped[str | None] = mapped_column(String(32), nullable=True)  # 'file_level' | 'manifest' | None
     column_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     commit_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
     sanitized_evidence: Mapped[str | None] = mapped_column(Text, nullable=True)

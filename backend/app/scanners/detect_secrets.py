@@ -47,7 +47,7 @@ class DetectSecretsScanner(BaseScanner):
         workspace_path: Path,
         metadata: dict[str, Any],
         commit_sha: str | None = None,
-        timeout_seconds: int = 120,
+        timeout_seconds: int = 600,
     ) -> ScannerResult:
         start_time = time.time()
         available, version = self.is_available()
@@ -147,7 +147,9 @@ class DetectSecretsScanner(BaseScanner):
                             "confidence": "high" if "verified" in sec else "medium",
                             "file_path": rel_file,
                             "line_number": line_no,
+                            "line_end": None,
                             "column_number": 1,
+                            "code_snippet": None,
                             "sanitized_evidence": redact_sensitive_text(snippet[:250]),
                             "explanation": (
                                 f"detect-secrets detected a potential credential of type '{sec_type}' at line {line_no}. "
