@@ -189,15 +189,16 @@ const BACKGROUND_WATERMARKS: BackgroundWatermark[] = [
 export const LogoIntro: React.FC<LogoIntroProps> = ({
   onComplete,
   forcePlay = false,
-  durationSeconds = 4.8,
+  durationSeconds = 2.0,
 }) => {
   const shouldReduceMotion = useReducedMotion();
 
   const [isVisible, setIsVisible] = useState<boolean>(() => {
     if (forcePlay) return true;
     if (typeof window === 'undefined') return false;
-    const seen = sessionStorage.getItem('agentguard_intro_completed');
-    return seen !== 'true';
+    const seen = localStorage.getItem('agentguard_intro_seen') === 'true' ||
+                 sessionStorage.getItem('agentguard_intro_completed') === 'true';
+    return !seen;
   });
 
   // Phases:
@@ -212,6 +213,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
 
   const dismissIntro = useCallback(() => {
     if (typeof window !== 'undefined') {
+      localStorage.setItem('agentguard_intro_seen', 'true');
       sessionStorage.setItem('agentguard_intro_completed', 'true');
     }
     setIsVisible(false);

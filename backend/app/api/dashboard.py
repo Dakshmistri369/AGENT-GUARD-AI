@@ -182,13 +182,12 @@ async def get_dashboard_summary(
     potential_issues_count = sum(1 for f in findings if f.verification_status in ["unverified", "confirmed"])
     fp_percentage = round((false_positives_count / total_issues * 100), 1) if total_issues > 0 else 0.0
 
-    # 4. Compute Patches Generated
-    # Count findings that generate valid remediation
-    patches_count = 0
-    for f in findings:
-        sol = SolutionService.generate_solution_for_finding(f)
-        if sol.diff or sol.cli_command:
-            patches_count += 1
+    # 4. Compute Patches Generated (fast O(1) evaluation avoiding heavy sequential diff generation)
+    patches_count = sum(
+        1 for f in findings
+        if f.verification_status in ["unverified", "confirmed"]
+        and bool(f.remediation or f.code_snippet or (f.scanner and f.scanner.lower() in ("bandit", "detect_secrets", "detect-secrets", "osv_scanner", "semgrep")))
+    )
     patch_pct = round((patches_count / potential_issues_count * 100), 1) if potential_issues_count > 0 else 0.0
 
     # 5. Severity distribution

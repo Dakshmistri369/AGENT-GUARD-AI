@@ -17,7 +17,7 @@ The repository includes a ready-to-use [`render.yaml`](./render.yaml).
 4. Render will read `render.yaml` and configure:
    - **Root Directory**: `backend`
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2`
    - **Health Check**: `/health`
 5. Click **Apply**.
 6. Once deployed, copy your Render service URL (e.g., `https://agentguard-backend-xxxx.onrender.com`).
@@ -35,7 +35,7 @@ The repository includes a ready-to-use [`render.yaml`](./render.yaml).
    - **Root Directory**: `backend`
    - **Runtime**: `Python 3`
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2`
    - **Instance Type**: `Free`
 5. Under **Advanced** → **Environment Variables**, add:
    | Key | Value | Notes |

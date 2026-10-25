@@ -7,6 +7,7 @@ Never executes untrusted repository code or build scripts.
 from __future__ import annotations
 
 import asyncio
+import functools
 import os
 import shutil
 import sys
@@ -60,6 +61,7 @@ def _get_windows_registry_paths() -> list[str]:
     return paths
 
 
+@functools.lru_cache(maxsize=32)
 def find_scanner_executable(tool_name: str) -> str | None:
     """
     Search for executable binary on project bin directories, system PATH,

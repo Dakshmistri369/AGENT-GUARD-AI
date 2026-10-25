@@ -226,7 +226,7 @@ export const RepositoriesPage: React.FC = () => {
             } catch (e) {
               clearInterval(pollTimer);
             }
-          }, 1200);
+          }, 2500);
         } else if (latest.status === 'completed' || latest.status === 'failed') {
           const rep = await api.scans.report(latest.id);
           setScanReport(rep);
@@ -391,7 +391,7 @@ export const RepositoriesPage: React.FC = () => {
       } catch (err) {
         // ignore polling network errors
       }
-    }, 1000);
+    }, 2500);
 
     try {
       const scan = await api.scans.analyze(activeRepo.id, {

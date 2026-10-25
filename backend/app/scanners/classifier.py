@@ -15,6 +15,7 @@ SAFETY INVARIANTS:
 """
 from __future__ import annotations
 
+import functools
 import logging
 import os
 import re
@@ -149,6 +150,18 @@ def extract_candidate_secret(finding: dict[str, Any]) -> str | None:
     return None
 
 
+@functools.lru_cache(maxsize=256)
+def _read_cached_file_lines(path_str: str) -> tuple[str, ...]:
+    """Cache file lines in memory during classification to avoid repeated disk reads."""
+    try:
+        p = Path(path_str)
+        if not p.exists() or not p.is_file():
+            return ()
+        return tuple(p.read_text(encoding="utf-8", errors="replace").splitlines())
+    except Exception:
+        return ()
+
+
 def get_surrounding_context(workspace_path: Path | None, file_path: str | None, line_number: int | None) -> str:
     """Read target file at file_path within workspace and return lines ±3 around line_number."""
     if not workspace_path or not file_path:
@@ -156,10 +169,7 @@ def get_surrounding_context(workspace_path: Path | None, file_path: str | None, 
 
     try:
         target = workspace_path / file_path
-        if not target.exists() or not target.is_file():
-            return ""
-
-        lines = target.read_text(encoding="utf-8", errors="replace").splitlines()
+        lines = _read_cached_file_lines(str(target))
         if not lines:
             return ""
 
@@ -168,6 +178,8 @@ def get_surrounding_context(workspace_path: Path | None, file_path: str | None, 
         end_idx = min(len(lines), curr + 3)  # 3 lines after
         return " ".join(lines[start_idx:end_idx]).lower()
     except Exception as exc:
+        logger.debug("Failed extracting surrounding context for %s:%s: %s", file_path, line_number, exc)
+        return ""
         logger.debug("Failed extracting surrounding context for %s:%s: %s", file_path, line_number, exc)
         return ""
 

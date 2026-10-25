@@ -7,6 +7,7 @@ performance by 90%+ and eliminate scanner timeouts.
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -84,44 +85,50 @@ def build_scan_file_list(
     scannable: list[Path] = []
     skipped: list[SkippedFile] = []
 
-    for path in workspace.rglob("*"):
-        if not path.is_file():
-            continue
+    for root, dirs, files in os.walk(workspace):
+        # 1. Prune standard junk directories IN-PLACE so os.walk never recurses into them
+        dirs[:] = [
+            d for d in dirs
+            if d not in SKIP_DIRS
+            and not (d.startswith(".") and d not in (".github", ".circleci"))
+        ]
 
-        # 1. Skip standard junk directories silently
-        if any(part in SKIP_DIRS for part in path.parts):
-            continue
+        for fname in files:
+            # 2. Skip binary / media / minified extensions
+            lower_name = fname.lower()
+            if any(lower_name.endswith(ext) for ext in SKIP_EXTENSIONS):
+                continue
 
-        rel_path = str(path.relative_to(workspace)).replace("\\", "/")
+            path = Path(root) / fname
 
-        # 2. Skip binary / media / minified extensions
-        lower_name = path.name.lower()
-        if any(lower_name.endswith(ext) for ext in SKIP_EXTENSIONS):
-            continue
+            try:
+                rel_path = str(path.relative_to(workspace)).replace("\\", "/")
+            except Exception:
+                rel_path = fname
 
-        try:
-            size = path.stat().st_size
-        except OSError:
-            continue
+            try:
+                size = path.stat().st_size
+            except OSError:
+                continue
 
-        # 3. Oversized source files (almost always generated code or bundled data)
-        if size > max_bytes:
-            skipped.append(SkippedFile(
-                path=rel_path,
-                size=size,
-                reason="exceeds_1mb_source_limit",
-            ))
-            continue
+            # 3. Oversized source files (almost always generated code or bundled data)
+            if size > max_bytes:
+                skipped.append(SkippedFile(
+                    path=rel_path,
+                    size=size,
+                    reason="exceeds_1mb_source_limit",
+                ))
+                continue
 
-        # 4. Check for binary null-bytes
-        if is_binary_file(path):
-            skipped.append(SkippedFile(
-                path=rel_path,
-                size=size,
-                reason="binary_file",
-            ))
-            continue
+            # 4. Check for binary null-bytes
+            if is_binary_file(path):
+                skipped.append(SkippedFile(
+                    path=rel_path,
+                    size=size,
+                    reason="binary_file",
+                ))
+                continue
 
-        scannable.append(path)
+            scannable.append(path)
 
     return scannable, skipped

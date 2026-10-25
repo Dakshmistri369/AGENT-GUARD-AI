@@ -15,15 +15,30 @@ import type {
   ScanComparisonResult,
 } from '../types';
 
+const isVercelDeploy = typeof window !== 'undefined' && window.location.hostname.endsWith('vercel.app');
 const RAW_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  'https://agent-guard-ai.onrender.com';
-let sanitizedBase = RAW_BASE.trim().replace(/\/+$/, '');
+  import.meta.env.VITE_API_BASE_URL !== undefined
+    ? import.meta.env.VITE_API_BASE_URL
+    : (isVercelDeploy ? '' : 'https://agent-guard-ai.onrender.com');
+
+let sanitizedBase = (RAW_BASE || '').trim().replace(/\/+$/, '');
 if (typeof window !== 'undefined' && window.location.protocol === 'https:' && sanitizedBase.startsWith('http://')) {
   sanitizedBase = sanitizedBase.replace(/^http:\/\//, 'https://');
 }
 export const API_BASE_URL = sanitizedBase;
 const BASE = API_BASE_URL;
+
+// Eager non-blocking warm-up ping for Render free-tier sleeping instances
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    try {
+      const pingUrl = (API_BASE_URL || '') + '/health';
+      fetch(pingUrl, { method: 'GET', keepalive: true }).catch(() => {});
+    } catch {
+      // Ignore background warm-up errors
+    }
+  }, 150);
+}
 
 let authTokenGetter: (() => string | null | Promise<string | null>) | null = null;
 export const setAuthTokenGetter = (getter: () => string | null | Promise<string | null>) => {

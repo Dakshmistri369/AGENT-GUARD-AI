@@ -20,6 +20,7 @@ if sys.platform == "win32":
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.api.router import api_router
 from app.config import get_settings
@@ -94,6 +95,9 @@ def create_app() -> FastAPI:
     for local_origin in ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]:
         if local_origin not in raw_origins:
             raw_origins.append(local_origin)
+
+    # Compress large JSON responses (findings, reports, AST trees) to reduce network payload by 80%+
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     app.add_middleware(
         CORSMiddleware,

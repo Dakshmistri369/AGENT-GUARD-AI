@@ -20,6 +20,8 @@ else:
     pool_kwargs["pool_size"] = 10
     pool_kwargs["max_overflow"] = 20
     pool_kwargs["pool_pre_ping"] = True
+    pool_kwargs["pool_recycle"] = 300  # Recycle idle connections before cloud timeouts
+    pool_kwargs["pool_timeout"] = 30
 
 engine = create_async_engine(
     settings.database_url,
