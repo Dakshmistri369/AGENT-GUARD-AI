@@ -34,13 +34,16 @@ settings = get_settings()
 
 
 def _sync_database_schema(connection) -> None:
-    """Migrate schema dynamically if users table columns are missing."""
+    """Migrate schema dynamically across PostgreSQL and SQLite if columns are missing."""
     from sqlalchemy import inspect, text
 
     inspector = inspect(connection)
-    if "users" in inspector.get_table_names():
+    existing_tables = set(inspector.get_table_names())
+    dialect = connection.dialect.name
+
+    # 1. users table migrations
+    if "users" in existing_tables:
         columns = {col["name"] for col in inspector.get_columns("users")}
-        dialect = connection.dialect.name
 
         if "supabase_user_id" not in columns:
             if dialect == "postgresql":
@@ -58,6 +61,48 @@ def _sync_database_schema(connection) -> None:
 
         if dialect == "postgresql" and "password_hash" in columns:
             connection.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;"))
+
+    # 2. scans table migrations (Large file / skipped tracking metrics)
+    if "scans" in existing_tables:
+        scan_cols = {col["name"] for col in inspector.get_columns("scans")}
+        if dialect == "postgresql":
+            connection.execute(text("ALTER TABLE scans ADD COLUMN IF NOT EXISTS files_discovered INTEGER DEFAULT 0 NOT NULL;"))
+            connection.execute(text("ALTER TABLE scans ADD COLUMN IF NOT EXISTS files_scanned INTEGER DEFAULT 0 NOT NULL;"))
+            connection.execute(text("ALTER TABLE scans ADD COLUMN IF NOT EXISTS files_skipped INTEGER DEFAULT 0 NOT NULL;"))
+            connection.execute(text("ALTER TABLE scans ADD COLUMN IF NOT EXISTS skip_manifest JSONB;"))
+        else:
+            if "files_discovered" not in scan_cols:
+                connection.execute(text("ALTER TABLE scans ADD COLUMN files_discovered INTEGER DEFAULT 0 NOT NULL;"))
+            if "files_scanned" not in scan_cols:
+                connection.execute(text("ALTER TABLE scans ADD COLUMN files_scanned INTEGER DEFAULT 0 NOT NULL;"))
+            if "files_skipped" not in scan_cols:
+                connection.execute(text("ALTER TABLE scans ADD COLUMN files_skipped INTEGER DEFAULT 0 NOT NULL;"))
+            if "skip_manifest" not in scan_cols:
+                connection.execute(text("ALTER TABLE scans ADD COLUMN skip_manifest JSON;"))
+
+    # 3. findings table migrations (Classification & solution evidence tracking)
+    if "findings" in existing_tables:
+        finding_cols = {col["name"] for col in inspector.get_columns("findings")}
+        if dialect == "postgresql":
+            connection.execute(text("ALTER TABLE findings ADD COLUMN IF NOT EXISTS line_end INTEGER;"))
+            connection.execute(text("ALTER TABLE findings ADD COLUMN IF NOT EXISTS code_snippet TEXT;"))
+            connection.execute(text("ALTER TABLE findings ADD COLUMN IF NOT EXISTS location_type VARCHAR(32);"))
+            connection.execute(text("ALTER TABLE findings ADD COLUMN IF NOT EXISTS classification VARCHAR(32) DEFAULT 'confirmed_secret';"))
+            connection.execute(text("ALTER TABLE findings ADD COLUMN IF NOT EXISTS classification_reason TEXT;"))
+            connection.execute(text("ALTER TABLE findings ADD COLUMN IF NOT EXISTS secret_redacted_preview VARCHAR(255);"))
+        else:
+            if "line_end" not in finding_cols:
+                connection.execute(text("ALTER TABLE findings ADD COLUMN line_end INTEGER;"))
+            if "code_snippet" not in finding_cols:
+                connection.execute(text("ALTER TABLE findings ADD COLUMN code_snippet TEXT;"))
+            if "location_type" not in finding_cols:
+                connection.execute(text("ALTER TABLE findings ADD COLUMN location_type VARCHAR(32);"))
+            if "classification" not in finding_cols:
+                connection.execute(text("ALTER TABLE findings ADD COLUMN classification VARCHAR(32) DEFAULT 'confirmed_secret';"))
+            if "classification_reason" not in finding_cols:
+                connection.execute(text("ALTER TABLE findings ADD COLUMN classification_reason TEXT;"))
+            if "secret_redacted_preview" not in finding_cols:
+                connection.execute(text("ALTER TABLE findings ADD COLUMN secret_redacted_preview VARCHAR(255);"))
 
 
 @asynccontextmanager

@@ -162,10 +162,22 @@ async def get_dashboard_summary(
     scan_ids = [s.id for s in all_scans]
 
     total_scans = len(all_scans)
-    scans_30d = sum(
-        1 for s in all_scans
-        if s.created_at and (s.created_at >= thirty_days_ago if s.created_at.tzinfo else s.created_at >= thirty_days_ago.replace(tzinfo=None))
-    )
+
+    def _is_recent(dt: Any) -> bool:
+        if not dt:
+            return False
+        if isinstance(dt, str):
+            try:
+                dt = datetime.datetime.fromisoformat(dt.replace("Z", "+00:00"))
+            except Exception:
+                return False
+        if not isinstance(dt, datetime.datetime):
+            return False
+        if dt.tzinfo:
+            return dt >= thirty_days_ago
+        return dt >= thirty_days_ago.replace(tzinfo=None)
+
+    scans_30d = sum(1 for s in all_scans if _is_recent(s.created_at))
 
     # 3. Fetch all findings across these scans
     findings: list[Finding] = []
@@ -280,16 +292,16 @@ async def get_dashboard_summary(
                 scan_id=f.scan_id,
                 repository_id=r_id,
                 repository_name=r_name,
-                title=f.title,
+                title=f.title or "Security Finding",
                 category=cat_name,
                 cwe_or_rule=f.rule_id or cat_cwe,
                 severity=sev,
                 score=score,
                 file_path=f.file_path,
                 line_number=f.line_number,
-                scanner=f.scanner,
-                verification_status=f.verification_status,
-                created_at=f.created_at,
+                scanner=f.scanner or "scanner",
+                verification_status=f.verification_status or "unverified",
+                created_at=f.created_at if isinstance(f.created_at, datetime.datetime) else now,
             )
         )
 
@@ -310,8 +322,8 @@ async def get_dashboard_summary(
         issues_by_repo.append(
             RepositoryIssueBreakdown(
                 repository_id=r.id,
-                repository_name=r.full_name,
-                default_branch=r.default_branch,
+                repository_name=r.full_name or r.name or f"Repository-{r.id}",
+                default_branch=r.default_branch or "main",
                 total=counts["total"],
                 critical=counts["critical"],
                 high=counts["high"],
@@ -393,10 +405,10 @@ async def get_dashboard_summary(
                 repository_name=r_name,
                 branch=s.commit_sha[:7] if s.commit_sha else "main",
                 commit_sha=s.commit_sha,
-                status=s.status,
+                status=s.status or "completed",
                 findings_count=f_count,
-                created_at=s.created_at,
-                completed_at=s.completed_at,
+                created_at=s.created_at if isinstance(s.created_at, datetime.datetime) else now,
+                completed_at=s.completed_at if isinstance(s.completed_at, datetime.datetime) else None,
             )
         )
 
