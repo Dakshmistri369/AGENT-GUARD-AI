@@ -16,6 +16,8 @@ services:
         value: production
       - key: AGENTGUARD_ALLOW_MOCK_IN_PRODUCTION
         value: "1"
+      - key: ENABLE_DEMO_AUTH
+        value: "true"
       - key: FRONTEND_ORIGIN
         value: "https://*.vercel.app,http://localhost:5173"
       - key: JWT_SECRET

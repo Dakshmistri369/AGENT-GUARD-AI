@@ -14,6 +14,7 @@ import {
   X,
   FileCode,
   ExternalLink,
+  ShieldAlert,
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { api, API_BASE_URL } from '../lib/api';
@@ -158,66 +159,72 @@ export const OverviewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Error Banner ────────────────────────────────────────────────────────── */}
-      {isError && (
-        <div
-          style={{
-            padding: '14px 20px',
-            borderRadius: '10px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#dc2626',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            marginBottom: '24px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <XCircle size={18} />
-              <span style={{ fontSize: '13px', fontWeight: 600 }}>
-                Failed to load dashboard metrics: {error instanceof Error ? error.message : 'Backend unreachable'}
-              </span>
+      {/* ── Error Banner or Demo Notice ── */}
+      {isError && (() => {
+        const is401 = (error as any)?.response?.status === 401 || (error as any)?.message?.includes('401');
+        const healthPingUrl = API_BASE_URL ? `${API_BASE_URL}/health` : '/health';
+        return (
+          <div
+            style={{
+              padding: '14px 20px',
+              borderRadius: '10px',
+              background: is401 ? '#eff6ff' : '#fef2f2',
+              border: `1px solid ${is401 ? '#bfdbfe' : '#fecaca'}`,
+              color: is401 ? '#1e40af' : '#dc2626',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              marginBottom: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {is401 ? <ShieldAlert size={18} color="#2563eb" /> : <XCircle size={18} />}
+                <span style={{ fontSize: '13px', fontWeight: 600 }}>
+                  {is401
+                    ? 'Viewing AgentGuard AI in Guest Demo Mode. Connect Supabase to sync private repositories and customized alerts.'
+                    : `Connecting to AgentGuard backend: ${error instanceof Error ? error.message : 'Backend unreachable'}`}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <a
+                  href={healthPingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#2563eb',
+                    background: '#ffffff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <ExternalLink size={12} />
+                  Ping Backend Health ↗
+                </a>
+                <button
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
+                  {isFetching ? 'Retrying...' : 'Retry'}
+                </button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <a
-                href={`${API_BASE_URL}/health`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: '#2563eb',
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  borderRadius: '6px',
-                  padding: '4px 10px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  textDecoration: 'none',
-                }}
-              >
-                <ExternalLink size={12} />
-                Ping Render Backend ({API_BASE_URL}) ↗
-              </a>
-              <button
-                onClick={() => refetch()}
-                disabled={isFetching}
-                className="btn btn-secondary"
-                style={{ fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-              >
-                <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
-                {isFetching ? 'Retrying...' : 'Retry'}
-              </button>
+            <div style={{ fontSize: '11.5px', color: '#64748b', marginLeft: '28px', lineHeight: 1.4 }}>
+              💡 <strong>Tip:</strong> Render free-tier instances spin down after 15 minutes of inactivity and wake up automatically on the first request (~45s).
             </div>
           </div>
-          <div style={{ fontSize: '11.5px', color: '#64748b', marginLeft: '28px', lineHeight: 1.4 }}>
-            💡 <strong>Tip:</strong> Render's free tier spins down after 15 minutes of inactivity. When asleep, incoming requests take ~50 seconds to wake up. Once awake, click <strong>Retry</strong>.
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Top Row: 4 Summary Cards with Different Background Colors & Black Fonts ── */}
       <div

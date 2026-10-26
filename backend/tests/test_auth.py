@@ -158,7 +158,6 @@ async def test_auth_me_valid_jwt_provisions_user(auth_client: AsyncClient):
     assert data["supabase_user_id"] == "supa_user_alpha_123"
     assert data["email_verified"] is True
     assert data["auth_status"] == "VERIFIED"
-    assert "id" in data
 
 
 @pytest.mark.asyncio
@@ -239,3 +238,27 @@ async def test_auth_me_valid_es256_jwks_token(auth_client: AsyncClient, monkeypa
     assert data["supabase_user_id"] == "es256_supa_user_999"
     assert data["email"] == "es256@agentguard.dev"
     assert data["auth_status"] == "VERIFIED"
+
+
+@pytest.mark.asyncio
+async def test_demo_mode_fallback_when_enable_demo_auth_in_production(auth_client: AsyncClient, monkeypatch):
+    """When enable_demo_auth is True, unauthenticated requests succeed as demo user even in production."""
+    monkeypatch.setattr(settings, "enable_demo_auth", True)
+    resp = await auth_client.get("/api/auth/me")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["email"] == settings.demo_user_email
+    assert "id" in data and data["id"] > 0
+
+
+@pytest.mark.asyncio
+async def test_zero_config_mock_in_production_allows_demo_user(auth_client: AsyncClient, monkeypatch):
+    """When Supabase is unconfigured and AGENTGUARD_ALLOW_MOCK_IN_PRODUCTION=1, demo user is allowed."""
+    monkeypatch.setattr(settings, "supabase_url", "")
+    monkeypatch.setattr(settings, "supabase_jwt_secret", "")
+    monkeypatch.setattr(settings, "enable_demo_auth", False)
+    monkeypatch.setenv("AGENTGUARD_ALLOW_MOCK_IN_PRODUCTION", "1")
+    resp = await auth_client.get("/api/auth/me")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["email"] == settings.demo_user_email

@@ -166,6 +166,19 @@ class Settings(BaseSettings):
         return v
 
     @model_validator(mode="after")
+    def resolve_demo_auth(self) -> "Settings":
+        """
+        In zero-config environments (where Supabase is not configured),
+        automatically enable demo auth unless explicitly disabled via ENABLE_DEMO_AUTH=false.
+        """
+        import os
+        if not self.supabase_url and not self.supabase_jwt_secret:
+            raw_env = os.getenv("ENABLE_DEMO_AUTH")
+            if raw_env is None:
+                self.enable_demo_auth = True
+        return self
+
+    @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":
         if self.is_production:
             errors: list[str] = []

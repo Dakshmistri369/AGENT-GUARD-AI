@@ -4,6 +4,7 @@ FastAPI dependencies — database session injection, Supabase JWT user resolutio
 from __future__ import annotations
 
 import logging
+import os
 from typing import AsyncGenerator, Optional
 
 from fastapi import Depends, Header, HTTPException, Request, status
@@ -57,24 +58,50 @@ async def get_current_user(
         claims = decode_supabase_token(token)
         return await get_or_create_user_from_claims(claims, db)
 
-    # Fallback to demo user ONLY if explicitly enabled in development mode
-    if settings.enable_demo_auth and settings.environment == "development":
+    # Determine whether demo user fallback is permitted:
+    # 1. settings.enable_demo_auth is True (explicit demo mode across all environments)
+    # 2. Local development environment
+    # 3. Supabase is unconfigured and mock/demo is allowed in production
+    allow_demo = (
+        settings.enable_demo_auth
+        or settings.environment == "development"
+        or (
+            os.environ.get("AGENTGUARD_ALLOW_MOCK_IN_PRODUCTION") == "1"
+            and not settings.supabase_url
+            and not settings.supabase_jwt_secret
+        )
+    )
+
+    # In production with real Supabase credentials configured, demo fallback is forbidden
+    # unless enable_demo_auth is explicitly enabled.
+    if (
+        settings.environment == "production"
+        and (settings.supabase_url or settings.supabase_jwt_secret)
+        and not settings.enable_demo_auth
+    ):
+        allow_demo = False
+
+    if allow_demo:
         logger.warning(
             "Demo auth fallback active for unauthenticated request to %s (DEMO MODE)",
             request.url.path,
         )
-        result = await db.execute(select(User).where(User.id == settings.demo_user_id))
+        result = await db.execute(select(User).where(User.email == settings.demo_user_email))
         demo_user = result.scalar_one_or_none()
         if demo_user is None:
-            demo_user = User(
-                id=settings.demo_user_id,
-                email=settings.demo_user_email,
-                password_hash="DEMO_MODE_NO_REAL_AUTH",  # nosec B106 # pragma: whitelist secret
-                email_verified=True,
-            )
-            db.add(demo_user)
-            await db.commit()
-            await db.refresh(demo_user)
+            try:
+                demo_user = User(
+                    email=settings.demo_user_email,
+                    password_hash="DEMO_MODE_NO_REAL_AUTH",  # nosec B106 # pragma: whitelist secret
+                    email_verified=True,
+                )
+                db.add(demo_user)
+                await db.commit()
+                await db.refresh(demo_user)
+            except Exception:
+                await db.rollback()
+                result = await db.execute(select(User).where(User.email == settings.demo_user_email))
+                demo_user = result.scalar_one_or_none()
         return demo_user
 
     raise HTTPException(

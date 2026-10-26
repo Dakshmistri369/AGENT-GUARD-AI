@@ -15,17 +15,67 @@ import type {
   ScanComparisonResult,
 } from '../types';
 
-const isVercelDeploy = typeof window !== 'undefined' && window.location.hostname.endsWith('vercel.app');
-const RAW_BASE =
-  import.meta.env.VITE_API_BASE_URL !== undefined
-    ? import.meta.env.VITE_API_BASE_URL
-    : (isVercelDeploy ? '' : 'https://agent-guard-ai.onrender.com');
+/**
+ * Sanitize and normalize API Base URL:
+ * - Strips duplicate protocols (e.g. "https://https://" -> "https://")
+ * - Strips duplicate domain repetitions (e.g. ".onrender.com.onrender.com" -> ".onrender.com")
+ * - Strips trailing slashes
+ * - Upgrades insecure http to https when the page is served over https
+ */
+export function sanitizeApiBaseUrl(raw?: string): string {
+  if (!raw) return '';
+  let url = raw.trim();
 
-let sanitizedBase = (RAW_BASE || '').trim().replace(/\/+$/, '');
-if (typeof window !== 'undefined' && window.location.protocol === 'https:' && sanitizedBase.startsWith('http://')) {
-  sanitizedBase = sanitizedBase.replace(/^http:\/\//, 'https://');
+  // Strip duplicate protocol prefixes (e.g., https://https:// or http://https://)
+  url = url.replace(/^(https?:\/\/)+/gi, (match) => {
+    return match.toLowerCase().includes('https') ? 'https://' : 'http://';
+  });
+
+  // Strip duplicate onrender domain suffixes (e.g., .onrender.com.onrender.com)
+  url = url.replace(/(\.onrender\.com)+/gi, '.onrender.com');
+
+  // Strip trailing slashes
+  url = url.replace(/\/+$/, '');
+
+  // If missing protocol but contains a domain dot, prefix https://
+  if (!/^https?:\/\//i.test(url) && url.includes('.')) {
+    url = `https://${url}`;
+  }
+
+  // Enforce HTTPS if page is loaded via HTTPS
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://')) {
+    url = url.replace(/^http:\/\//, 'https://');
+  }
+
+  return url;
 }
-export const API_BASE_URL = sanitizedBase;
+
+const isVercelDeploy = typeof window !== 'undefined' && (
+  window.location.hostname.endsWith('vercel.app') ||
+  window.location.hostname.includes('vercel')
+);
+
+// Determine base URL:
+// On Vercel, the built-in vercel.json rewrite proxy (/api/* -> Render backend) guarantees zero-CORS,
+// low latency, and immunity to browser cross-origin blocks.
+// If VITE_API_BASE_URL points to render.com (or was malformed/duplicate), prefer "" on Vercel.
+// Only use an explicit URL if pointing to a non-render external server.
+const rawEnvBase = import.meta.env.VITE_API_BASE_URL;
+let resolvedBase: string;
+
+if (isVercelDeploy) {
+  if (rawEnvBase && !rawEnvBase.includes('onrender.com') && !rawEnvBase.includes('https://https://')) {
+    resolvedBase = sanitizeApiBaseUrl(rawEnvBase);
+  } else {
+    resolvedBase = '';
+  }
+} else if (rawEnvBase !== undefined && rawEnvBase.trim() !== '') {
+  resolvedBase = sanitizeApiBaseUrl(rawEnvBase);
+} else {
+  resolvedBase = 'https://agent-guard-ai.onrender.com';
+}
+
+export const API_BASE_URL = resolvedBase;
 const BASE = API_BASE_URL;
 
 // Eager non-blocking warm-up ping for Render free-tier sleeping instances
