@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { Repository } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { SHOW_SIGN_IN_BUTTON } from '../../config/authFeatures';
 
 export interface TopNavigationProps {
   repositories?: Repository[];
@@ -31,7 +32,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   onOpenAiAssistant,
 }) => {
   const location = useLocation();
-  const { user, signOut, isConfigured } = useAuth();
+  const { user, signOut } = useAuth();
 
   // Determine page title for breadcrumb
   const getPageTitle = () => {
@@ -266,39 +267,53 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {!isConfigured && (
-              <span
-                style={{
-                  fontSize: '11px',
-                  color: '#d97706',
-                  background: 'rgba(245, 158, 11, 0.1)',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(245, 158, 11, 0.25)',
-                  fontWeight: 500,
-                }}
-              >
-                Demo
-              </span>
-            )}
-            <Link
-              to="/login"
+            <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '5px 14px',
+                padding: '4px 10px',
                 borderRadius: '6px',
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                color: '#ffffff',
-                fontSize: '12px',
-                fontWeight: 600,
-                textDecoration: 'none',
-                boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                background: 'rgba(37, 99, 235, 0.08)',
+                border: '1px solid rgba(37, 99, 235, 0.25)',
+                color: '#1d4ed8',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                letterSpacing: '0.2px',
               }}
+              title="AgentGuard AI is running in Demo Mode"
             >
-              Sign In
-            </Link>
+              <span
+                style={{
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background: '#2563eb',
+                  boxShadow: '0 0 6px rgba(37, 99, 235, 0.6)',
+                }}
+              />
+              Demo Mode
+            </div>
+            {SHOW_SIGN_IN_BUTTON && (
+              <Link
+                to="/login"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 14px',
+                  borderRadius: '6px',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                }}
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         )}
       </div>

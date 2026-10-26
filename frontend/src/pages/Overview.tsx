@@ -45,6 +45,15 @@ export const OverviewPage: React.FC = () => {
     refetchInterval: 30000, // automatic background refresh every 30s
   });
 
+  const isUnauthorized = Boolean(
+    isError && (
+      (error as any)?.response?.status === 401 ||
+      (error as any)?.response?.status === 403 ||
+      (error as any)?.message?.includes('401') ||
+      (error as any)?.message?.includes('403')
+    )
+  );
+
   // Mutation to update finding verification status (e.g. mark False Positive)
   const statusMutation = useMutation({
     mutationFn: async ({
@@ -159,6 +168,55 @@ export const OverviewPage: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Demo Mode Indicator Banner ── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '10px 16px',
+          borderRadius: '8px',
+          background: 'linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(30,64,175,0.03) 100%)',
+          border: '1px solid rgba(37,99,235,0.18)',
+          marginBottom: '20px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#2563eb',
+              boxShadow: '0 0 8px rgba(37,99,235,0.5)',
+            }}
+          />
+          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e40af' }}>
+            Demo Mode Active
+          </span>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>
+            — Direct web app access enabled. Private repositories and credentials remain protected.
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#0d9488',
+              background: '#f0fdfa',
+              border: '1px solid #ccfbf1',
+              borderRadius: '4px',
+              padding: '2px 8px',
+            }}
+          >
+            Zero-Login Direct Dashboard
+          </span>
+        </div>
+      </div>
+
       {/* ── Error Banner or Demo Notice ── */}
       {isError && (() => {
         const is401 = (error as any)?.response?.status === 401 || (error as any)?.message?.includes('401');
@@ -237,10 +295,12 @@ export const OverviewPage: React.FC = () => {
       >
         <SummaryCard
           title="Scans & Reviews"
-          value={isLoading ? '—' : summary?.scans_and_reviews.total_scans ?? 0}
+          value={isLoading || isError ? '—' : (summary?.scans_and_reviews.total_scans ?? 0)}
           subtext={
             isLoading
               ? 'Loading scan metrics…'
+              : isError
+              ? isUnauthorized ? 'Authentication required for private scan history' : 'Unable to connect to scan service'
               : `${summary?.scans_and_reviews.pr_reviews ?? 0} PR reviews and ${
                   summary?.scans_and_reviews.scans_last_30_days ?? 0
                 } full scans in the last 30 days`
@@ -254,10 +314,12 @@ export const OverviewPage: React.FC = () => {
 
         <SummaryCard
           title="False Positives"
-          value={isLoading ? '—' : summary?.false_positives.count ?? 0}
+          value={isLoading || isError ? '—' : (summary?.false_positives.count ?? 0)}
           subtext={
             isLoading
               ? 'Loading review state…'
+              : isError
+              ? 'Metrics unavailable'
               : `Filtered ${summary?.false_positives.count ?? 0} false positives out of ${
                   summary?.false_positives.total_issues ?? 0
                 } total issues.`
@@ -265,7 +327,7 @@ export const OverviewPage: React.FC = () => {
           accentColor="#059669"
           bgColor="#f0fdf4"
           borderColor="#bbf7d0"
-          badge={summary && summary.false_positives.percentage > 0 ? `${summary.false_positives.percentage}%` : undefined}
+          badge={!isError && summary && summary.false_positives.percentage > 0 ? `${summary.false_positives.percentage}%` : undefined}
           badgeColor="#059669"
           onClick={() => navigate('/repositories?tab=findings')}
           isLoading={isLoading}
@@ -274,7 +336,7 @@ export const OverviewPage: React.FC = () => {
         <SummaryCard
           title="Potential Issues"
           value={
-            isLoading
+            isLoading || isError
               ? '—'
               : summary
               ? summary.potential_issues.count > 1000
@@ -285,6 +347,8 @@ export const OverviewPage: React.FC = () => {
           subtext={
             isLoading
               ? 'Aggregating open findings…'
+              : isError
+              ? isUnauthorized ? 'Protected repository data requires authorization' : 'Security scanner findings offline'
               : `Found ${summary?.potential_issues.count ?? 0} potential issues out of ${
                   summary?.potential_issues.total_issues ?? 0
                 } total issues.`
@@ -298,10 +362,12 @@ export const OverviewPage: React.FC = () => {
 
         <SummaryCard
           title="Patches generated"
-          value={isLoading ? '—' : summary?.patches_generated.count ?? 0}
+          value={isLoading || isError ? '—' : (summary?.patches_generated.count ?? 0)}
           subtext={
             isLoading
               ? 'Calculating remediation patches…'
+              : isError
+              ? 'Patches unavailable'
               : `Generated patches for ${summary?.patches_generated.count ?? 0} out of ${
                   summary?.potential_issues.count ?? 0
                 } potential issues`
@@ -309,7 +375,7 @@ export const OverviewPage: React.FC = () => {
           accentColor="#7c3aed"
           bgColor="#faf5ff"
           borderColor="#e9d5ff"
-          badge={summary && summary.patches_generated.percentage > 0 ? `${summary.patches_generated.percentage}%` : undefined}
+          badge={!isError && summary && summary.patches_generated.percentage > 0 ? `${summary.patches_generated.percentage}%` : undefined}
           badgeColor="#7c3aed"
           onClick={() => navigate('/repositories?tab=solutions')}
           isLoading={isLoading}
@@ -333,6 +399,16 @@ export const OverviewPage: React.FC = () => {
           {isLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
               <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
+            </div>
+          ) : isError ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+              <ShieldAlert size={32} color="#d97706" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Metrics Unavailable</div>
+              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+                {isUnauthorized
+                  ? 'Vulnerability distributions require authorized access or active demo workspace scans.'
+                  : 'Unable to retrieve vulnerability metrics from backend service.'}
+              </div>
             </div>
           ) : !summary || summary.vulnerability_types.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
@@ -435,6 +511,16 @@ export const OverviewPage: React.FC = () => {
           {isLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
               <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
+            </div>
+          ) : isError ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+              <ShieldAlert size={32} color="#d97706" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Severity Breakdown Unavailable</div>
+              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+                {isUnauthorized
+                  ? 'Severity metrics require authorized access or active demo workspace scans.'
+                  : 'Backend service offline or unreachable.'}
+              </div>
             </div>
           ) : !summary || summary.severity_distribution.total === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
@@ -597,7 +683,7 @@ export const OverviewPage: React.FC = () => {
                     lineHeight: 1.1,
                   }}
                 >
-                  {summary?.metrics.total_time_saved_hours ?? 0}
+                  {isError ? '—' : `${summary?.metrics.total_time_saved_hours ?? 0}`}
                   <span style={{ fontSize: '24px', fontWeight: 600, color: '#475569', marginLeft: '4px' }}>h</span>
                 </div>
               </div>
@@ -618,7 +704,7 @@ export const OverviewPage: React.FC = () => {
                     <span>Logic</span>
                   </div>
                   <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-                    {summary?.metrics.logic_hours ?? 0}h
+                    {isError ? '—' : `${summary?.metrics.logic_hours ?? 0}h`}
                   </div>
                 </div>
 
@@ -630,7 +716,7 @@ export const OverviewPage: React.FC = () => {
                     <span>Traditional</span>
                   </div>
                   <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-                    {summary?.metrics.traditional_hours ?? 0}h
+                    {isError ? '—' : `${summary?.metrics.traditional_hours ?? 0}h`}
                   </div>
                 </div>
               </div>
@@ -663,6 +749,16 @@ export const OverviewPage: React.FC = () => {
               {[1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse" style={{ height: '52px', borderRadius: '8px', background: '#f1f5f9' }} />
               ))}
+            </div>
+          ) : isError ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+              <ShieldAlert size={32} color="#d97706" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Critical Findings Unavailable</div>
+              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+                {isUnauthorized
+                  ? 'Private repository findings are protected. Authorized access required.'
+                  : 'Unable to query critical security findings.'}
+              </div>
             </div>
           ) : !summary || summary.most_critical_issues.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
@@ -708,6 +804,16 @@ export const OverviewPage: React.FC = () => {
               {[1, 2].map((i) => (
                 <div key={i} className="animate-pulse" style={{ height: '56px', borderRadius: '8px', background: '#f1f5f9' }} />
               ))}
+            </div>
+          ) : isError ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+              <GitBranch size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Repositories Inaccessible</div>
+              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+                {isUnauthorized
+                  ? 'Private repository list is protected. Sign-in required for private audits.'
+                  : 'Unable to connect to repository registry.'}
+              </div>
             </div>
           ) : !summary || summary.issues_by_repository.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>

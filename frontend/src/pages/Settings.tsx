@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { AnimatedBrandLogo } from '../components/brand/AnimatedBrandLogo';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
+import { SHOW_SIGN_IN_BUTTON } from '../config/authFeatures';
 
 interface BackendUserProfile {
   id: number;
@@ -100,7 +101,7 @@ export const SettingsPage: React.FC = () => {
               Sign Out
             </button>
           </div>
-        ) : isConfigured ? (
+        ) : isConfigured && SHOW_SIGN_IN_BUTTON ? (
           <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)' }}>
             <Link
               to="/login"

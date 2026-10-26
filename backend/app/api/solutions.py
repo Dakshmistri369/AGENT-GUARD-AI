@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.service import AIService, get_ai_service
 from app.dependencies import get_current_user, get_db
 from app.models.finding import Finding
+from app.models.project import Project
 from app.models.repository import Repository
 from app.models.scan import Scan
 from app.models.user import User
@@ -22,6 +23,23 @@ from app.services.solution_service import SolutionService
 
 logger = logging.getLogger("agentguard.api.solutions")
 router = APIRouter(tags=["solutions"])
+
+
+async def _verify_scan_access(scan: Scan, user_id: int, db: AsyncSession) -> bool:
+    """Verify that current_user owns the repository or project associated with the scan."""
+    if scan.project_id:
+        p_res = await db.execute(
+            select(Project).where(Project.id == scan.project_id, Project.owner_id == user_id)
+        )
+        if p_res.scalar_one_or_none():
+            return True
+    if scan.repository_id:
+        r_res = await db.execute(
+            select(Repository).where(Repository.id == scan.repository_id, Repository.owner_id == user_id)
+        )
+        if r_res.scalar_one_or_none():
+            return True
+    return False
 
 
 @router.get("/api/scans/{scan_id}/solutions", response_model=RepositorySolutionPlan)
@@ -37,12 +55,12 @@ async def get_scan_solutions(
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
 
-    # Verify scan exists
+    # Verify scan exists and user is authorized
     stmt_scan = select(Scan).where(Scan.id == scan_id)
     res_scan = await db.execute(stmt_scan)
     scan = res_scan.scalar_one_or_none()
-    if not scan:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found.")
+    if not scan or not await _verify_scan_access(scan, current_user.id, db):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
 
     # Fetch findings
     stmt_findings = (
@@ -77,8 +95,8 @@ async def download_scan_unified_patch(
     stmt_scan = select(Scan).where(Scan.id == scan_id)
     res_scan = await db.execute(stmt_scan)
     scan = res_scan.scalar_one_or_none()
-    if not scan:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found.")
+    if not scan or not await _verify_scan_access(scan, current_user.id, db):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
 
     stmt_findings = select(Finding).where(Finding.scan_id == scan.id).order_by(Finding.id.asc())
     res_findings = await db.execute(stmt_findings)
@@ -112,6 +130,12 @@ async def get_finding_solution(
     if not finding:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found.")
 
+    stmt_scan = select(Scan).where(Scan.id == finding.scan_id)
+    res_scan = await db.execute(stmt_scan)
+    scan = res_scan.scalar_one_or_none()
+    if not scan or not await _verify_scan_access(scan, current_user.id, db):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found or access denied.")
+
     return SolutionService.generate_solution_for_finding(finding)
 
 
@@ -134,5 +158,11 @@ async def enhance_finding_solution_with_ai(
     finding = res.scalar_one_or_none()
     if not finding:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found.")
+
+    stmt_scan = select(Scan).where(Scan.id == finding.scan_id)
+    res_scan = await db.execute(stmt_scan)
+    scan = res_scan.scalar_one_or_none()
+    if not scan or not await _verify_scan_access(scan, current_user.id, db):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found or access denied.")
 
     return await SolutionService.enhance_solution_with_ai(finding, ai_service)

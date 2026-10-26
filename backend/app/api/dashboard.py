@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db
 from app.models.finding import Finding
+from app.models.project import Project
 from app.models.repository import Repository
 from app.models.scan import Scan
 from app.models.user import User
@@ -452,6 +453,24 @@ async def update_finding_status(
     if not finding:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found.")
 
+    # Ownership check
+    stmt_scan = select(Scan).where(Scan.id == finding.scan_id)
+    res_scan = await db.execute(stmt_scan)
+    scan = res_scan.scalar_one_or_none()
+    if not scan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found.")
+    authorized = False
+    if scan.project_id:
+        p_res = await db.execute(select(Project).where(Project.id == scan.project_id, Project.owner_id == current_user.id))
+        if p_res.scalar_one_or_none():
+            authorized = True
+    if not authorized and scan.repository_id:
+        r_res = await db.execute(select(Repository).where(Repository.id == scan.repository_id, Repository.owner_id == current_user.id))
+        if r_res.scalar_one_or_none():
+            authorized = True
+    if not authorized:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Finding not found or access denied.")
+
     finding.verification_status = payload.status
     if payload.notes:
         existing_exp = finding.explanation or ""
@@ -486,6 +505,20 @@ async def compare_scans(
 
     if not scan_a or not scan_b:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or both scans not found.")
+
+    # Ownership checks: Ensure caller owns both scans
+    for s in (scan_a, scan_b):
+        authorized = False
+        if s.project_id:
+            p_res = await db.execute(select(Project).where(Project.id == s.project_id, Project.owner_id == current_user.id))
+            if p_res.scalar_one_or_none():
+                authorized = True
+        if not authorized and s.repository_id:
+            r_res = await db.execute(select(Repository).where(Repository.id == s.repository_id, Repository.owner_id == current_user.id))
+            if r_res.scalar_one_or_none():
+                authorized = True
+        if not authorized:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
 
     # Fetch findings for both scans
     f_res_a = await db.execute(select(Finding).where(Finding.scan_id == scan_a.id))

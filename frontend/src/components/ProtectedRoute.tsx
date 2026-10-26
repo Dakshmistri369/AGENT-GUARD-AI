@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { ENABLE_LOGIN_PAGES } from '../config/authFeatures';
 
 export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading, isConfigured } = useAuth();
@@ -15,8 +16,8 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   }
 
-  // If real Supabase auth is configured and user is not authenticated, redirect to /login
-  if (isConfigured && !user) {
+  // If real Supabase auth is configured, login pages are enabled, and user is not authenticated, redirect to /login
+  if (ENABLE_LOGIN_PAGES && isConfigured && !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

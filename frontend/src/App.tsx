@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { LogoIntro } from './components/brand/LogoIntro';
+import { ENABLE_LOGIN_PAGES } from './config/authFeatures';
 
 // Code-split page routes so initial bundle is minimal and fast
 const OverviewPage = lazy(() => import('./pages/Overview').then((m) => ({ default: m.OverviewPage })));
@@ -76,10 +77,10 @@ export const App: React.FC = () => {
         <BrowserRouter>
           <Suspense fallback={<PageLoadingFallback />}>
             <Routes>
-              {/* Public Auth Routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              {/* Public Auth Routes (Preserved - redirects to "/" when login pages are temporarily disabled) */}
+              <Route path="/login" element={ENABLE_LOGIN_PAGES ? <LoginPage /> : <Navigate to="/" replace />} />
+              <Route path="/register" element={ENABLE_LOGIN_PAGES ? <RegisterPage /> : <Navigate to="/" replace />} />
+              <Route path="/forgot-password" element={ENABLE_LOGIN_PAGES ? <ForgotPasswordPage /> : <Navigate to="/" replace />} />
 
               {/* Protected Application Routes */}
               <Route
