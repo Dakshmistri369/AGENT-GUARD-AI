@@ -141,6 +141,12 @@ class ScanQueueClient:
         if _BACKGROUND_TASKS:
             await asyncio.wait(list(_BACKGROUND_TASKS), timeout=timeout)
 
+    def reset_in_memory(self) -> None:
+        """Reset in-memory job, DLQ, and heartbeat stores (primarily for tests)."""
+        _IN_MEMORY_JOBS.clear()
+        _IN_MEMORY_DLQ.clear()
+        _IN_MEMORY_HEARTBEATS.clear()
+
     async def record_heartbeat(self, worker_id: str, metadata: dict[str, Any] | None = None) -> None:
         """Record worker heartbeat with TTL to verify worker fleet liveness."""
         settings = get_settings()

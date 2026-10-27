@@ -146,6 +146,14 @@ class ScanExecutionService:
                 git_svc = GitService(timeout_seconds=self.settings.scan_timeout_seconds)
                 metadata_only = bool(cfg.get("metadata_only", False))
 
+                # Milestone B: Pre-clone size cap defense
+                repo_size_kb = (repo.metadata_json or {}).get("size_kb", 0)
+                max_clone_kb = self.settings.max_repo_clone_size_mb * 1024
+                if repo_size_kb > max_clone_kb:
+                    size_mb = round(repo_size_kb / 1024, 1)
+                    logger.warning("Repository %s (%s MB) exceeds max clone size (%s MB); skipping clone.", repo.full_name, size_mb, self.settings.max_repo_clone_size_mb)
+                    metadata_only = True
+
                 if not metadata_only and git_svc.is_git_available():
                     workspace_dir = create_isolated_workspace(self.settings.scan_workspace_dir, scan.id)
                     try:

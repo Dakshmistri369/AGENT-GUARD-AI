@@ -116,6 +116,16 @@ class Settings(BaseSettings):
     worker_heartbeat_ttl_seconds: int = 60
     enable_async_worker: bool = True
 
+    # ── Scalability Quotas, Limits & Backpressure (Milestone B) ────────────────
+    max_concurrent_scans_per_user: int = 2        # Max concurrent active (queued/running) scans per user
+    max_daily_scans_per_user: int = 50           # Max scans per user per 24-hour rolling window
+    max_queue_depth: int = 100                   # Global queue capacity before HTTP 429 backpressure
+    rate_limit_per_minute_api: int = 60          # General API endpoints rate limit per client
+    rate_limit_per_minute_scan: int = 10         # Scan trigger & AI endpoints rate limit per client
+    max_repo_clone_size_mb: int = 250            # Max allowed repository clone size
+    db_pool_size: int = 5                        # Sized for Supabase 60-connection cap
+    db_max_overflow: int = 5                     # Max overflow per process (max 10 total/worker)
+
     # ── Derived properties ────────────────────────────────────────────────────
     @property
     def max_upload_size_bytes(self) -> int:

@@ -16,12 +16,12 @@ if settings.is_sqlite:
     connect_args["check_same_thread"] = False
     pool_kwargs["poolclass"] = StaticPool
 else:
-    # PostgreSQL pool settings for Supabase / Cloud Postgres
-    pool_kwargs["pool_size"] = 10
-    pool_kwargs["max_overflow"] = 20
+    # PostgreSQL pool settings for Supabase / Cloud Postgres (tuned for max_connections=60)
+    pool_kwargs["pool_size"] = settings.db_pool_size
+    pool_kwargs["max_overflow"] = settings.db_max_overflow
     pool_kwargs["pool_pre_ping"] = True
     pool_kwargs["pool_recycle"] = 300  # Recycle idle connections before cloud timeouts
-    pool_kwargs["pool_timeout"] = 30
+    pool_kwargs["pool_timeout"] = 20
 
 engine = create_async_engine(
     settings.database_url,

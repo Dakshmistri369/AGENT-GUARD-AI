@@ -129,6 +129,15 @@ def build_scan_file_list(
                 ))
                 continue
 
+            # 5. Max file count defense
+            if len(scannable) >= settings.max_repo_files:
+                skipped.append(SkippedFile(
+                    path=rel_path,
+                    size=size,
+                    reason=f"exceeds_max_repo_files_limit_{settings.max_repo_files}",
+                ))
+                continue
+
             scannable.append(path)
 
     return scannable, skipped

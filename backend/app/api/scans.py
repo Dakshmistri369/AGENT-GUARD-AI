@@ -15,8 +15,9 @@ import logging
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.security.rate_limiter import require_scan_rate_limit
 
 from app.config import get_settings
 from app.dependencies import get_current_user, get_db
@@ -60,6 +61,7 @@ class NotificationLogRequest(BaseModel):
     "/api/repositories/{repository_id}/analyze",
     response_model=ScanResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(require_scan_rate_limit)],
 )
 async def analyze_repository(
     repository_id: int,
@@ -70,10 +72,12 @@ async def analyze_repository(
 ) -> ScanResponse:
     """
     Initiate asynchronous security analysis on the designated repository.
+    Enforces per-user concurrency caps, daily scan quotas, and global queue backpressure.
     Creates a queued scan record and immediately enqueues background execution.
     Returns HTTP 202 Accepted without awaiting scan completion.
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    settings = get_settings()
 
     # Verify repository ownership
     stmt = select(Repository).where(
@@ -84,7 +88,7 @@ async def analyze_repository(
     if not repo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found.")
 
-    # Idempotency check: if an active scan is already queued or running, return it
+    # Idempotency check: if an active scan is already queued or running on this exact repo, return it
     existing_stmt = (
         select(Scan)
         .where(
@@ -94,10 +98,58 @@ async def analyze_repository(
         .order_by(Scan.created_at.desc())
     )
     existing_res = await db.execute(existing_stmt)
-    existing_scan = existing_res.scalar_one_or_none()
+    existing_scan = existing_res.scalars().first()
     if existing_scan:
         logger.info("Idempotent hit: Scan %d is already %s for repository %d", existing_scan.id, existing_scan.status, repository_id)
         return ScanResponse.model_validate(existing_scan)
+
+    # ── Milestone B Defense 1: Global Queue Backpressure ───────────────────────
+    queue_depth_stmt = select(func.count(Scan.id)).where(Scan.status == "queued")
+    queue_depth_res = await db.execute(queue_depth_stmt)
+    queue_depth = queue_depth_res.scalar() or 0
+    if queue_depth >= settings.max_queue_depth:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Scan queue is currently full ({queue_depth} jobs queued). Backpressure threshold reached; please try again shortly.",
+            headers={"Retry-After": "60"},
+        )
+
+    # ── Milestone B Defense 2: Per-User Active Scan Concurrency Cap ───────────
+    active_user_scans_stmt = (
+        select(func.count(Scan.id))
+        .join(Repository, Scan.repository_id == Repository.id)
+        .where(
+            Repository.owner_id == current_user.id,
+            Scan.status.in_(["queued", "running"]),
+        )
+    )
+    active_res = await db.execute(active_user_scans_stmt)
+    active_count = active_res.scalar() or 0
+    if active_count >= settings.max_concurrent_scans_per_user:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Concurrent scan limit reached ({settings.max_concurrent_scans_per_user} active scans). Please wait for ongoing scans to complete.",
+            headers={"Retry-After": "30"},
+        )
+
+    # ── Milestone B Defense 3: Per-User Daily Scan Quota ──────────────────────
+    since_24h = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)
+    daily_scans_stmt = (
+        select(func.count(Scan.id))
+        .join(Repository, Scan.repository_id == Repository.id)
+        .where(
+            Repository.owner_id == current_user.id,
+            Scan.created_at >= since_24h,
+        )
+    )
+    daily_res = await db.execute(daily_scans_stmt)
+    daily_count = daily_res.scalar() or 0
+    if daily_count >= settings.max_daily_scans_per_user:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily scan quota reached ({settings.max_daily_scans_per_user} scans per day). Quota resets within 24 hours.",
+            headers={"Retry-After": "3600"},
+        )
 
     # Create Initial Scan Record in queued state
     target_branch = payload.branch or repo.default_branch or "main"

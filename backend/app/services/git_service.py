@@ -102,6 +102,24 @@ class GitService:
             logger.error("Git clone failed (exit %d): %s", returncode, clean_err)
             raise GitExecutionError(f"Git clone failed: {clean_err.strip()[:300]}")
 
+        # Check cloned workspace size against max_repo_clone_size_mb defense cap
+        from app.config import get_settings
+        settings = get_settings()
+        try:
+            total_size = sum(f.stat().st_size for f in target_dir.rglob("*") if f.is_file())
+            max_bytes = settings.max_repo_clone_size_mb * 1024 * 1024
+            if total_size > max_bytes:
+                size_mb = round(total_size / (1024 * 1024), 2)
+                logger.error("Cloned repository %s exceeded max allowed size: %s MB > %s MB", normalized_url, size_mb, settings.max_repo_clone_size_mb)
+                raise GitExecutionError(
+                    f"Cloned repository size ({size_mb} MB) exceeds maximum allowed limit ({settings.max_repo_clone_size_mb} MB). "
+                    "Scan aborted to protect worker disk and memory resources."
+                )
+        except Exception as exc:
+            if isinstance(exc, GitExecutionError):
+                raise
+            logger.warning("Could not calculate cloned directory size: %s", exc)
+
     async def _run_git_command(
         self,
         cmd: list[str],

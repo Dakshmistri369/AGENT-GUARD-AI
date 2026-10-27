@@ -71,10 +71,19 @@ async def db_session(setup_db) -> AsyncGenerator[AsyncSession, None]:
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_database_tables(setup_db):
-    """Ensure every test starts with clean database tables."""
-    yield
+    """Ensure every test starts with clean database tables, empty queue state, and reset rate limits."""
     from app.queue.client import get_queue_client
+    from app.security.rate_limiter import _rate_limiter
+
+    get_queue_client().reset_in_memory()
+    _rate_limiter.reset_in_memory()
+
+    yield
+
     await get_queue_client().wait_all_jobs(timeout=3.0)
+    get_queue_client().reset_in_memory()
+    _rate_limiter.reset_in_memory()
+
     async with test_engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             await conn.execute(table.delete())
