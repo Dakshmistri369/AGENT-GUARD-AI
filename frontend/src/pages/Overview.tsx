@@ -42,7 +42,8 @@ export const OverviewPage: React.FC = () => {
   } = useQuery<DashboardSummaryResponse>({
     queryKey: ['dashboardSummary'],
     queryFn: () => api.dashboard.getSummary(),
-    refetchInterval: 30000, // automatic background refresh every 30s
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   const isUnauthorized = Boolean(

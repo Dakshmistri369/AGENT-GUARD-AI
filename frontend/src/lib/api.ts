@@ -12,6 +12,7 @@ import type {
   FindingSolution,
   RepositorySolutionPlan,
   DashboardSummaryResponse,
+  DashboardMetricsResponse,
   ScanComparisonResult,
 } from '../types';
 
@@ -188,8 +189,8 @@ export const api = {
     connect: (url: string): Promise<Repository> =>
       client.post('/api/repositories', { url }).then(r => r.data),
 
-    list: (): Promise<RepositoryListResponse> =>
-      client.get('/api/repositories').then(r => r.data),
+    list: (page = 1, pageSize = 50): Promise<RepositoryListResponse> =>
+      client.get('/api/repositories', { params: { page, page_size: pageSize } }).then(r => r.data),
 
     get: (id: number): Promise<Repository> =>
       client.get(`/api/repositories/${id}`).then(r => r.data),
@@ -211,8 +212,8 @@ export const api = {
     cancel: (scanId: number): Promise<Scan> =>
       client.post(`/api/scans/${scanId}/cancel`).then(r => r.data),
 
-    listByRepo: (repositoryId: number): Promise<Scan[]> =>
-      client.get(`/api/repositories/${repositoryId}/scans`).then(r => r.data),
+    listByRepo: (repositoryId: number, limit = 50, offset = 0): Promise<Scan[]> =>
+      client.get(`/api/repositories/${repositoryId}/scans`, { params: { limit, offset } }).then(r => r.data),
   },
 
   solutions: {
@@ -232,6 +233,9 @@ export const api = {
   dashboard: {
     getSummary: (): Promise<DashboardSummaryResponse> =>
       client.get('/api/dashboard/summary').then(r => r.data),
+
+    getMetrics: (): Promise<DashboardMetricsResponse> =>
+      client.get('/api/dashboard/metrics').then(r => r.data),
   },
 
   findings: {
@@ -240,8 +244,13 @@ export const api = {
       severity?: string;
       scanner?: string;
       verification_status?: string;
+      page?: number;
+      page_size?: number;
     }): Promise<{
       total: number;
+      page: number;
+      page_size: number;
+      pages: number;
       repository_count: number;
       findings: Finding[];
       repositories: { id: number; name: string; full_name: string; url: string }[];

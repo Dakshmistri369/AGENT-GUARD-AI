@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   GitBranch,
@@ -121,6 +121,82 @@ export const RepositoriesPage: React.FC = () => {
   const [isLoadingAllFindings, setIsLoadingAllFindings] = useState(false);
   const [copiedIssuesList, setCopiedIssuesList] = useState(false);
 
+  // Pagination state
+  const [findingsPage, setFindingsPage] = useState<number>(1);
+  const findingsPageSize = 25;
+  const [historyPage, setHistoryPage] = useState<number>(1);
+  const historyPageSize = 10;
+
+  useEffect(() => {
+    setFindingsPage(1);
+  }, [selectedSeverity, selectedScanner, selectedVerification, selectedClassification, searchQuery, findingsScope, activeRepo?.id]);
+
+  // Active scan polling ref with bounded backoff
+  const activePollRef = useRef<{ cancel: () => void } | null>(null);
+
+  const pollScanStatus = useCallback((scanId: number, repoId: number) => {
+    if (activePollRef.current) {
+      activePollRef.current.cancel();
+      activePollRef.current = null;
+    }
+
+    let delay = 2000;
+    let timerId: any = null;
+    let isCancelled = false;
+
+    const tick = async () => {
+      if (isCancelled) return;
+      try {
+        const latest = await api.scans.get(scanId);
+        setCurrentScan(latest);
+        if (latest.status !== 'queued' && latest.status !== 'running' && latest.status !== 'pending') {
+          setIsScanning(false);
+          try {
+            const rep = await api.scans.report(latest.id);
+            setScanReport(rep);
+            const updatedRepo = await api.repositories.get(repoId);
+            setActiveRepo(updatedRepo);
+            const updatedScans = await api.scans.listByRepo(repoId, 50, 0);
+            setPastScans(updatedScans);
+          } catch (e) {
+            // ignore
+          }
+          return;
+        }
+      } catch (err) {
+        // network error, back off
+      }
+
+      delay = Math.min(Math.round(delay * 1.4), 7000);
+      if (!isCancelled) {
+        timerId = setTimeout(tick, delay);
+      }
+    };
+
+    timerId = setTimeout(tick, delay);
+
+    activePollRef.current = {
+      cancel: () => {
+        isCancelled = true;
+        if (timerId) clearTimeout(timerId);
+      },
+    };
+  }, []);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (activePollRef.current) {
+        activePollRef.current.cancel();
+      }
+    };
+  }, []);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setFindingsPage(1);
+  }, [selectedSeverity, selectedScanner, selectedVerification, selectedClassification, searchQuery, findingsScope]);
+
   // Initial load
   useEffect(() => {
     loadRepositories();
@@ -198,37 +274,20 @@ export const RepositoriesPage: React.FC = () => {
     setSolutionPlan(null);
     setFindingSolutions({});
     setExpandedFindingId(null);
+    setFindingsPage(1);
+    setHistoryPage(1);
     setIsLoadingHistory(true);
 
     // Load past scans for this repo
     try {
-      const scans = await api.scans.listByRepo(repo.id);
+      const scans = await api.scans.listByRepo(repo.id, 50, 0);
       setPastScans(scans);
       if (scans.length > 0) {
         const latest = scans[0];
         setCurrentScan(latest);
         if (latest.status === 'running' || latest.status === 'queued' || latest.status === 'pending') {
           setIsScanning(true);
-          const pollTimer = setInterval(async () => {
-            try {
-              const updatedScans = await api.scans.listByRepo(repo.id);
-              if (updatedScans.length > 0) {
-                const current = updatedScans[0];
-                setCurrentScan(current);
-                setPastScans(updatedScans);
-                if (current.status !== 'running' && current.status !== 'queued' && current.status !== 'pending') {
-                  clearInterval(pollTimer);
-                  setIsScanning(false);
-                  if (current.status === 'completed' || current.status === 'failed' || current.status === 'timed_out_partial') {
-                    const rep = await api.scans.report(current.id);
-                    setScanReport(rep);
-                  }
-                }
-              }
-            } catch (e) {
-              clearInterval(pollTimer);
-            }
-          }, 2500);
+          pollScanStatus(latest.id, repo.id);
         } else if (latest.status === 'completed' || latest.status === 'failed' || latest.status === 'timed_out_partial') {
           const rep = await api.scans.report(latest.id);
           setScanReport(rep);
@@ -375,25 +434,7 @@ export const RepositoriesPage: React.FC = () => {
 
     setIsScanning(true);
     setScanReport(null);
-
-    let pollTimer: any = null;
     const repoId = activeRepo.id;
-
-    const stopPollingAndFinish = async (latestScan: any) => {
-      if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-      }
-      setIsScanning(false);
-      try {
-        const rep = await api.scans.report(latestScan.id);
-        setScanReport(rep);
-        const updatedRepo = await api.repositories.get(repoId);
-        setActiveRepo(updatedRepo);
-      } catch (e) {
-        // Report might not be available if failed immediately
-      }
-    };
 
     try {
       const scan = await api.scans.analyze(activeRepo.id, {
@@ -402,34 +443,28 @@ export const RepositoriesPage: React.FC = () => {
       });
       setCurrentScan(scan);
 
-      // Refresh past scans list
-      const scans = await api.scans.listByRepo(activeRepo.id);
+      // Refresh past scans list (first page)
+      const scans = await api.scans.listByRepo(activeRepo.id, 50, 0);
       setPastScans(scans);
 
       // If already finished
-      if (scan.status !== 'queued' && scan.status !== 'running') {
-        await stopPollingAndFinish(scan);
+      if (scan.status !== 'queued' && scan.status !== 'running' && scan.status !== 'pending') {
+        setIsScanning(false);
+        try {
+          const rep = await api.scans.report(scan.id);
+          setScanReport(rep);
+          const updatedRepo = await api.repositories.get(repoId);
+          setActiveRepo(updatedRepo);
+        } catch (e) {
+          // ignore
+        }
         return;
       }
 
-      // Live polling timer to poll until terminal state
-      pollTimer = setInterval(async () => {
-        try {
-          const updatedScans = await api.scans.listByRepo(repoId);
-          if (updatedScans.length > 0) {
-            const latest = updatedScans[0];
-            setCurrentScan(latest);
-            setPastScans(updatedScans);
-            if (latest.status !== 'queued' && latest.status !== 'running') {
-              await stopPollingAndFinish(latest);
-            }
-          }
-        } catch (err) {
-          // ignore polling network errors
-        }
-      }, 2000);
+      // Dedicated single scan polling with bounded backoff
+      pollScanStatus(scan.id, repoId);
     } catch (err: any) {
-      if (pollTimer) clearInterval(pollTimer);
+      if (activePollRef.current) activePollRef.current.cancel();
       setIsScanning(false);
       const msg = err?.response?.data?.detail || err?.message || 'Analysis failed to start';
       alert(`Scan failed: ${msg}`);
@@ -2005,30 +2040,37 @@ export const RepositoriesPage: React.FC = () => {
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                        <table style={{ width: '100%', minWidth: '720px', borderCollapse: 'collapse', fontSize: '13px' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
-                              <th style={{ padding: '10px 12px', width: '32px' }}></th>
-                              <th style={{ padding: '10px 12px' }}>Severity</th>
-                              <th style={{ padding: '10px 12px' }}>Scanner & Rule</th>
-                              {findingsScope === 'all' && <th style={{ padding: '10px 12px' }}>Repository</th>}
-                              <th style={{ padding: '10px 12px' }}>Title</th>
-                              <th style={{ padding: '10px 12px' }}>Folder / File Location & Line</th>
-                              <th style={{ padding: '10px 12px' }}>Verification</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(() => {
-                              const primaryFindings = filteredFindings.filter(
-                                (f) => f.classification !== 'likely_placeholder'
-                              );
-                              const placeholderFindings = filteredFindings.filter(
-                                (f) => f.classification === 'likely_placeholder'
-                              );
+                    ) : (() => {
+                      const primaryFindings = filteredFindings.filter(
+                        (f) => f.classification !== 'likely_placeholder'
+                      );
+                      const placeholderFindings = filteredFindings.filter(
+                        (f) => f.classification === 'likely_placeholder'
+                      );
+                      const totalPrimaryPages = Math.ceil(primaryFindings.length / findingsPageSize) || 1;
+                      const paginatedPrimary = primaryFindings.slice(
+                        (findingsPage - 1) * findingsPageSize,
+                        findingsPage * findingsPageSize
+                      );
 
-                              const renderFindingRow = (finding: Finding) => {
+                      return (
+                        <>
+                          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            <table style={{ width: '100%', minWidth: '720px', borderCollapse: 'collapse', fontSize: '13px' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
+                                  <th style={{ padding: '10px 12px', width: '32px' }}></th>
+                                  <th style={{ padding: '10px 12px' }}>Severity</th>
+                                  <th style={{ padding: '10px 12px' }}>Scanner & Rule</th>
+                                  {findingsScope === 'all' && <th style={{ padding: '10px 12px' }}>Repository</th>}
+                                  <th style={{ padding: '10px 12px' }}>Title</th>
+                                  <th style={{ padding: '10px 12px' }}>Folder / File Location & Line</th>
+                                  <th style={{ padding: '10px 12px' }}>Verification</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(() => {
+                                  const renderFindingRow = (finding: Finding) => {
                                 const isExpanded = expandedFindingId === finding.id;
                                 const sevClass = `severity-${finding.severity}`;
 
@@ -2751,7 +2793,7 @@ export const RepositoriesPage: React.FC = () => {
 
                             return (
                               <>
-                                {primaryFindings.map(renderFindingRow)}
+                                {paginatedPrimary.map(renderFindingRow)}
 
                                 {placeholderFindings.length > 0 && (
                                   <>
@@ -2825,7 +2867,37 @@ export const RepositoriesPage: React.FC = () => {
                         </tbody>
                         </table>
                       </div>
-                    )}
+                      {primaryFindings.length > findingsPageSize && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: '8px' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            Showing {((findingsPage - 1) * findingsPageSize) + 1} to {Math.min(findingsPage * findingsPageSize, primaryFindings.length)} of {primaryFindings.length} findings
+                          </span>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <button
+                              onClick={() => setFindingsPage((p) => Math.max(1, p - 1))}
+                              disabled={findingsPage <= 1}
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '12px', opacity: findingsPage <= 1 ? 0.5 : 1 }}
+                            >
+                              Previous
+                            </button>
+                            <span style={{ fontSize: '12px', padding: '4px 8px', color: 'var(--text-secondary)' }}>
+                              Page {findingsPage} of {totalPrimaryPages}
+                            </span>
+                            <button
+                              onClick={() => setFindingsPage((p) => Math.min(totalPrimaryPages, p + 1))}
+                              disabled={findingsPage >= totalPrimaryPages}
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '12px', opacity: findingsPage >= totalPrimaryPages ? 0.5 : 1 }}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                   </div>
                 </>
               ) : (
@@ -3602,7 +3674,8 @@ export const RepositoriesPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <>
+                  <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                   <table style={{ width: '100%', minWidth: '640px', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
@@ -3615,104 +3688,140 @@ export const RepositoriesPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {pastScans.map((scan) => {
-                        const isCurrentlyViewed = currentScan?.id === scan.id;
-                        const statusColor =
-                          scan.status === 'completed'
-                            ? 'var(--accent-green)'
-                            : scan.status === 'running'
-                            ? 'var(--electric-blue-bright)'
-                            : scan.status === 'queued' || scan.status === 'pending'
-                            ? 'var(--accent-cyan, #06b6d4)'
-                            : scan.status === 'timed_out_partial'
-                            ? 'var(--accent-amber)'
-                            : scan.status === 'cancelled'
-                            ? 'var(--accent-amber)'
-                            : 'var(--accent-rose)';
-
-                        return (
-                          <tr
-                            key={scan.id}
-                            style={{
-                              borderBottom: '1px solid rgba(30, 58, 110, 0.4)',
-                              background: isCurrentlyViewed ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                            }}
-                          >
-                            <td style={{ padding: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              #{scan.id}
-                            </td>
-                            <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                              {new Date(scan.created_at).toLocaleString()}
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              <span
-                                style={{
-                                  fontSize: '11px',
-                                  padding: '2px 8px',
-                                  borderRadius: '4px',
-                                  background: `${statusColor}22`,
-                                  color: statusColor,
-                                  fontWeight: 600,
-                                  textTransform: 'capitalize',
-                                }}
-                              >
-                                {scan.status}
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              <code
-                                style={{
-                                  background: '#f1f5f9',
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  border: '1px solid #e2e8f0',
-                                  color: '#1d4ed8',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {scan.commit_sha ? scan.commit_sha.slice(0, 7) : 'Unpinned'}
-                              </code>
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              {scan.summary ? (
-                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px' }}>
-                                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                                    {scan.summary.total_findings} findings
-                                  </span>
-                                  {scan.summary.critical > 0 && (
-                                    <span style={{ color: '#f87171', fontSize: '11px' }}>({scan.summary.critical} Crit)</span>
-                                  )}
-                                  {scan.summary.high > 0 && (
-                                    <span style={{ color: '#fbbf24', fontSize: '11px' }}>({scan.summary.high} High)</span>
-                                  )}
-                                </div>
-                              ) : (
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>—</span>
-                              )}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'right' }}>
-                              {isCurrentlyViewed ? (
-                                <span style={{ fontSize: '11px', color: 'var(--teal-bright)', fontWeight: 600 }}>
-                                  ✓ Viewing Report
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={() => viewPastScanReport(scan)}
-                                  className="btn btn-secondary"
-                                  style={{ fontSize: '11px', padding: '4px 10px' }}
-                                  aria-label={`View report for scan #${scan.id}`}
-                                >
-                                  Inspect Report
-                                </button>
-                              )}
-                            </td>
-                          </tr>
+                      {(() => {
+                        const paginatedPastScans = pastScans.slice(
+                          (historyPage - 1) * historyPageSize,
+                          historyPage * historyPageSize
                         );
-                      })}
+
+                        return paginatedPastScans.map((scan) => {
+                          const isCurrentlyViewed = currentScan?.id === scan.id;
+                          const statusColor =
+                            scan.status === 'completed'
+                              ? 'var(--accent-green)'
+                              : scan.status === 'running'
+                              ? 'var(--electric-blue-bright)'
+                              : scan.status === 'queued' || scan.status === 'pending'
+                              ? 'var(--accent-cyan, #06b6d4)'
+                              : scan.status === 'timed_out_partial'
+                              ? 'var(--accent-amber)'
+                              : scan.status === 'cancelled'
+                              ? 'var(--accent-amber)'
+                              : 'var(--accent-rose)';
+
+                          return (
+                            <tr
+                              key={scan.id}
+                              style={{
+                                borderBottom: '1px solid rgba(30, 58, 110, 0.4)',
+                                background: isCurrentlyViewed ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                              }}
+                            >
+                              <td style={{ padding: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                #{scan.id}
+                              </td>
+                              <td style={{ padding: '12px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                                {new Date(scan.created_at).toLocaleString()}
+                              </td>
+                              <td style={{ padding: '12px' }}>
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    background: `${statusColor}22`,
+                                    color: statusColor,
+                                    fontWeight: 600,
+                                    textTransform: 'capitalize',
+                                  }}
+                                >
+                                  {scan.status}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px' }}>
+                                <code
+                                  style={{
+                                    background: '#f1f5f9',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #e2e8f0',
+                                    color: '#1d4ed8',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {scan.commit_sha ? scan.commit_sha.slice(0, 7) : 'Unpinned'}
+                                </code>
+                              </td>
+                              <td style={{ padding: '12px' }}>
+                                {scan.summary ? (
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px' }}>
+                                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                      {scan.summary.total_findings} findings
+                                    </span>
+                                    {scan.summary.critical > 0 && (
+                                      <span style={{ color: '#f87171', fontSize: '11px' }}>({scan.summary.critical} Crit)</span>
+                                    )}
+                                    {scan.summary.high > 0 && (
+                                      <span style={{ color: '#fbbf24', fontSize: '11px' }}>({scan.summary.high} High)</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>—</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '12px', textAlign: 'right' }}>
+                                {isCurrentlyViewed ? (
+                                  <span style={{ fontSize: '11px', color: 'var(--teal-bright)', fontWeight: 600 }}>
+                                    ✓ Viewing Report
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => viewPastScanReport(scan)}
+                                    className="btn btn-secondary"
+                                    style={{ fontSize: '11px', padding: '4px 10px' }}
+                                    aria-label={`View report for scan #${scan.id}`}
+                                  >
+                                    Inspect Report
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>
-              )}
+                {pastScans.length > historyPageSize && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Showing {((historyPage - 1) * historyPageSize) + 1} to {Math.min(historyPage * historyPageSize, pastScans.length)} of {pastScans.length} scans
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                        disabled={historyPage <= 1}
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: '12px', opacity: historyPage <= 1 ? 0.5 : 1 }}
+                      >
+                        Previous
+                      </button>
+                      <span style={{ fontSize: '12px', padding: '4px 8px', color: 'var(--text-secondary)' }}>
+                        Page {historyPage} of {Math.ceil(pastScans.length / historyPageSize) || 1}
+                      </span>
+                      <button
+                        onClick={() => setHistoryPage((p) => Math.min(Math.ceil(pastScans.length / historyPageSize) || 1, p + 1))}
+                        disabled={historyPage >= (Math.ceil(pastScans.length / historyPageSize) || 1)}
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: '12px', opacity: historyPage >= (Math.ceil(pastScans.length / historyPageSize) || 1) ? 0.5 : 1 }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
             </div>
           )}
         </div>

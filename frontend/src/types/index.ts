@@ -345,6 +345,26 @@ export interface DashboardSummaryResponse {
   recent_activity: RecentScanItem[];
 }
 
+export interface DashboardMetricsResponse {
+  metrics_available: boolean;
+  error?: string | null;
+  total_repositories: number | null;
+  total_scans: number | null;
+  completed_scans: number | null;
+  running_scans: number | null;
+  failed_scans: number | null;
+  total_findings: number | null;
+  critical_findings: number | null;
+  high_findings: number | null;
+  medium_findings: number | null;
+  low_findings: number | null;
+  info_findings: number | null;
+  false_positives: number | null;
+  potential_issues: number | null;
+  patches_available: number | null;
+  computed_at: string;
+}
+
 export interface ScanComparisonResult {
   scan_a: {
     id: number;

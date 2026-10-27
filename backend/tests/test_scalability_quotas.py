@@ -295,15 +295,15 @@ class TestRepositoryCloneSizeDefense:
         dummy_file.write_bytes(b"0" * (2 * 1024 * 1024))
 
         # Patch max_repo_clone_size_mb = 1 MB (so 2 MB exceeds cap)
+        async def fake_git_clone(*args, **kwargs):
+            target.mkdir(parents=True, exist_ok=True)
+            dummy = target / "large_binary.bin"
+            dummy.write_bytes(b"0" * (2 * 1024 * 1024))
+            return (0, b"Cloning into...", b"")
+
         with patch.object(get_settings(), "max_repo_clone_size_mb", 1):
             svc = GitService()
-            # Mock _run_git_command to simulate a successful git clone exit
-            with patch.object(
-                svc,
-                "_run_git_command",
-                new_callable=AsyncMock,
-                return_value=(0, b"Cloning into...", b""),
-            ):
+            with patch.object(svc, "_run_git_command", side_effect=fake_git_clone):
                 with pytest.raises(GitExecutionError) as exc_info:
                     await svc.clone_repository(
                         normalized_url="https://github.com/test/oversized-repo",
