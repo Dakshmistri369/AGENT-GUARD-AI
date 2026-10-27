@@ -213,8 +213,8 @@ class Settings(BaseSettings):
                         "AI_PROVIDER=mock in production requires "
                         "AGENTGUARD_ALLOW_MOCK_IN_PRODUCTION=1 to acknowledge"
                     )
-            if "*" in self.frontend_origin:
-                errors.append("FRONTEND_ORIGIN must not be a wildcard in production")
+            if self.frontend_origin.strip() == "*":
+                errors.append("FRONTEND_ORIGIN must not be a bare '*' wildcard in production")
             if errors:
                 # Fail fast with actionable message — no secret values in output
                 msg = "Production startup blocked due to insecure configuration:\n"

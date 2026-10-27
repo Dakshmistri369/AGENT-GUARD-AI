@@ -19,11 +19,15 @@ services:
       - key: ENABLE_DEMO_AUTH
         value: "true"
       - key: FRONTEND_ORIGIN
-        value: "https://*.vercel.app,http://localhost:5173"
+        value: "https://agentguard-alpha-teal.vercel.app,http://localhost:5173"
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
         sync: false
+      - key: SUPABASE_URL
+        value: "https://ohnwhldqnemjvpjvpclw.supabase.co"
+      - key: SUPABASE_PUBLISHABLE_KEY
+        value: "sb_publishable_EZSCRcATGUomHAV_lkbxSQ_00pzuyN1"
       - key: AI_PROVIDER
         value: "nemotron"
       - key: AI_API_KEY
@@ -32,3 +36,7 @@ services:
         value: "https://integrate.api.nvidia.com/v1"
       - key: AI_MODEL
         value: "nvidia/llama-3.1-nemotron-70b-instruct"
+      - key: SEMGREP_RULE_TIMEOUT_SECONDS
+        value: "0"
+      - key: SCANNER_JOB_MAX_RUNTIME_SECONDS
+        value: "1800"
