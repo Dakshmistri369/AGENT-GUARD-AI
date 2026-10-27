@@ -141,6 +141,26 @@ class ScanQueueClient:
         if _BACKGROUND_TASKS:
             await asyncio.wait(list(_BACKGROUND_TASKS), timeout=timeout)
 
+    async def get_queue_depth(self) -> int:
+        """Return the number of currently queued jobs awaiting processing."""
+        redis_conn = await self._get_redis()
+        if redis_conn:
+            try:
+                # arq queues are stored as zsets in Redis
+                zcount = await redis_conn.zcard(f"arq:queue:{self.queue_name}")
+                if zcount is not None:
+                    return zcount
+            except Exception as exc:
+                logger.warning("Failed to read Redis queue depth: %s", exc)
+
+        async with _IN_MEMORY_LOCK:
+            return sum(1 for j in _IN_MEMORY_JOBS.values() if j.get("status") == "queued")
+
+    async def get_active_running_count(self) -> int:
+        """Return the number of currently running jobs."""
+        async with _IN_MEMORY_LOCK:
+            return sum(1 for j in _IN_MEMORY_JOBS.values() if j.get("status") == "running")
+
     def reset_in_memory(self) -> None:
         """Reset in-memory job, DLQ, and heartbeat stores (primarily for tests)."""
         _IN_MEMORY_JOBS.clear()

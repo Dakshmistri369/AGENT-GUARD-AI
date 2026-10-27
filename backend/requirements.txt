@@ -20,3 +20,4 @@ semgrep>=1.100.0
 detect-secrets>=1.5.0
 arq>=0.26.0
 redis>=5.0.0
+locust>=2.32.0

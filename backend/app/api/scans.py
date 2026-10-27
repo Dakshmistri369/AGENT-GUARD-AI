@@ -180,18 +180,22 @@ async def get_queue_status(
     response: Response,
     current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
-    """Get background worker liveness signals, queue health, and dead-letter queue records."""
+    """Get background worker liveness signals, queue health, queue depth, and dead-letter queue records."""
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
     client = get_queue_client()
     redis_available = await client.is_redis_available()
     heartbeats = await client.get_worker_heartbeats()
     dlq_jobs = await client.get_dead_letter_jobs(limit=20)
+    queue_depth = await client.get_queue_depth()
+    active_running = await client.get_active_running_count()
 
     return {
         "status": "online",
         "redis_connected": redis_available,
         "queue_name": client.queue_name,
         "max_retries": client.max_retries,
+        "queue_depth": queue_depth,
+        "active_running_scans": active_running,
         "active_workers": len(heartbeats),
         "worker_heartbeats": heartbeats,
         "dead_letter_jobs_count": len(dlq_jobs),
