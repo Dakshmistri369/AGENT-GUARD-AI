@@ -104,6 +104,33 @@ def _sync_database_schema(connection) -> None:
             if "secret_redacted_preview" not in finding_cols:
                 connection.execute(text("ALTER TABLE findings ADD COLUMN secret_redacted_preview VARCHAR(255);"))
 
+    # 4. Milestone D: Composite & performance indexes for high-concurrency scale
+    if "scans" in existing_tables:
+        if dialect == "postgresql":
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_scans_status ON scans (status);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_scans_created_at ON scans (created_at DESC);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_scans_repo_created ON scans (repository_id, created_at DESC);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_scans_status_created ON scans (status, created_at);"))
+        else:
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_scans_status ON scans (status);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_scans_created_at ON scans (created_at);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_scans_repo_created ON scans (repository_id, created_at);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_scans_status_created ON scans (status, created_at);"))
+
+    if "findings" in existing_tables:
+        if dialect == "postgresql":
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_severity ON findings (severity);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_scanner ON findings (scanner);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_verification_status ON findings (verification_status);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_classification ON findings (classification);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_scan_severity ON findings (scan_id, severity);"))
+        else:
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_severity ON findings (severity);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_scanner ON findings (scanner);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_verification_status ON findings (verification_status);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_classification ON findings (classification);"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_findings_scan_severity ON findings (scan_id, severity);"))
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:

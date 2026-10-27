@@ -10,7 +10,7 @@ import shutil
 import logging
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, select
+from sqlalchemy import and_, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db
@@ -151,83 +151,88 @@ async def get_dashboard_summary(
             recent_activity=[],
         )
 
-    # 2. Fetch user's scans
-    scans_stmt = (
-        select(Scan)
-        .where(Scan.repository_id.in_(repo_ids))
-        .order_by(Scan.created_at.desc())
+    # 2. Scans metrics via fast SQL counts
+    total_scans_res = await db.execute(
+        select(func.count(Scan.id)).where(Scan.repository_id.in_(repo_ids))
     )
-    scans_res = await db.execute(scans_stmt)
-    all_scans = list(scans_res.scalars().all())
-    scan_ids = [s.id for s in all_scans]
+    total_scans = total_scans_res.scalar() or 0
 
-    total_scans = len(all_scans)
-
-    def _is_recent(dt: Any) -> bool:
-        if not dt:
-            return False
-        if isinstance(dt, str):
-            try:
-                dt = datetime.datetime.fromisoformat(dt.replace("Z", "+00:00"))
-            except Exception:
-                return False
-        if not isinstance(dt, datetime.datetime):
-            return False
-        if dt.tzinfo:
-            return dt >= thirty_days_ago
-        return dt >= thirty_days_ago.replace(tzinfo=None)
-
-    scans_30d = sum(1 for s in all_scans if _is_recent(s.created_at))
-
-    # 3. Fetch all findings across these scans
-    findings: list[Finding] = []
-    if scan_ids:
-        findings_stmt = (
-            select(Finding)
-            .where(Finding.scan_id.in_(scan_ids))
-            .order_by(Finding.id.asc())
+    scans_30d_res = await db.execute(
+        select(func.count(Scan.id)).where(
+            Scan.repository_id.in_(repo_ids),
+            Scan.created_at >= thirty_days_ago,
         )
-        findings_res = await db.execute(findings_stmt)
-        findings = list(findings_res.scalars().all())
+    )
+    scans_30d = scans_30d_res.scalar() or 0
 
-    total_issues = len(findings)
-    false_positives_count = sum(1 for f in findings if f.verification_status == "false_positive")
-    potential_issues_count = sum(1 for f in findings if f.verification_status in ["unverified", "confirmed"])
+    # 3. Overall Findings Count via SQL aggregation
+    total_issues_res = await db.execute(
+        select(func.count(Finding.id))
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.repository_id.in_(repo_ids))
+    )
+    total_issues = total_issues_res.scalar() or 0
+
+    # Verification status breakdown (false positives vs potential issues)
+    verif_res = await db.execute(
+        select(Finding.verification_status, func.count(Finding.id))
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.repository_id.in_(repo_ids))
+        .group_by(Finding.verification_status)
+    )
+    verif_counts = {v_status: count for v_status, count in verif_res.all()}
+    false_positives_count = verif_counts.get("false_positive", 0)
+    potential_issues_count = verif_counts.get("unverified", 0) + verif_counts.get("confirmed", 0)
     fp_percentage = round((false_positives_count / total_issues * 100), 1) if total_issues > 0 else 0.0
 
-    # 4. Compute Patches Generated (fast O(1) evaluation avoiding heavy sequential diff generation)
-    patches_count = sum(
-        1 for f in findings
-        if f.verification_status in ["unverified", "confirmed"]
-        and bool(f.remediation or f.code_snippet or (f.scanner and f.scanner.lower() in ("bandit", "detect_secrets", "detect-secrets", "osv_scanner", "semgrep")))
+    # 4. Patches Generated (fast SQL evaluation)
+    patch_condition = and_(
+        Finding.verification_status.in_(["unverified", "confirmed"]),
+        or_(
+            Finding.remediation.isnot(None),
+            Finding.code_snippet.isnot(None),
+            func.lower(Finding.scanner).in_(["bandit", "detect_secrets", "detect-secrets", "osv_scanner", "semgrep"]),
+        ),
     )
+    patches_res = await db.execute(
+        select(func.count(Finding.id))
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.repository_id.in_(repo_ids), patch_condition)
+    )
+    patches_count = patches_res.scalar() or 0
     patch_pct = round((patches_count / potential_issues_count * 100), 1) if potential_issues_count > 0 else 0.0
 
-    # 5. Severity distribution
-    crit = sum(1 for f in findings if (f.severity or "").lower() == "critical")
-    high = sum(1 for f in findings if (f.severity or "").lower() == "high")
-    med = sum(1 for f in findings if (f.severity or "").lower() == "medium")
-    low = sum(1 for f in findings if (f.severity or "").lower() == "low")
-    info = sum(1 for f in findings if (f.severity or "").lower() == "info")
-
+    # 5. Severity distribution via SQL GROUP BY
+    sev_res = await db.execute(
+        select(func.lower(Finding.severity), func.count(Finding.id))
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.repository_id.in_(repo_ids))
+        .group_by(func.lower(Finding.severity))
+    )
+    sev_counts = {sev: count for sev, count in sev_res.all()}
     severity_dist = SeverityDistribution(
-        critical=crit,
-        high=high,
-        medium=med,
-        low=low,
-        info=info,
+        critical=sev_counts.get("critical", 0),
+        high=sev_counts.get("high", 0),
+        medium=sev_counts.get("medium", 0),
+        low=sev_counts.get("low", 0),
+        info=sev_counts.get("info", 0),
         total=total_issues,
     )
 
-    # 6. Vulnerability types donut breakdown
+    # 6. Vulnerability types donut breakdown via SQL GROUP BY
+    type_res = await db.execute(
+        select(Finding.rule_id, Finding.title, Finding.scanner, func.count(Finding.id))
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.repository_id.in_(repo_ids))
+        .group_by(Finding.rule_id, Finding.title, Finding.scanner)
+    )
     type_counts: dict[str, dict[str, Any]] = {}
-    for f in findings:
-        cat_name, cat_short, cat_cwe = _categorize_finding(f.rule_id, f.title, f.scanner)
+    for rule_id, title, scanner, count in type_res.all():
+        cat_name, cat_short, cat_cwe = _categorize_finding(rule_id, title, scanner)
         if cat_name not in type_counts:
             type_counts[cat_name] = {"short": cat_short, "count": 0}
-        type_counts[cat_name]["count"] += 1
+        type_counts[cat_name]["count"] += count
 
-    # Palette for donut slices
     colors = [
         "#f43f5e",  # rose / pink
         "#3b82f6",  # electric blue
@@ -254,7 +259,6 @@ async def get_dashboard_summary(
             )
         )
 
-    # Remainder slice if more than 7 types
     if len(sorted_types) > 7:
         other_cnt = sum(data["count"] for _, data in sorted_types[7:])
         other_pct = round((other_cnt / total_issues * 100), 1) if total_issues > 0 else 0.0
@@ -268,22 +272,27 @@ async def get_dashboard_summary(
             )
         )
 
-    # 7. Most Critical Issues (ranked: Critical > High > Medium)
-    severity_rank = {"critical": 1, "high": 2, "medium": 3, "low": 4, "info": 5}
-    sorted_findings = sorted(
-        findings,
-        key=lambda f: (severity_rank.get((f.severity or "").lower(), 99), -f.id),
+    # 7. Most Critical Issues (ranked: Critical > High > Medium via SQL ORDER BY LIMIT 6)
+    sev_order = case(
+        (func.lower(Finding.severity) == "critical", 1),
+        (func.lower(Finding.severity) == "high", 2),
+        (func.lower(Finding.severity) == "medium", 3),
+        (func.lower(Finding.severity) == "low", 4),
+        else_=5,
     )
-
-    # Scan-to-repo map
-    scan_repo_map = {s.id: s.repository_id for s in all_scans}
-
+    critical_stmt = (
+        select(Finding, Scan.repository_id)
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.repository_id.in_(repo_ids))
+        .order_by(sev_order, Finding.id.desc())
+        .limit(6)
+    )
+    crit_res = await db.execute(critical_stmt)
     most_critical: list[CriticalIssueItem] = []
-    for f in sorted_findings[:6]:
+    for f, r_id in crit_res.all():
         cat_name, cat_short, cat_cwe = _categorize_finding(f.rule_id, f.title, f.scanner)
         sev = (f.severity or "medium").lower()
         score = 100 if sev == "critical" else (95 if sev == "high" else (70 if sev == "medium" else 40))
-        r_id = scan_repo_map.get(f.scan_id)
         r_name = repo_name_map.get(r_id, "Repository") if r_id else "Repository"
 
         most_critical.append(
@@ -305,16 +314,22 @@ async def get_dashboard_summary(
             )
         )
 
-    # 8. Issues By Repository
-    # Group findings by repository ID
-    repo_finding_counts: dict[int, dict[str, int]] = {r.id: {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0} for r in repositories}
-    for f in findings:
-        r_id = scan_repo_map.get(f.scan_id)
+    # 8. Issues By Repository via SQL GROUP BY
+    repo_counts_res = await db.execute(
+        select(Scan.repository_id, func.lower(Finding.severity), func.count(Finding.id))
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.repository_id.in_(repo_ids))
+        .group_by(Scan.repository_id, func.lower(Finding.severity))
+    )
+    repo_finding_counts: dict[int, dict[str, int]] = {
+        r.id: {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+        for r in repositories
+    }
+    for r_id, s_key, count in repo_counts_res.all():
         if r_id in repo_finding_counts:
-            repo_finding_counts[r_id]["total"] += 1
-            s_key = (f.severity or "medium").lower()
+            repo_finding_counts[r_id]["total"] += count
             if s_key in repo_finding_counts[r_id]:
-                repo_finding_counts[r_id][s_key] += 1
+                repo_finding_counts[r_id][s_key] += count
 
     issues_by_repo: list[RepositoryIssueBreakdown] = []
     for r in repositories:
@@ -333,11 +348,14 @@ async def get_dashboard_summary(
             )
         )
 
-    # 9. Scanner Health
-    scanner_counts: dict[str, int] = {}
-    for f in findings:
-        s_name = (f.scanner or "").lower()
-        scanner_counts[s_name] = scanner_counts.get(s_name, 0) + 1
+    # 9. Scanner Health via SQL GROUP BY
+    sc_counts_res = await db.execute(
+        select(func.lower(Finding.scanner), func.count(Finding.id))
+        .join(Scan, Finding.scan_id == Scan.id)
+        .where(Scan.repository_id.in_(repo_ids))
+        .group_by(func.lower(Finding.scanner))
+    )
+    scanner_counts: dict[str, int] = {sc: count for sc, count in sc_counts_res.all()}
 
     scanner_health: list[ScannerHealthItem] = [
         ScannerHealthItem(
@@ -393,24 +411,39 @@ async def get_dashboard_summary(
         total_repositories=len(repositories),
     )
 
-    # 11. Recent Scan Activity
-    recent_activity: list[RecentScanItem] = []
-    for s in all_scans[:8]:
-        r_name = repo_name_map.get(s.repository_id, "Repository")
-        f_count = sum(1 for f in findings if f.scan_id == s.id)
-        recent_activity.append(
-            RecentScanItem(
-                id=s.id,
-                repository_id=s.repository_id,
-                repository_name=r_name,
-                branch=s.commit_sha[:7] if s.commit_sha else "main",
-                commit_sha=s.commit_sha,
-                status=s.status or "completed",
-                findings_count=f_count,
-                created_at=s.created_at if isinstance(s.created_at, datetime.datetime) else now,
-                completed_at=s.completed_at if isinstance(s.completed_at, datetime.datetime) else None,
-            )
+    # 11. Recent Scan Activity (fetch top 8 scans only)
+    recent_scans_res = await db.execute(
+        select(Scan)
+        .where(Scan.repository_id.in_(repo_ids))
+        .order_by(Scan.created_at.desc())
+        .limit(8)
+    )
+    recent_scans = list(recent_scans_res.scalars().all())
+    recent_scan_ids = [s.id for s in recent_scans]
+
+    recent_finding_counts: dict[int, int] = {}
+    if recent_scan_ids:
+        rf_res = await db.execute(
+            select(Finding.scan_id, func.count(Finding.id))
+            .where(Finding.scan_id.in_(recent_scan_ids))
+            .group_by(Finding.scan_id)
         )
+        recent_finding_counts = {s_id: count for s_id, count in rf_res.all()}
+
+    recent_activity: list[RecentScanItem] = [
+        RecentScanItem(
+            id=s.id,
+            repository_id=s.repository_id,
+            repository_name=repo_name_map.get(s.repository_id, "Repository"),
+            branch=s.commit_sha[:7] if s.commit_sha else "main",
+            commit_sha=s.commit_sha,
+            status=s.status or "completed",
+            findings_count=recent_finding_counts.get(s.id, 0),
+            created_at=s.created_at if isinstance(s.created_at, datetime.datetime) else now,
+            completed_at=s.completed_at if isinstance(s.completed_at, datetime.datetime) else None,
+        )
+        for s in recent_scans
+    ]
 
     return DashboardSummaryResponse(
         scans_and_reviews=ScansSummaryMetrics(

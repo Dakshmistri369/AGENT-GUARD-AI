@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, JSON, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -11,6 +11,11 @@ from app.database.base import Base
 
 class Scan(Base):
     __tablename__ = "scans"
+
+    __table_args__ = (
+        Index("ix_scans_repo_created", "repository_id", "created_at"),
+        Index("ix_scans_status_created", "status", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     project_id: Mapped[int | None] = mapped_column(
@@ -20,7 +25,7 @@ class Scan(Base):
         Integer, ForeignKey("repositories.id", ondelete="CASCADE"), nullable=True, index=True
     )
     status: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="pending"
+        String(32), nullable=False, default="pending", index=True
     )  # pending | queued | running | completed | failed | cancelled | timed_out_partial
     stage: Mapped[str | None] = mapped_column(
         String(64), nullable=True
@@ -40,7 +45,7 @@ class Scan(Base):
     skip_manifest: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
 
     # relationships

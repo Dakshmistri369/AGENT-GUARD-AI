@@ -207,7 +207,7 @@ export const RepositoriesPage: React.FC = () => {
       if (scans.length > 0) {
         const latest = scans[0];
         setCurrentScan(latest);
-        if (latest.status === 'running') {
+        if (latest.status === 'running' || latest.status === 'queued' || latest.status === 'pending') {
           setIsScanning(true);
           const pollTimer = setInterval(async () => {
             try {
@@ -216,18 +216,20 @@ export const RepositoriesPage: React.FC = () => {
                 const current = updatedScans[0];
                 setCurrentScan(current);
                 setPastScans(updatedScans);
-                if (current.status !== 'running') {
+                if (current.status !== 'running' && current.status !== 'queued' && current.status !== 'pending') {
                   clearInterval(pollTimer);
                   setIsScanning(false);
-                  const rep = await api.scans.report(current.id);
-                  setScanReport(rep);
+                  if (current.status === 'completed' || current.status === 'failed' || current.status === 'timed_out_partial') {
+                    const rep = await api.scans.report(current.id);
+                    setScanReport(rep);
+                  }
                 }
               }
             } catch (e) {
               clearInterval(pollTimer);
             }
           }, 2500);
-        } else if (latest.status === 'completed' || latest.status === 'failed') {
+        } else if (latest.status === 'completed' || latest.status === 'failed' || latest.status === 'timed_out_partial') {
           const rep = await api.scans.report(latest.id);
           setScanReport(rep);
         }
@@ -1409,9 +1411,13 @@ export const RepositoriesPage: React.FC = () => {
                   )}
                   <span>
                     {isScanning
-                      ? 'Security Verification in Progress — Executing Isolated Workspaces'
+                      ? currentScan?.status === 'queued'
+                        ? `Scan #${currentScan?.id} Queued — Waiting for Worker Slot`
+                        : 'Security Verification in Progress — Executing Isolated Workspaces'
                       : currentScan?.status === 'completed'
                       ? `Scan #${currentScan.id} Completed — Verified at SHA ${currentScan.commit_sha?.slice(0, 7) || 'latest'}`
+                      : currentScan?.status === 'timed_out_partial'
+                      ? `Scan #${currentScan.id} Completed with Partial Results (Timeout Ceiling Reached)`
                       : `Scan #${currentScan?.id} Status: ${currentScan?.status}`}
                   </span>
                 </div>
@@ -1425,8 +1431,8 @@ export const RepositoriesPage: React.FC = () => {
               {/* 6 Stages Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
                 {SCAN_STAGES.map((stg, idx) => {
-                  const isScanRunning = isScanning || currentScan?.status === 'running';
-                  const isCompletedScan = currentScan?.status === 'completed';
+                  const isScanRunning = isScanning || currentScan?.status === 'running' || currentScan?.status === 'queued' || currentScan?.status === 'pending';
+                  const isCompletedScan = currentScan?.status === 'completed' || currentScan?.status === 'timed_out_partial';
                   const isFailedScan = currentScan?.status === 'failed';
 
                   // Stage states
@@ -3543,6 +3549,10 @@ export const RepositoriesPage: React.FC = () => {
                             ? 'var(--accent-green)'
                             : scan.status === 'running'
                             ? 'var(--electric-blue-bright)'
+                            : scan.status === 'queued' || scan.status === 'pending'
+                            ? 'var(--accent-cyan, #06b6d4)'
+                            : scan.status === 'timed_out_partial'
+                            ? 'var(--accent-amber)'
                             : scan.status === 'cancelled'
                             ? 'var(--accent-amber)'
                             : 'var(--accent-rose)';
