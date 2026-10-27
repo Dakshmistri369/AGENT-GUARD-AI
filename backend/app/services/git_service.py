@@ -60,6 +60,8 @@ class GitService:
             "-c", "filter.lfs.smudge=",
             "-c", "filter.lfs.process=",
             "-c", "filter.lfs.required=false",
+            "-c", "protocol.file.allow=never",
+            "-c", "protocol.version=2",
             "clone",
             "--depth", str(max(1, depth)),
             "--single-branch",
@@ -74,11 +76,13 @@ class GitService:
 
         logger.info("Executing safe git clone into isolated workspace: %s", target_dir)
 
-        env = {
-            **os.environ,
-            "GIT_TERMINAL_PROMPT": "0",
-        }
-        env.pop("GIT_ASKPASS", None)
+        from app.security.subprocess_sandbox import (
+            get_sanitized_subprocess_env,
+            sanitize_workspace_symlinks,
+            terminate_process_tree,
+        )
+
+        env = get_sanitized_subprocess_env()
 
         try:
             returncode, stdout_bytes, stderr_bytes = await self._run_git_command(
@@ -120,6 +124,10 @@ class GitService:
                 raise
             logger.warning("Could not calculate cloned directory size: %s", exc)
 
+        # Milestone C: Neutralize any escaping symbolic links inside cloned workspace
+        from app.security.subprocess_sandbox import sanitize_workspace_symlinks
+        sanitize_workspace_symlinks(target_dir)
+
     async def _run_git_command(
         self,
         cmd: list[str],
@@ -132,9 +140,9 @@ class GitService:
         async subprocess support (such as Windows SelectorEventLoop under Uvicorn reload).
         """
         import subprocess  # nosec B404
+        from app.security.subprocess_sandbox import get_sanitized_subprocess_env, terminate_process_tree
 
-        exec_env = env or {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
-        exec_env.pop("GIT_ASKPASS", None)
+        exec_env = env if env is not None else get_sanitized_subprocess_env()
 
         process = None
         try:
@@ -167,12 +175,12 @@ class GitService:
 
         except (asyncio.TimeoutError, TimeoutError, subprocess.TimeoutExpired) as exc:
             if process:
-                try:
-                    process.kill()
-                    await process.wait()
-                except Exception as _kill_err:
-                    _ = _kill_err
+                terminate_process_tree(process)
             raise TimeoutError(f"Git command timed out after {timeout} seconds.") from exc
+        except asyncio.CancelledError:
+            if process:
+                terminate_process_tree(process)
+            raise
 
     async def get_head_commit_sha(self, repo_dir: Path) -> str:
         """Read HEAD commit SHA from local repository clone."""

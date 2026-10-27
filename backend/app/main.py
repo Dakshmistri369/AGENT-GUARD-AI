@@ -115,6 +115,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_sync_database_schema)
 
+    # Milestone C: Reap orphaned scan workspaces on startup
+    try:
+        from app.security.subprocess_sandbox import reap_orphan_workspaces
+        reap_orphan_workspaces(settings.scan_workspace_dir, max_age_seconds=settings.workspace_max_age_seconds)
+    except Exception as reaper_err:
+        import logging
+        logging.getLogger("agentguard.main").warning("Could not reap orphan workspaces on startup: %s", reaper_err)
+
     yield
 
     await engine.dispose()

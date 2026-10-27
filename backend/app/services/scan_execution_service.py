@@ -343,6 +343,15 @@ class ScanExecutionService:
                     "error": scan.error_message,
                 }
 
+            except asyncio.CancelledError:
+                logger.warning("Scan %d execution was cancelled.", scan_id)
+                scan.status = "cancelled"
+                scan.stage = "cancelled"
+                scan.error_message = "Scan was cancelled by user or system shutdown."
+                scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
+                await db.commit()
+                raise
+
             except Exception as exc:
                 logger.error("Scan %d failed with exception: %s", scan_id, exc, exc_info=True)
                 scan.status = "failed"

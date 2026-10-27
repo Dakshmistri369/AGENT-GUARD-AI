@@ -88,19 +88,13 @@ def cleanup_workspace(workspace: Path | str | None) -> None:
     """
     Safely delete the isolated workspace directory and all contained files.
     """
-    if not workspace:
-        return
+    from app.security.subprocess_sandbox import cleanup_workspace as _cleanup_ws
+    _cleanup_ws(workspace)
 
-    path = Path(workspace)
-    if not path.exists():
-        return
 
-    try:
-        import sys
-        if sys.version_info >= (3, 12):
-            shutil.rmtree(path, onexc=_remove_readonly)
-        else:
-            shutil.rmtree(path, onerror=_remove_readonly)
-        logger.info("Successfully cleaned up isolated workspace: %s", path)
-    except Exception as exc:
-        logger.error("Failed to clean up workspace %s: %s", path, exc)
+from app.security.subprocess_sandbox import (  # noqa: E402
+    get_sanitized_subprocess_env,
+    reap_orphan_workspaces,
+    sanitize_workspace_symlinks,
+    terminate_process_tree,
+)

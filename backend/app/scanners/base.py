@@ -185,59 +185,18 @@ class BaseScanner(ABC):
         """
         import subprocess  # nosec B404
 
-        # Ensure user Scripts, WinGet, and project bin directories are included in PATH for subprocesses
-        env = {**os.environ}
-        if extra_env:
-            env.update(extra_env)
+        from app.security.subprocess_sandbox import get_sanitized_subprocess_env, terminate_process_tree
 
-        # Prepend project bin directories so project-bundled tools (e.g. osv-scanner) are always executable
-        try:
-            base_dir = Path(__file__).resolve().parent
-            project_bin_dirs = [
-                str(base_dir.parent.parent.parent / "bin"),
-                str(base_dir.parent.parent / "bin"),
-                str(Path.cwd() / "bin"),
-                str(Path.cwd() / "backend" / "bin"),
-            ]
-            current_path = env.get("PATH", "")
-            for pbd in project_bin_dirs:
-                if os.path.isdir(pbd) and pbd not in current_path:
-                    sep = ";" if os.name == "nt" else ":"
-                    env["PATH"] = f"{pbd}{sep}{current_path}"
-                    current_path = env["PATH"]
-        except Exception:
-            pass
+        # Milestone C: Construct sanitized, credential-scrubbed environment for scanner subprocess
+        env = get_sanitized_subprocess_env(extra_env)
 
         if os.name == "nt":
-            appdata = os.environ.get("APPDATA")
-            if appdata:
-                user_scripts = str(Path(appdata) / "Python" / f"Python{sys.version_info.major}{sys.version_info.minor}" / "Scripts")
-                current_path = env.get("PATH", "")
-                if user_scripts not in current_path:
-                    env["PATH"] = f"{user_scripts};{current_path}"
-
-            env_scripts = str(Path(sys.executable).parent / "Scripts")
-            current_path = env.get("PATH", "")
-            if env_scripts not in current_path:
-                env["PATH"] = f"{env_scripts};{current_path}"
-
-            localappdata = os.environ.get("LOCALAPPDATA")
-            if localappdata:
-                winget_links = str(Path(localappdata) / "Microsoft" / "WinGet" / "Links")
-                current_path = env.get("PATH", "")
-                if winget_links not in current_path:
-                    env["PATH"] = f"{winget_links};{current_path}"
-
             # Also ensure all registry PATH directories are included
             reg_paths = _get_windows_registry_paths()
             current_path = env.get("PATH", "")
             extra_paths = [p for p in reg_paths if p not in current_path]
             if extra_paths:
                 env["PATH"] = f"{';'.join(extra_paths)};{current_path}"
-
-        # Prevent git or tools from prompting interactively
-        env["GIT_TERMINAL_PROMPT"] = "0"
-        env["PYTHONUNBUFFERED"] = "1"
 
         process = None
         try:
@@ -281,8 +240,9 @@ class BaseScanner(ABC):
 
         except (asyncio.TimeoutError, TimeoutError, subprocess.TimeoutExpired) as exc:
             if process:
-                try:
-                    process.kill()
-                except Exception as _kill_err:
-                    _ = _kill_err
+                terminate_process_tree(process)
             raise TimeoutError(f"Scanner '{self.name}' timed out after {timeout_seconds} seconds.") from exc
+        except asyncio.CancelledError:
+            if process:
+                terminate_process_tree(process)
+            raise

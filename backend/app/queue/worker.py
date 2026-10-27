@@ -128,6 +128,11 @@ class WorkerSettings:
     async def on_startup(ctx: dict[str, Any]):
         client = get_queue_client()
         await client.record_heartbeat(WORKER_ID, {"status": "started", "pid": os.getpid()})
+        try:
+            from app.security.subprocess_sandbox import reap_orphan_workspaces
+            reap_orphan_workspaces(WorkerSettings.settings.scan_workspace_dir, max_age_seconds=WorkerSettings.settings.workspace_max_age_seconds)
+        except Exception as exc:
+            logger.warning("Could not reap orphan workspaces on worker startup: %s", exc)
         logger.info("AgentGuard background worker %s started.", WORKER_ID)
 
     @staticmethod
