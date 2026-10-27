@@ -7,6 +7,7 @@ Transparently reports scanner availability, incomplete coverage, and CVE advisor
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -28,6 +29,36 @@ MANIFEST_LOCKFILE_NAMES = {
     "Cargo.toml", "Cargo.lock", "go.mod", "go.sum",
     "pom.xml", "build.gradle", "Gemfile", "Gemfile.lock", "composer.json", "composer.lock",
 }
+
+# In-memory lockfile hash cache with 24-hour TTL (Workstream 2)
+_OSV_LOCKFILE_CACHE: dict[str, tuple[float, ScannerResult]] = {}
+_OSV_CACHE_TTL_SECONDS = 86400  # 24 hours
+
+
+def compute_manifests_fingerprint(workspace_path: Path, commit_sha: str | None = None) -> str:
+    """Compute deterministic SHA256 of all discovered dependency manifests/lockfiles."""
+    hasher = hashlib.sha256()
+    if commit_sha:
+        hasher.update(commit_sha.encode("utf-8"))
+
+    found_manifests = []
+    try:
+        for f in workspace_path.rglob("*"):
+            if f.is_file() and f.name in MANIFEST_LOCKFILE_NAMES:
+                found_manifests.append(f)
+    except Exception:
+        pass
+
+    found_manifests.sort(key=lambda p: str(p.relative_to(workspace_path)))
+    for mf in found_manifests:
+        try:
+            rel_name = str(mf.relative_to(workspace_path))
+            hasher.update(rel_name.encode("utf-8"))
+            hasher.update(mf.read_bytes())
+        except Exception:
+            pass
+
+    return hasher.hexdigest()
 
 # Offline Known Vulnerability Heuristics for Fallback Analysis
 FALLBACK_ADVISORIES = [
@@ -233,6 +264,22 @@ class OSVScanner(BaseScanner):
                 duration_seconds=0.0,
             )
 
+        # Check 24-hour lockfile content cache (Workstream 2)
+        cache_key = compute_manifests_fingerprint(workspace_path, commit_sha)
+        if cache_key in _OSV_LOCKFILE_CACHE:
+            cached_time, cached_result = _OSV_LOCKFILE_CACHE[cache_key]
+            if time.time() - cached_time < _OSV_CACHE_TTL_SECONDS:
+                logger.info("OSV-Scanner cache hit for manifest fingerprint %s (24h TTL)", cache_key[:12])
+                return ScannerResult(
+                    scanner=cached_result.scanner,
+                    scanner_version=cached_result.scanner_version,
+                    status=cached_result.status,
+                    reason=cached_result.reason,
+                    findings=cached_result.findings.copy(),
+                    error=cached_result.error,
+                    duration_seconds=round(time.time() - start_time, 3),
+                )
+
         available, version = self.is_available()
         exe = find_scanner_executable("osv-scanner")
 
@@ -335,13 +382,15 @@ class OSVScanner(BaseScanner):
                 except Exception as exc:
                     logger.debug("Failed to query OSV API by commit SHA: %s", exc)
 
-            return ScannerResult(
+            res = ScannerResult(
                 scanner=self.name,
                 scanner_version=version,
                 status="completed",
                 findings=findings,
                 duration_seconds=round(time.time() - start_time, 2),
             )
+            _OSV_LOCKFILE_CACHE[cache_key] = (time.time(), res)
+            return res
 
         # ── Case B: osv-scanner binary is NOT installed on host ──────────────
         # Run fallback manifest vulnerability inspector, plus online OSV API query,
@@ -386,7 +435,7 @@ class OSVScanner(BaseScanner):
             except Exception as exc:
                 logger.debug("Failed to query OSV API by commit: %s", exc)
 
-        return ScannerResult(
+        fallback_res = ScannerResult(
             scanner=self.name,
             scanner_version=None,
             status="skipped_unavailable",
@@ -394,3 +443,5 @@ class OSVScanner(BaseScanner):
             findings=fallback_findings,
             duration_seconds=round(time.time() - start_time, 2),
         )
+        _OSV_LOCKFILE_CACHE[cache_key] = (time.time(), fallback_res)
+        return fallback_res

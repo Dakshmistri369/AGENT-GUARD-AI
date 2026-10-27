@@ -87,7 +87,7 @@ class BanditScanner(BaseScanner):
         cmd = [exe or sys.executable]
         if not exe:
             cmd.extend(["-m", "bandit"])
-        cmd.extend(["-r", str(workspace_path), "-x", ".git,.venv,venv,node_modules,build,dist,__pycache__,vendor,.next", "-f", "json", "-q"])
+        cmd.extend(["-r", str(workspace_path), "-x", ".git,.venv,venv,node_modules,build,dist,__pycache__,vendor,.next,target,.tox,coverage,.pytest_cache,.ruff_cache,.turbo,.cache,scan_workspaces,.scan_workspaces,.idea,.vscode", "-f", "json", "-q"])
 
         try:
             exit_code, stdout, stderr = await self.execute_cmd(

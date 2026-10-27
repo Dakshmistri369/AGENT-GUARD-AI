@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     max_file_size_bytes: int = 5 * 1024 * 1024  # 5 MB per file
     max_tree_depth: int = 20
     scan_timeout_seconds: int = 600
+    git_clone_timeout_seconds: int = 300
 
     # ── OSV Vulnerability Service ─────────────────────────────────────────────
     # Google OSV API (https://api.osv.dev/v1) is free and public (zero API key needed).
@@ -122,7 +123,7 @@ class Settings(BaseSettings):
     max_queue_depth: int = 100                   # Global queue capacity before HTTP 429 backpressure
     rate_limit_per_minute_api: int = 60          # General API endpoints rate limit per client
     rate_limit_per_minute_scan: int = 10         # Scan trigger & AI endpoints rate limit per client
-    max_repo_clone_size_mb: int = 250            # Max allowed repository clone size
+    max_repo_clone_size_mb: int = 500            # Max allowed repository clone size (500 MB)
     db_pool_size: int = 5                        # Sized for Supabase 60-connection cap
     db_max_overflow: int = 5                     # Max overflow per process (max 10 total/worker)
     workspace_max_age_seconds: int = 3600        # Max age before orphan workspace cleanup

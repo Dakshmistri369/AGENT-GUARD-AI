@@ -22,9 +22,13 @@ class GitExecutionError(Exception):
 
 
 class GitService:
-    def __init__(self, git_path: str = "git", timeout_seconds: int = 180):
+    def __init__(self, git_path: str = "git", timeout_seconds: int | None = None):
         self._git_path = git_path
-        self._timeout_seconds = max(180, timeout_seconds)
+        if timeout_seconds is None:
+            from app.config import get_settings
+            self._timeout_seconds = get_settings().git_clone_timeout_seconds
+        else:
+            self._timeout_seconds = timeout_seconds
 
     def is_git_available(self) -> bool:
         """Check if git executable is present on the host PATH."""
@@ -36,20 +40,40 @@ class GitService:
         target_dir: Path,
         branch: str | None = None,
         depth: int = 1,
+        token: str | None = None,
     ) -> None:
         """
         Safely clone an authorized repository into target_dir.
         Enforces:
         - Argument list execution (shell=False)
-        - Disabled git hooks and credential prompts
-        - Disabled submodules
-        - Disabled Git LFS filters
+        - Pre-clone host disk space verification
+        - Optional GitHub authentication via http.extraheader
+        - Disabled git hooks, submodules, filters, and interactive prompts
+        - Bounded retries on transient network errors
         - Strict timeout with guaranteed process cleanup
+        - Honest failure classification (auth, network, missing, size, timeout)
         """
         if not self.is_git_available():
             raise GitExecutionError(
                 "Git executable is not available on the server. Deeper static analysis requires git."
             )
+
+        # Pre-clone disk space guard
+        try:
+            parent_dir = target_dir.parent
+            parent_dir.mkdir(parents=True, exist_ok=True)
+            disk_stat = shutil.disk_usage(parent_dir)
+            if disk_stat.free < 200 * 1024 * 1024:
+                raise GitExecutionError(
+                    f"Insufficient disk space on host ({round(disk_stat.free / (1024 * 1024), 1)} MB free). "
+                    "Cannot clone repository safely."
+                )
+        except OSError:
+            pass
+
+        from app.config import get_settings
+        settings = get_settings()
+        auth_token = token or settings.github_token
 
         null_device = "NUL" if os.name == "nt" else "/dev/null"
 
@@ -62,12 +86,21 @@ class GitService:
             "-c", "filter.lfs.required=false",
             "-c", "protocol.file.allow=never",
             "-c", "protocol.version=2",
+        ]
+
+        if auth_token:
+            import base64
+            # Pass authorization securely via extraheader
+            b64_creds = base64.b64encode(f"x-access-token:{auth_token}".encode("utf-8")).decode("ascii")
+            cmd.extend(["-c", f"http.extraheader=AUTHORIZATION: basic {b64_creds}"])
+
+        cmd.extend([
             "clone",
             "--depth", str(max(1, depth)),
             "--single-branch",
             "--no-tags",
             "--recurse-submodules=no",
-        ]
+        ])
 
         if branch:
             cmd.extend(["--branch", branch])
@@ -84,27 +117,82 @@ class GitService:
 
         env = get_sanitized_subprocess_env()
 
-        try:
-            returncode, stdout_bytes, stderr_bytes = await self._run_git_command(
-                cmd=cmd,
-                env=env,
-                timeout=float(self._timeout_seconds),
-            )
-        except TimeoutError as exc:
-            logger.error("Git clone timed out after %ds for %s", self._timeout_seconds, normalized_url)
-            raise GitExecutionError(f"Git clone operation timed out after {self._timeout_seconds} seconds.") from exc
-        except Exception as exc:
-            if isinstance(exc, GitExecutionError):
-                raise
-            err_msg = str(exc) or exc.__class__.__name__
-            logger.error("Failed to spawn or run git subprocess: %s", err_msg)
-            raise GitExecutionError(f"Failed to execute git clone: {err_msg}") from exc
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            if target_dir.exists():
+                shutil.rmtree(target_dir, ignore_errors=True)
 
-        if returncode != 0:
+            try:
+                returncode, stdout_bytes, stderr_bytes = await self._run_git_command(
+                    cmd=cmd,
+                    env=env,
+                    timeout=float(self._timeout_seconds),
+                )
+            except TimeoutError as exc:
+                logger.error("Git clone timed out after %ds for %s", self._timeout_seconds, normalized_url)
+                raise GitExecutionError(f"Git clone operation timed out after {self._timeout_seconds} seconds.") from exc
+            except Exception as exc:
+                if isinstance(exc, GitExecutionError):
+                    raise
+                err_msg = str(exc) or exc.__class__.__name__
+                logger.error("Failed to spawn or run git subprocess: %s", err_msg)
+                raise GitExecutionError(f"Failed to execute git clone: {err_msg}") from exc
+
+            if returncode == 0:
+                break
+
             raw_err = stderr_bytes.decode("utf-8", errors="replace")
-            clean_err = redact_sensitive_text(raw_err)
-            logger.error("Git clone failed (exit %d): %s", returncode, clean_err)
-            raise GitExecutionError(f"Git clone failed: {clean_err.strip()[:300]}")
+            clean_err = redact_sensitive_text(raw_err) or ""
+            lower_err = clean_err.lower()
+
+            logger.error("Git clone failed (attempt %d/%d, exit %d): %s", attempt, max_attempts, returncode, clean_err)
+
+            # Check for transient network issues that warrant retry
+            is_transient = any(
+                phrase in lower_err
+                for phrase in [
+                    "could not resolve host",
+                    "failed to connect",
+                    "connection reset by peer",
+                    "rpc failed",
+                    "the remote end hung up unexpectedly",
+                    "early eof",
+                    "recv failure",
+                    "fatal: unable to access",
+                ]
+            )
+
+            if is_transient and attempt < max_attempts:
+                logger.warning(
+                    "Transient network failure during git clone; retrying in 2s (attempt %d/%d)...",
+                    attempt,
+                    max_attempts,
+                )
+                await asyncio.sleep(2)
+                continue
+
+            # Specific stderr classification
+            if (
+                "could not read username" in lower_err
+                or "authentication failed" in lower_err
+                or "terminal prompts disabled" in lower_err
+            ):
+                raise GitExecutionError(
+                    "Repository requires authentication or is private — no valid GitHub credentials configured."
+                )
+            elif "repository not found" in lower_err or "not found" in lower_err:
+                if not auth_token:
+                    raise GitExecutionError(
+                        f"Repository was not found on remote host (or repository is private): {normalized_url}"
+                    )
+                else:
+                    raise GitExecutionError(
+                        f"Repository was not found on remote host: {normalized_url}"
+                    )
+            elif "no space left on device" in lower_err:
+                raise GitExecutionError("Insufficient disk space on host to complete repository clone.")
+            else:
+                raise GitExecutionError(f"Git clone failed: {clean_err.strip()[:300]}")
 
         # Check cloned workspace size against max_repo_clone_size_mb defense cap
         from app.config import get_settings

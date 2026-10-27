@@ -32,8 +32,9 @@ SENSITIVE_PATTERNS = [
     (re.compile(r"-----BEGIN (?:RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----[\s\S]*?-----END (?:RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----"), "[REDACTED_PRIVATE_KEY]"),
     # Generic API Keys / Secrets assignments
     (re.compile(r"(?i)(api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token|password)\s*[:=]\s*['\"][a-zA-Z0-9_\-\.\+/=]{8,}['\"]"), r"\1='[REDACTED_CREDENTIAL]'"),
-    # Bearer tokens
+    # Bearer tokens & HTTP Authorization headers
     (re.compile(r"(?i)bearer\s+[a-zA-Z0-9_\-\.]{20,}"), "Bearer [REDACTED_BEARER_TOKEN]"),
+    (re.compile(r"(?i)authorization:\s*(?:basic|bearer)\s+[a-zA-Z0-9_\-\.\+/=]+"), "AUTHORIZATION: [REDACTED_CREDENTIAL]"),
 ]
 
 

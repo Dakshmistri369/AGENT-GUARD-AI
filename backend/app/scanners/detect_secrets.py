@@ -65,7 +65,7 @@ class DetectSecretsScanner(BaseScanner):
         cmd = [exe or sys.executable]
         if not exe:
             cmd.extend(["-m", "detect_secrets"])
-        cmd.extend(["scan", "--all-files", "--exclude-files", r"(\.git|node_modules|\.venv|venv|build|dist|\..*_cache|\.cache|scan_workspaces|.*\.min\.js$|.*\.map$|.*lock.*)", str(workspace_path)])
+        cmd.extend(["scan", "--all-files", "--exclude-files", r"(\.git|node_modules|\.venv|venv|build|dist|vendor|__pycache__|\.next|target|\.tox|coverage|\..*_cache|\.cache|scan_workspaces|\.scan_workspaces|\.idea|\.vscode|.*\.min\.js$|.*\.map$|.*lock.*)", str(workspace_path)])
 
         try:
             exit_code, stdout, stderr = await self.execute_cmd(

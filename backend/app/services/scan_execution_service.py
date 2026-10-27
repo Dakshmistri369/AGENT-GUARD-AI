@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
@@ -80,13 +81,19 @@ class ScanExecutionService:
                 return {"scan_id": scan_id, "status": "failed", "error": scan.error_message}
 
             workspace_dir: Path | None = None
+            scan_start_time = time.time()
+            stage_timings: dict[str, float] = {}
+
             try:
                 # ── Stage 1: Validating repository ──────────────────────────
+                t_val = time.time()
                 scan.stage = "validating"
                 owner, repo_name, normalized_url = validate_and_normalize_github_url(repo.url)
+                stage_timings["validating"] = round(time.time() - t_val, 3)
                 await db.commit()
 
                 # ── Stage 2: Fetching metadata ───────────────────────────────
+                t_meta = time.time()
                 scan.stage = "fetching_metadata"
                 github_svc = GitHubService()
                 cfg = scan.configuration or {}
@@ -99,9 +106,11 @@ class ScanExecutionService:
                 except Exception as exc:
                     logger.warning("Could not refresh commit SHA: %s", exc)
 
+                stage_timings["fetching_metadata"] = round(time.time() - t_meta, 3)
                 await db.commit()
 
                 # ── Stage 3: Inspecting file tree ───────────────────────────
+                t_tree = time.time()
                 scan.stage = "inspecting_file_tree"
                 tree_items = []
                 is_truncated = False
@@ -124,6 +133,7 @@ class ScanExecutionService:
                     max_depth=self.settings.max_tree_depth,
                 )
                 repo.metadata_json = meta.model_dump()
+                stage_timings["inspecting_file_tree"] = round(time.time() - t_tree, 3)
                 await db.commit()
 
                 # Check if scan was cancelled while fetching metadata
@@ -143,7 +153,7 @@ class ScanExecutionService:
                 scan_timed_out: bool = False
 
                 orchestrator = ScannerOrchestrator()
-                git_svc = GitService(timeout_seconds=self.settings.scan_timeout_seconds)
+                git_svc = GitService(timeout_seconds=self.settings.git_clone_timeout_seconds)
                 metadata_only = bool(cfg.get("metadata_only", False))
 
                 # Milestone B: Pre-clone size cap defense
@@ -157,12 +167,16 @@ class ScanExecutionService:
                 if not metadata_only and git_svc.is_git_available():
                     workspace_dir = create_isolated_workspace(self.settings.scan_workspace_dir, scan.id)
                     try:
+                        t_clone = time.time()
                         await git_svc.clone_repository(
                             normalized_url=repo.url,
                             target_dir=workspace_dir,
                             branch=target_branch,
                             depth=1,
                         )
+                        stage_timings["git_clone"] = round(time.time() - t_clone, 3)
+
+                        t_scanners = time.time()
                         raw_findings, scanners_run, coverage_summary, scanner_matrix = await orchestrator.run_scans(
                             workspace_path=workspace_dir,
                             metadata=repo.metadata_json or {},
@@ -170,24 +184,31 @@ class ScanExecutionService:
                             timeout_seconds=self.settings.scanner_timeout_seconds,
                             job_max_runtime_seconds=self.settings.scanner_job_max_runtime_seconds,
                         )
+                        stage_timings["running_scanners"] = round(time.time() - t_scanners, 3)
                         scan_timed_out = coverage_summary.get("job_timed_out", False)
                     except GitExecutionError as git_err:
-                        logger.warning("Git clone failed, falling back to metadata analysis: %s", git_err)
-                        scanner_matrix = orchestrator.get_scanner_matrix(repo.metadata_json or {})
-                        coverage_summary = {
-                            "is_complete": False,
-                            "applicable_scanners": [sc["name"] for sc in scanner_matrix.values() if sc["applicable"]],
-                            "executed_scanners": [],
-                            "missing_scanners": [],
-                            "failed_scanners": ["git_clone"],
-                            "skipped_scanners": [sc["name"] for sc in scanner_matrix.values()],
-                            "notes": [f"Git clone failed: {git_err}. Deeper code scanning disabled."],
+                        logger.error("Git clone failed (repository acquisition failure): %s", git_err)
+                        stage_timings["git_clone"] = round(time.time() - t_clone, 3) if 't_clone' in locals() else 0.0
+                        stage_timings["total_duration"] = round(time.time() - scan_start_time, 3)
+                        scan.status = "failed"
+                        scan.stage = "validating"
+                        scan.error_message = f"Repository acquisition failed: {git_err}. Security scanning could not start."
+                        scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
+                        scan.configuration = {
+                            **cfg,
+                            "branch": target_branch,
+                            "failure_category": "repository_acquisition_failure",
+                            "acquisition_error": str(git_err),
+                            "stage_timings": stage_timings,
                         }
-                        scanners_run.append({
-                            "name": "git_clone",
-                            "status": "warning",
-                            "detail": str(git_err),
-                        })
+                        await db.commit()
+                        await db.refresh(scan)
+                        return {
+                            "scan_id": scan.id,
+                            "status": scan.status,
+                            "stage": scan.stage,
+                            "error": scan.error_message,
+                        }
                 else:
                     reason = "Metadata-only scan requested" if metadata_only else "Git executable not available on server"
                     scanner_matrix = orchestrator.get_scanner_matrix(repo.metadata_json or {})
@@ -220,6 +241,7 @@ class ScanExecutionService:
                     return {"scan_id": scan_id, "status": "cancelled"}
 
                 # ── Stage 5: Reviewing evidence ─────────────────────────────
+                t_ai = time.time()
                 scan.stage = "reviewing_evidence"
                 await db.commit()
 
@@ -229,8 +251,10 @@ class ScanExecutionService:
                     repo_metadata=repo.metadata_json or {},
                     coverage_summary=coverage_summary,
                 )
+                stage_timings["reviewing_evidence"] = round(time.time() - t_ai, 3)
 
                 # ── Stage 6: Generating report & persisting findings ────────
+                t_rep = time.time()
                 scan.stage = "generating_report"
                 await db.commit()
 
@@ -299,6 +323,9 @@ class ScanExecutionService:
                 failed_scanners = coverage_summary.get("failed_scanners") or []
                 missing_scanners = coverage_summary.get("missing_scanners") or []
 
+                stage_timings["generating_report"] = round(time.time() - t_rep, 3)
+                stage_timings["total_duration"] = round(time.time() - scan_start_time, 3)
+
                 if scan_timed_out:
                     scan.status = "timed_out_partial"
                     scan.stage = "timed_out_partial"
@@ -307,7 +334,7 @@ class ScanExecutionService:
                     # Required scanner failed or was unavailable — cannot certify clean
                     unavail_list = sorted(list(set(failed_scanners + missing_scanners)))
                     scan.status = "failed"
-                    scan.stage = "failed"
+                    scan.stage = "running_scanners"
                     scan.error_message = (
                         f"Required security scanner(s) failed or unavailable: {', '.join(unavail_list)}. "
                         "Scan coverage is incomplete and cannot be certified clean."
@@ -331,6 +358,7 @@ class ScanExecutionService:
                     "ai_analysis": ai_analysis,
                     "coverage_summary": coverage_summary,
                     "scanner_matrix": scanner_matrix,
+                    "stage_timings": stage_timings,
                 }
 
                 await db.commit()
@@ -355,7 +383,9 @@ class ScanExecutionService:
             except Exception as exc:
                 logger.error("Scan %d failed with exception: %s", scan_id, exc, exc_info=True)
                 scan.status = "failed"
-                scan.stage = "failed"
+                valid_stages = {"validating", "fetching_metadata", "inspecting_file_tree", "running_scanners", "reviewing_evidence", "generating_report"}
+                if scan.stage not in valid_stages:
+                    scan.stage = "validating"
                 scan.error_message = str(exc)
                 scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
                 await db.commit()

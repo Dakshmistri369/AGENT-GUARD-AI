@@ -1438,6 +1438,7 @@ export const RepositoriesPage: React.FC = () => {
                   // Stage states
                   let isStageDone = isCompletedScan;
                   let isStageCurrent = false;
+                  let isStageFailed = false;
 
                   if (isScanRunning) {
                     const currentStageIdx = SCAN_STAGES.findIndex((s) => s.id === currentScan?.stage);
@@ -1449,8 +1450,9 @@ export const RepositoriesPage: React.FC = () => {
                     }
                   } else if (isFailedScan) {
                     const failStageIdx = SCAN_STAGES.findIndex((s) => s.id === currentScan?.stage);
-                    isStageDone = failStageIdx >= 0 && idx < failStageIdx;
-                    isStageCurrent = idx === failStageIdx;
+                    const effectiveFailIdx = failStageIdx >= 0 ? failStageIdx : 0;
+                    isStageDone = idx < effectiveFailIdx;
+                    isStageFailed = idx === effectiveFailIdx;
                   }
 
                   return (
@@ -1459,12 +1461,16 @@ export const RepositoriesPage: React.FC = () => {
                       style={{
                         padding: '10px 12px',
                         borderRadius: '8px',
-                        background: isStageDone
+                        background: isStageFailed
+                          ? 'rgba(244, 63, 94, 0.08)'
+                          : isStageDone
                           ? '#f0fdf4'
                           : isStageCurrent
                           ? '#eff6ff'
                           : '#f8fafc',
-                        border: isStageDone
+                        border: isStageFailed
+                          ? '1px solid rgba(244, 63, 94, 0.4)'
+                          : isStageDone
                           ? '1px solid #86efac'
                           : isStageCurrent
                           ? '1px solid #3b82f6'
@@ -1473,29 +1479,50 @@ export const RepositoriesPage: React.FC = () => {
                         alignItems: 'center',
                         gap: '8px',
                         fontSize: '12px',
-                        color: isStageDone
+                        color: isStageFailed
+                          ? 'var(--accent-rose)'
+                          : isStageDone
                           ? '#15803d'
                           : isStageCurrent
                           ? '#1d4ed8'
                           : '#475569',
                       }}
                     >
-                      {isStageDone ? (
+                      {isStageFailed ? (
+                        <XCircle size={13} color="var(--accent-rose)" />
+                      ) : isStageDone ? (
                         <CheckCircle2 size={13} color="var(--accent-green)" />
                       ) : isStageCurrent ? (
                         <RotateCw size={13} className="animate-spin" color="var(--electric-blue-bright)" />
                       ) : (
                         <Clock size={13} color="var(--text-muted)" />
                       )}
-                      <span style={{ fontWeight: isStageCurrent ? 600 : 400 }}>{stg.label}</span>
+                      <span style={{ fontWeight: isStageFailed || isStageCurrent ? 600 : 400 }}>
+                        {stg.label}{isStageFailed ? ' (Failed)' : ''}
+                      </span>
                     </div>
                   );
                 })}
               </div>
 
               {currentScan?.error_message && (
-                <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '6px', background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.3)', color: 'var(--accent-rose)', fontSize: '12px' }}>
-                  <strong>Scan Error:</strong> {currentScan.error_message}
+                <div style={{
+                  marginTop: '12px',
+                  padding: '12px 14px',
+                  borderRadius: '6px',
+                  background: 'rgba(244, 63, 94, 0.1)',
+                  border: '1px solid rgba(244, 63, 94, 0.3)',
+                  color: 'var(--accent-rose)',
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px',
+                }}>
+                  <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong>{currentScan.status === 'failed' ? 'Scan Failure: ' : 'Scan Warning: '}</strong>
+                    {currentScan.error_message}
+                  </div>
                 </div>
               )}
             </div>
