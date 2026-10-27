@@ -45,12 +45,8 @@ const queryClient = new QueryClient({
 });
 
 export const App: React.FC = () => {
-  const [showIntro, setShowIntro] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const seen = localStorage.getItem('agentguard_intro_seen') === 'true' ||
-                 sessionStorage.getItem('agentguard_intro_completed') === 'true';
-    return !seen;
-  });
+  // Smooth instant-load: start directly on web app dashboard without blocking intro delays
+  const [showIntro, setShowIntro] = useState<boolean>(false);
 
   useEffect(() => {
     const handleReplay = () => setShowIntro(true);

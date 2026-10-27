@@ -60,6 +60,27 @@ def compute_manifests_fingerprint(workspace_path: Path, commit_sha: str | None =
 
     return hasher.hexdigest()
 
+
+def find_dependency_line_in_manifest(workspace_path: Path, rel_manifest: str, pkg_name: str) -> int:
+    """Find the exact line number where a vulnerable package is declared in the manifest file."""
+    manifest_file = workspace_path / rel_manifest
+    if not manifest_file.exists() or not manifest_file.is_file():
+        return 1
+    try:
+        content = manifest_file.read_text(encoding="utf-8", errors="replace")
+        escaped_pkg = re.escape(pkg_name)
+        pattern = re.compile(rf"""(?:["']?{escaped_pkg}["']?\s*[:=~><^]|^{escaped_pkg}\b)""", re.IGNORECASE)
+        for idx, line in enumerate(content.splitlines(), start=1):
+            if pattern.search(line):
+                return idx
+        # Fallback to case-insensitive package appearance
+        for idx, line in enumerate(content.splitlines(), start=1):
+            if pkg_name.lower() in line.lower():
+                return idx
+    except Exception:
+        pass
+    return 1
+
 # Offline Known Vulnerability Heuristics for Fallback Analysis
 FALLBACK_ADVISORIES = [
     {
@@ -174,9 +195,9 @@ def osv_vuln_to_finding(
         "severity": sev,
         "confidence": "high",
         "file_path": file_path,
-        "line_number": None,
+        "line_number": 1,
         "line_end": None,
-        "column_number": None,
+        "column_number": 1,
         "code_snippet": None,
         "location_type": "manifest",
         "sanitized_evidence": redact_sensitive_text(sanitized_ev),
@@ -222,8 +243,11 @@ async def query_osv_api(
 class OSVScanner(BaseScanner):
     scanner_id = "osv_scanner"
     name = "OSV-Scanner"
+    _cached_available: tuple[bool, str | None] | None = None
 
     def is_available(self) -> tuple[bool, str | None]:
+        if self._cached_available is not None:
+            return self._cached_available
         exe = find_scanner_executable("osv-scanner")
         if exe:
             try:
@@ -233,11 +257,14 @@ class OSVScanner(BaseScanner):
                     if "version:" in line.lower():
                         ver = line.split(":")[-1].strip()
                         if ver:
-                            return True, ver
+                            self._cached_available = (True, ver)
+                            return self._cached_available
             except Exception as _ver_err:
                 _ = _ver_err
-            return True, "cli"
-        return False, None
+            self._cached_available = (True, "cli")
+            return self._cached_available
+        self._cached_available = (False, None)
+        return self._cached_available
 
     def is_applicable(self, metadata: dict[str, Any]) -> tuple[bool, str]:
         manifests = set(metadata.get("manifests", []))
@@ -349,6 +376,7 @@ class OSVScanner(BaseScanner):
                             for vuln in pkg.get("vulnerabilities", []):
                                 vuln_id = vuln.get("id", "VULN")
                                 details = vuln.get("details", "")
+                                dep_line = find_dependency_line_in_manifest(workspace_path, rel_file, pkg_name)
                                 findings.append({
                                     "scanner": "osv_scanner",
                                     "scanner_version": version or "cli",
@@ -357,12 +385,12 @@ class OSVScanner(BaseScanner):
                                     "severity": parse_osv_severity(vuln),
                                     "confidence": "high",
                                     "file_path": rel_file,
-                                    "line_number": None,
+                                    "line_number": dep_line,
                                     "line_end": None,
-                                    "column_number": None,
+                                    "column_number": 1,
                                     "code_snippet": None,
                                     "location_type": "manifest",
-                                    "sanitized_evidence": f"{pkg_name}@{pkg_ver}",
+                                    "sanitized_evidence": f"{pkg_name}@{pkg_ver} (line {dep_line})",
                                     "explanation": details[:300] if details else f"Vulnerability {vuln_id} reported in {pkg_name}",
                                     "remediation": f"Update {pkg_name} to a version with a fix for {vuln_id}.",
                                     "verification_status": "unverified",

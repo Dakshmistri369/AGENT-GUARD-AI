@@ -22,23 +22,29 @@ logger = logging.getLogger("agentguard.scanners.bandit")
 class BanditScanner(BaseScanner):
     scanner_id = "bandit"
     name = "Bandit"
+    _cached_available: tuple[bool, str | None] | None = None
 
     def is_available(self) -> tuple[bool, str | None]:
+        if self._cached_available is not None:
+            return self._cached_available
         exe = find_scanner_executable("bandit")
         if exe:
             try:
                 import bandit
                 ver = getattr(bandit, "__version__", "1.8.x")
-                return True, ver
+                self._cached_available = (True, ver)
+                return self._cached_available
             except Exception:
-                return True, "cli"
+                self._cached_available = (True, "cli")
+                return self._cached_available
 
         # Also check via python -m bandit
         try:
             import bandit
-            return True, getattr(bandit, "__version__", "1.8.x")
+            self._cached_available = (True, getattr(bandit, "__version__", "1.8.x"))
         except ImportError:
-            return False, None
+            self._cached_available = (False, None)
+        return self._cached_available
 
     def is_applicable(self, metadata: dict[str, Any]) -> tuple[bool, str]:
         exts = set(metadata.get("extensions", []))
@@ -150,6 +156,14 @@ class BanditScanner(BaseScanner):
                     else:
                         title = issue_text
 
+                    line_num = issue.get("line_number")
+                    line_range = issue.get("line_range") or []
+                    if not line_num and line_range:
+                        line_num = line_range[0]
+                    if not line_num:
+                        line_num = 1
+                    line_end_val = line_range[-1] if (line_range and line_range[-1] != line_num) else None
+
                     finding_item = {
                         "scanner": "bandit",
                         "scanner_version": version or "1.8.x",
@@ -158,9 +172,9 @@ class BanditScanner(BaseScanner):
                         "severity": sev if sev in ["critical", "high", "medium", "low", "info"] else "medium",
                         "confidence": conf if conf in ["high", "medium", "low"] else "medium",
                         "file_path": rel_file,
-                        "line_number": issue.get("line_number"),
-                        "line_end": None,
-                        "column_number": issue.get("col_offset"),
+                        "line_number": line_num,
+                        "line_end": line_end_val,
+                        "column_number": issue.get("col_offset") or 1,
                         "code_snippet": redact_sensitive_text(code.strip()[:1500]),
                         "sanitized_evidence": redact_sensitive_text(code.strip()[:300]),
                         "explanation": issue.get("issue_text", ""),

@@ -138,9 +138,24 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
                   fontFamily: 'JetBrains Mono, monospace',
                   fontSize: '11px',
                 }}
-                title={`Exact repository location: ${issue.file_path}${issue.line_number ? `:${issue.line_number}` : ''}`}
+                title={`Exact repository location: ${issue.file_path}:${issue.line_number || 1}`}
               >
-                {issue.file_path}{issue.line_number ? `:${issue.line_number}` : ''}
+                {issue.file_path}
+              </span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  background: '#eff6ff',
+                  color: '#1d4ed8',
+                  border: '1px solid #bfdbfe',
+                  padding: '0 4px',
+                  borderRadius: '3px',
+                  fontWeight: 700,
+                  fontFamily: 'JetBrains Mono, monospace',
+                }}
+                title={`Line: ${issue.line_number || 1}`}
+              >
+                Line {issue.line_number || 1}
               </span>
             </>
           )}

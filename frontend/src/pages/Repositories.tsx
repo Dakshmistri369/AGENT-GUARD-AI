@@ -175,7 +175,7 @@ export const RepositoriesPage: React.FC = () => {
     try {
       const res = await api.repositories.list();
       setRepositories(res.items);
-      loadAllRepositoryFindings();
+      // Lazy-load all-repo findings on demand when switching to all-scope rather than blocking initial mount
       if (res.items.length > 0 && !activeRepo) {
         const repoIdParam = searchParams.get('repoId');
         const initial = repoIdParam
@@ -541,10 +541,11 @@ export const RepositoriesPage: React.FC = () => {
     };
 
     const rows = listToExport.map((f) => {
-      const lineRangeStr = f.line_number
-        ? (f.line_end && f.line_end !== f.line_number ? `${f.line_number}-${f.line_end}` : `${f.line_number}`)
-        : '';
-      const exactLocation = f.file_path ? `${f.file_path}${lineRangeStr ? `:${lineRangeStr}` : ''}` : 'Manifest-level';
+      const lineStart = f.line_number || 1;
+      const lineRangeStr = f.line_end && f.line_end !== lineStart
+        ? `${lineStart}-${f.line_end}`
+        : `${lineStart}`;
+      const exactLocation = f.file_path ? `${f.file_path}:${lineRangeStr}` : `manifest:Line ${lineStart}`;
       const repoName = f.repository_name || activeRepo?.full_name || 'Repository';
 
       return [
@@ -554,8 +555,8 @@ export const RepositoriesPage: React.FC = () => {
         escapeCsv(f.rule_id || ''),
         escapeCsv(f.title),
         escapeCsv(f.file_path || ''),
-        escapeCsv(f.line_number || ''),
-        escapeCsv(f.line_end || ''),
+        escapeCsv(lineStart),
+        escapeCsv(f.line_end || lineStart),
         escapeCsv(exactLocation),
         escapeCsv(f.confidence),
         escapeCsv(f.verification_status),
@@ -602,14 +603,16 @@ export const RepositoriesPage: React.FC = () => {
 
     md += `## Detailed Issues List with Folder/File Locations & Lines\n\n`;
     listToExport.forEach((f, idx) => {
-      const lineRangeStr = f.line_number
-        ? (f.line_end && f.line_end !== f.line_number ? `${f.line_number}-${f.line_end}` : `${f.line_number}`)
-        : '';
-      const exactLocation = f.file_path ? `${f.file_path}${lineRangeStr ? `:${lineRangeStr}` : ''}` : 'Manifest-level';
+      const lineStart = f.line_number || 1;
+      const lineRangeStr = f.line_end && f.line_end !== lineStart
+        ? `${lineStart}-${f.line_end}`
+        : `${lineStart}`;
+      const exactLocation = f.file_path ? `${f.file_path}:${lineRangeStr}` : `manifest:Line ${lineStart}`;
       const repoName = f.repository_name || activeRepo?.full_name || 'Repository';
 
       md += `### ${idx + 1}. [${f.severity.toUpperCase()}] ${f.title}\n\n`;
       md += `- **Repository:** \`${repoName}\`\n`;
+      md += `- **Line Number:** Line ${lineRangeStr}\n`;
       md += `- **Exact Location:** \`${exactLocation}\`\n`;
       md += `- **Scanner & Rule:** ${f.scanner} (\`${f.rule_id || 'GENERAL'}\`)\n`;
       md += `- **Verification:** ${f.verification_status} (Confidence: ${f.confidence})\n`;
@@ -654,9 +657,10 @@ export const RepositoriesPage: React.FC = () => {
       scope: findingsScope === 'all' ? 'all_repositories' : activeRepo?.full_name,
       total_issues: listToExport.length,
       issues: listToExport.map((f) => {
-        const lineRangeStr = f.line_number
-          ? (f.line_end && f.line_end !== f.line_number ? `${f.line_number}-${f.line_end}` : `${f.line_number}`)
-          : null;
+        const lineStart = f.line_number || 1;
+        const lineRangeStr = f.line_end && f.line_end !== lineStart
+          ? `${lineStart}-${f.line_end}`
+          : `${lineStart}`;
         return {
           id: f.id,
           repository: f.repository_name || activeRepo?.full_name,
@@ -665,10 +669,10 @@ export const RepositoriesPage: React.FC = () => {
           rule_id: f.rule_id,
           title: f.title,
           file_path: f.file_path,
-          line_number: f.line_number,
-          line_end: f.line_end,
-          line_formatted: lineRangeStr,
-          exact_location: f.file_path ? `${f.file_path}${lineRangeStr ? `:${lineRangeStr}` : ''}` : 'Manifest-level',
+          line_number: lineStart,
+          line_end: f.line_end || lineStart,
+          line_formatted: `Line ${lineRangeStr}`,
+          exact_location: f.file_path ? `${f.file_path}:${lineRangeStr}` : `manifest:Line ${lineStart}`,
           confidence: f.confidence,
           verification_status: f.verification_status,
           classification: f.classification,
@@ -699,10 +703,11 @@ export const RepositoriesPage: React.FC = () => {
     const listToExport = filteredFindings;
     if (listToExport.length === 0) return;
     const lines = listToExport.map((f) => {
-      const lineRangeStr = f.line_number
-        ? (f.line_end && f.line_end !== f.line_number ? `:${f.line_number}-${f.line_end}` : `:${f.line_number}`)
-        : '';
-      const location = f.file_path ? `${f.file_path}${lineRangeStr}` : 'Manifest-level';
+      const lineStart = f.line_number || 1;
+      const lineRangeStr = f.line_end && f.line_end !== lineStart
+        ? `:${lineStart}-${f.line_end}`
+        : `:${lineStart}`;
+      const location = f.file_path ? `${f.file_path}${lineRangeStr}` : `manifest:Line ${lineStart}`;
       const repoPrefix = findingsScope === 'all' && f.repository_name ? `[${f.repository_name}] ` : '';
       return `${repoPrefix}${f.severity}\t${f.scanner}\t${f.rule_id || 'RULE'}\t${f.title}\t${location}`;
     });
@@ -2119,25 +2124,26 @@ export const RepositoriesPage: React.FC = () => {
                                     <td style={{ padding: '12px', fontFamily: 'JetBrains Mono, monospace', fontSize: '12px' }}>
                                       {(() => {
                                         const isManifest = finding.location_type === 'manifest' || (!finding.line_number && Boolean(finding.file_path));
-                                        const lineRangeStr = finding.line_number
-                                          ? (finding.line_end && finding.line_end !== finding.line_number ? `:${finding.line_number}-${finding.line_end}` : `:${finding.line_number}`)
-                                          : '';
-                                        const fullLocationStr = finding.file_path ? `${finding.file_path}${lineRangeStr}` : 'Manifest-level';
+                                        const lineStart = finding.line_number || 1;
+                                        const lineRangeStr = finding.line_end && finding.line_end !== lineStart
+                                          ? `${lineStart}-${finding.line_end}`
+                                          : `${lineStart}`;
+                                        const fullLocationStr = finding.file_path ? `${finding.file_path}:${lineRangeStr}` : `manifest:Line ${lineStart}`;
 
                                         let gitDeepLink: string | null = null;
                                         const targetRepoUrl = finding.repository_url || activeRepo?.url;
-                                        if (targetRepoUrl && finding.file_path && finding.line_number) {
+                                        if (targetRepoUrl && finding.file_path) {
                                           const cleanUrl = targetRepoUrl.trim().replace(/\.git$/, '');
                                           if (cleanUrl.startsWith('https://github.com') || cleanUrl.startsWith('https://gitlab.com')) {
                                             const sha = finding.commit_sha || activeRepo?.pinned_sha || 'main';
-                                            const lineFragment = finding.line_end && finding.line_end !== finding.line_number
-                                              ? `#L${finding.line_number}-L${finding.line_end}`
-                                              : `#L${finding.line_number}`;
+                                            const lineFragment = finding.line_end && finding.line_end !== lineStart
+                                              ? `#L${lineStart}-L${finding.line_end}`
+                                              : `#L${lineStart}`;
                                             gitDeepLink = `${cleanUrl}/blob/${sha}/${finding.file_path}${lineFragment}`;
                                           }
                                         }
 
-                                        return finding.file_path ? (
+                                        return (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                             <Folder size={12} color="#3b82f6" style={{ flexShrink: 0 }} />
                                             {isManifest && (
@@ -2159,12 +2165,27 @@ export const RepositoriesPage: React.FC = () => {
                                             )}
                                             <span
                                               style={{
+                                                fontSize: '11px',
+                                                background: '#eff6ff',
+                                                color: '#1d4ed8',
+                                                border: '1px solid #bfdbfe',
+                                                padding: '1px 6px',
+                                                borderRadius: '4px',
+                                                fontWeight: 700,
+                                                fontFamily: 'JetBrains Mono, monospace',
+                                              }}
+                                              title={`Line Number: ${lineRangeStr}`}
+                                            >
+                                              Line {lineRangeStr}
+                                            </span>
+                                            <span
+                                              style={{
                                                 color: isManifest ? '#b45309' : 'var(--electric-blue-bright)',
                                                 fontWeight: 600,
                                               }}
                                               title={`Exact repository location: ${fullLocationStr}`}
                                             >
-                                              {fullLocationStr}
+                                              {finding.file_path || 'manifest'}
                                             </span>
                                             <button
                                               onClick={(e) => {
@@ -2208,10 +2229,6 @@ export const RepositoriesPage: React.FC = () => {
                                               </a>
                                             )}
                                           </div>
-                                        ) : (
-                                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                            Manifest-level finding
-                                          </span>
                                         );
                                       })()}
                                     </td>
@@ -2250,11 +2267,25 @@ export const RepositoriesPage: React.FC = () => {
                                               border: '1px solid #bfdbfe',
                                             }}
                                           >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', flexWrap: 'wrap' }}>
                                               <Folder size={14} color="#2563eb" />
                                               <span style={{ color: '#1e3a8a', fontWeight: 600 }}>File & Line Location:</span>
                                               <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#1d4ed8', fontWeight: 700 }}>
-                                                {finding.file_path ? `${finding.file_path}${finding.line_number ? `:${finding.line_number}${finding.line_end && finding.line_end !== finding.line_number ? `-${finding.line_end}` : ''}` : ''}` : 'Manifest-level'}
+                                                {finding.file_path ? `${finding.file_path}:${finding.line_number || 1}${finding.line_end && finding.line_end !== (finding.line_number || 1) ? `-${finding.line_end}` : ''}` : `manifest:Line ${finding.line_number || 1}`}
+                                              </span>
+                                              <span
+                                                style={{
+                                                  fontSize: '11px',
+                                                  background: '#dbeafe',
+                                                  color: '#1e40af',
+                                                  border: '1px solid #bfdbfe',
+                                                  padding: '1px 7px',
+                                                  borderRadius: '4px',
+                                                  fontWeight: 700,
+                                                  fontFamily: 'JetBrains Mono, monospace',
+                                                }}
+                                              >
+                                                Line {finding.line_number || 1}{finding.line_end && finding.line_end !== (finding.line_number || 1) ? `-${finding.line_end}` : ''}
                                               </span>
                                               {finding.repository_name && (
                                                 <span style={{ color: '#64748b', fontSize: '11px', marginLeft: '6px' }}>

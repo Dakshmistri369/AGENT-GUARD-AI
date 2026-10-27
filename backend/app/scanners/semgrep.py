@@ -25,17 +25,22 @@ SUPPORTED_EXTENSIONS = {
 class SemgrepScanner(BaseScanner):
     scanner_id = "semgrep"
     name = "Semgrep"
+    _cached_available: tuple[bool, str | None] | None = None
 
     def is_available(self) -> tuple[bool, str | None]:
+        if self._cached_available is not None:
+            return self._cached_available
         exe = find_scanner_executable("semgrep")
         if not exe:
-            return False, None
+            self._cached_available = (False, None)
+            return self._cached_available
         try:
             import semgrep
             ver = getattr(semgrep, "__version__", "1.180.x")
-            return True, str(ver)
+            self._cached_available = (True, str(ver))
         except Exception:
-            return True, "cli"
+            self._cached_available = (True, "cli")
+        return self._cached_available
 
     def is_applicable(self, metadata: dict[str, Any]) -> tuple[bool, str]:
         exts = set(metadata.get("extensions", []))
@@ -197,7 +202,7 @@ class SemgrepScanner(BaseScanner):
 
                     start_info = res.get("start", {})
                     end_info = res.get("end", {})
-                    line_no = start_info.get("line")
+                    line_no = start_info.get("line") or 1
                     line_end_no = end_info.get("line")
                     col_no = start_info.get("col")
 

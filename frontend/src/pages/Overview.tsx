@@ -1011,10 +1011,25 @@ export const OverviewPage: React.FC = () => {
                   </div>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>File Location</div>
-                  <div style={{ color: '#0f172a', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, marginTop: '2px' }}>
-                    {selectedIssue.file_path || 'source_code'}
-                    {selectedIssue.line_number ? `:${selectedIssue.line_number}` : ''}
+                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>File & Line Location</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                    <div style={{ color: '#0f172a', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
+                      {selectedIssue.file_path || 'source_code'}
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontWeight: 700,
+                        fontFamily: 'JetBrains Mono, monospace',
+                      }}
+                    >
+                      Line {selectedIssue.line_number || 1}
+                    </span>
                   </div>
                 </div>
               </div>

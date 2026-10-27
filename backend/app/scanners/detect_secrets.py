@@ -22,22 +22,28 @@ logger = logging.getLogger("agentguard.scanners.detect_secrets")
 class DetectSecretsScanner(BaseScanner):
     scanner_id = "detect_secrets"
     name = "detect-secrets"
+    _cached_available: tuple[bool, str | None] | None = None
 
     def is_available(self) -> tuple[bool, str | None]:
+        if self._cached_available is not None:
+            return self._cached_available
         exe = find_scanner_executable("detect-secrets")
         if exe:
             try:
                 import detect_secrets
                 ver = getattr(detect_secrets, "__version__", "1.5.0")
-                return True, str(ver)
+                self._cached_available = (True, str(ver))
+                return self._cached_available
             except Exception:
-                return True, "cli"
+                self._cached_available = (True, "cli")
+                return self._cached_available
 
         try:
             import detect_secrets
-            return True, getattr(detect_secrets, "__version__", "1.5.0")
+            self._cached_available = (True, getattr(detect_secrets, "__version__", "1.5.0"))
         except ImportError:
-            return False, None
+            self._cached_available = (False, None)
+        return self._cached_available
 
     def is_applicable(self, metadata: dict[str, Any]) -> tuple[bool, str]:
         # detect-secrets is universally applicable to any software repository
@@ -126,7 +132,7 @@ class DetectSecretsScanner(BaseScanner):
 
                     for sec in secret_items:
                         sec_type = sec.get("type", "Secret")
-                        line_no = sec.get("line_number")
+                        line_no = sec.get("line_number") or 1
                         snippet = ""
                         if line_no and 1 <= line_no <= len(lines):
                             snippet = lines[line_no - 1].strip()

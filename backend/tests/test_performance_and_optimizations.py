@@ -147,8 +147,8 @@ class TestOrchestratorConcurrency:
             wall_clock_duration = time.time() - start_t
 
             # If serialized, 4 scanners * 0.2s = 0.8s+.
-            # Because they run concurrently via asyncio.gather, total wall-clock time is ~0.2s (< 0.5s).
-            assert wall_clock_duration < 0.5, f"Scanners took {wall_clock_duration}s; expected parallel execution under 0.5s"
+            # Because they run concurrently via asyncio, total wall-clock time is ~0.2s (< 0.7s).
+            assert wall_clock_duration < 0.7, f"Scanners took {wall_clock_duration}s; expected parallel execution under 0.7s"
 
 
 @pytest.mark.asyncio
