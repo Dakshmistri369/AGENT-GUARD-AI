@@ -90,7 +90,7 @@ export const OverviewPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: '1440px', margin: '0 auto', background: '#ffffff', minHeight: '100%' }}>
+    <div className="p-3.5 sm:p-6 lg:p-8 max-w-[1440px] mx-auto bg-white min-h-full pb-safe">
       {/* ── Page Header with Black Fonts ────────────────────────────────────────── */}
       <div
         style={{
@@ -285,14 +285,7 @@ export const OverviewPage: React.FC = () => {
       })()}
 
       {/* ── Top Row: 4 Summary Cards with Different Background Colors & Black Fonts ── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
-      >
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <SummaryCard
           title="Scans & Reviews"
           value={isLoading || isError ? '—' : (summary?.scans_and_reviews.total_scans ?? 0)}
@@ -383,14 +376,7 @@ export const OverviewPage: React.FC = () => {
       </div>
 
       {/* ── Middle Row: 3 Chart Panels on White Card Backgrounds ─────────────────── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
         {/* Card 1: Issues By Vulnerability Type (Donut Chart) */}
         <ChartPanel
           title="Issues By Vulnerability Type"
@@ -417,9 +403,9 @@ export const OverviewPage: React.FC = () => {
               <div style={{ fontSize: '12px' }}>Your scanned codebases have zero reported vulnerabilities.</div>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '240px' }}>
+            <div className="flex flex-col sm:flex-row items-center justify-between sm:h-[240px] gap-4 py-2">
               {/* Donut graphic */}
-              <div style={{ width: '180px', height: '200px', position: 'relative' }}>
+              <div style={{ width: '180px', height: '180px', position: 'relative', flexShrink: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Tooltip
@@ -468,13 +454,7 @@ export const OverviewPage: React.FC = () => {
 
               {/* Legend with Black Fonts */}
               <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '8px 12px',
-                  flex: 1,
-                  paddingLeft: '12px',
-                }}
+                className="grid grid-cols-2 gap-x-3 gap-y-2 flex-1 w-full sm:pl-3"
               >
                 {summary.vulnerability_types.map((vt) => (
                   <div key={vt.name} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
@@ -650,13 +630,7 @@ export const OverviewPage: React.FC = () => {
       </div>
 
       {/* ── Bottom Row: 3 Widget Panels with Black Fonts ────────────────────────── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-          gap: '16px',
-        }}
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Card 1: Metrics (Time Saved & Automated Split) */}
         <ChartPanel
           title="Metrics"
@@ -905,7 +879,7 @@ export const OverviewPage: React.FC = () => {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 100,
-            padding: '20px',
+            padding: '12px',
           }}
           onClick={() => setSelectedIssue(null)}
         >
@@ -929,8 +903,8 @@ export const OverviewPage: React.FC = () => {
           >
             {/* Modal Header */}
             <div
+              className="px-4 py-3 sm:px-6 sm:py-4"
               style={{
-                padding: '18px 24px',
                 borderBottom: '1px solid #e2e8f0',
                 display: 'flex',
                 alignItems: 'center',
@@ -967,7 +941,12 @@ export const OverviewPage: React.FC = () => {
                   border: 'none',
                   color: '#64748b',
                   cursor: 'pointer',
-                  padding: '4px',
+                  padding: '6px',
+                  minWidth: '40px',
+                  minHeight: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
                 aria-label="Close dialog"
               >
@@ -976,7 +955,7 @@ export const OverviewPage: React.FC = () => {
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="p-4 sm:p-6 overflow-y-auto flex flex-col gap-4">
               <div>
                 <h3 id="issue-detail-title" style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
                   {selectedIssue.title}

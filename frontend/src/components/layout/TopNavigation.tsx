@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Play,
   LogOut,
+  Menu,
 } from 'lucide-react';
 import type { Repository } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -21,6 +22,7 @@ export interface TopNavigationProps {
   isScanning?: boolean;
   activeScanRepoName?: string | null;
   onOpenAiAssistant?: () => void;
+  onToggleMobileNav?: () => void;
 }
 
 export const TopNavigation: React.FC<TopNavigationProps> = ({
@@ -30,6 +32,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   isScanning = false,
   activeScanRepoName,
   onOpenAiAssistant,
+  onToggleMobileNav,
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -51,6 +54,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
   return (
     <header
+      className="pt-safe"
       style={{
         height: '56px',
         background: '#ffffff',
@@ -58,21 +62,60 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 24px',
+        padding: '0 16px',
         position: 'sticky',
         top: 0,
         zIndex: 30,
       }}
     >
-      {/* Left: Breadcrumbs & Active Repository context */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-        <span style={{ color: '#64748b', fontWeight: 500 }}>demo</span>
-        <ChevronRight size={14} color="#94a3b8" />
-        <span style={{ color: '#0f172a', fontWeight: 700 }}>{getPageTitle()}</span>
+      {/* Left: Breadcrumbs, Hamburger & Active Repository context */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', minWidth: 0 }}>
+        {onToggleMobileNav && (
+          <button
+            onClick={onToggleMobileNav}
+            aria-label="Open navigation"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '40px',
+              height: '40px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'transparent',
+              color: '#334155',
+              cursor: 'pointer',
+              marginLeft: '-4px',
+              flexShrink: 0,
+            }}
+            className="lg:hidden"
+          >
+            <Menu size={22} />
+          </button>
+        )}
+
+        {/* Breadcrumbs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          <span className="hidden sm:inline" style={{ color: '#64748b', fontWeight: 500 }}>demo</span>
+          <ChevronRight size={14} color="#94a3b8" className="hidden sm:inline" />
+          <span
+            style={{
+              color: '#0f172a',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '120px',
+            }}
+            className="sm:max-w-none"
+          >
+            {getPageTitle()}
+          </span>
+        </div>
 
         {/* Repository context selector pill */}
         {repositories.length > 0 && onSelectRepo && (
-          <div style={{ marginLeft: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="hidden md:flex" style={{ marginLeft: '12px', alignItems: 'center', gap: '6px' }}>
             <span style={{ color: '#cbd5e1', fontSize: '12px' }}>|</span>
             <GitBranch size={13} color="#0d9488" />
             <select
@@ -88,6 +131,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                 padding: '4px 8px',
                 cursor: 'pointer',
                 outline: 'none',
+                maxWidth: '180px',
               }}
               aria-label="Filter context by connected repository"
             >
@@ -107,7 +151,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         {isScanning && (
           <div
             style={{
-              marginLeft: '12px',
+              marginLeft: '8px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
@@ -116,23 +160,25 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               color: '#0f766e',
               background: '#f0fdf4',
               border: '1px solid #a7f3d0',
-              padding: '2px 10px',
+              padding: '2px 8px',
               borderRadius: '9999px',
+              whiteSpace: 'nowrap',
             }}
           >
             <RefreshCw size={11} className="animate-spin" />
-            <span>Auditing {activeScanRepoName || 'Repository'}…</span>
+            <span className="hidden sm:inline">Auditing {activeScanRepoName || 'Repository'}…</span>
+            <span className="sm:hidden">Scanning…</span>
           </div>
         )}
       </div>
 
       {/* Right: Quick actions, AI assistant, user pill */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {/* Cinematic Animated Logo Intro Button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        {/* Cinematic Animated Logo Intro Button (desktop/tablet only) */}
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('agentguard:replay-intro'))}
+          className="hidden md:flex"
           style={{
-            display: 'flex',
             alignItems: 'center',
             gap: '6px',
             fontSize: '12px',
@@ -158,34 +204,37 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '5px',
               fontSize: '12px',
               fontWeight: 600,
               color: '#1d4ed8',
               background: '#eff6ff',
               border: '1px solid #bfdbfe',
               borderRadius: '6px',
-              padding: '5px 12px',
+              padding: '6px 10px',
               cursor: 'pointer',
+              minHeight: '36px',
               transition: 'all 0.15s ease',
             }}
             title="Open AI Security Assistant"
           >
             <Sparkles size={13} color="#2563eb" />
-            <span>AI Assistant</span>
+            <span className="hidden sm:inline">AI Assistant</span>
           </button>
         )}
 
-        {/* External Docs */}
+        {/* External Docs (desktop only) */}
         <a
           href="/api/docs"
           target="_blank"
           rel="noopener noreferrer"
+          className="hidden md:flex"
           style={{
             color: '#475569',
-            display: 'flex',
             alignItems: 'center',
-            padding: '6px',
+            justifyContent: 'center',
+            width: '36px',
+            height: '36px',
             borderRadius: '6px',
             textDecoration: 'none',
           }}
@@ -201,13 +250,15 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             color: '#475569',
             display: 'flex',
             alignItems: 'center',
-            padding: '6px',
+            justifyContent: 'center',
+            width: '36px',
+            height: '36px',
             borderRadius: '6px',
             textDecoration: 'none',
           }}
           title="Settings & Configurations"
         >
-          <Settings size={15} />
+          <Settings size={16} />
         </Link>
 
         {/* User Pill dynamic */}
@@ -216,8 +267,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '4px 10px',
+              gap: '6px',
+              padding: '4px 8px',
               borderRadius: '8px',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -240,7 +291,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             >
               {user.email ? user.email[0] : 'U'}
             </div>
-            <div style={{ lineHeight: 1.1 }}>
+            <div className="hidden sm:block" style={{ lineHeight: 1.1 }}>
               <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
                 {user.email ? user.email.split('@')[0] : 'User'}
               </div>
@@ -249,50 +300,52 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             <button
               onClick={() => signOut()}
               title="Sign Out"
+              aria-label="Sign Out"
               style={{
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
                 color: '#94a3b8',
-                padding: '2px',
-                marginLeft: '4px',
+                padding: '6px',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
             >
-              <LogOut size={13} />
+              <LogOut size={14} />
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '4px 10px',
+                gap: '5px',
+                padding: '4px 8px',
                 borderRadius: '6px',
                 background: 'rgba(37, 99, 235, 0.08)',
                 border: '1px solid rgba(37, 99, 235, 0.25)',
                 color: '#1d4ed8',
-                fontSize: '11.5px',
+                fontSize: '11px',
                 fontWeight: 700,
                 letterSpacing: '0.2px',
+                whiteSpace: 'nowrap',
               }}
               title="AgentGuard AI is running in Demo Mode"
             >
               <span
                 style={{
-                  width: '7px',
-                  height: '7px',
+                  width: '6px',
+                  height: '6px',
                   borderRadius: '50%',
                   background: '#2563eb',
                   boxShadow: '0 0 6px rgba(37, 99, 235, 0.6)',
                 }}
               />
-              Demo Mode
+              Demo
             </div>
             {SHOW_SIGN_IN_BUTTON && (
               <Link
@@ -300,8 +353,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '5px 14px',
+                  gap: '4px',
+                  padding: '5px 10px',
                   borderRadius: '6px',
                   background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                   color: '#ffffff',
@@ -309,6 +362,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   fontWeight: 600,
                   textDecoration: 'none',
                   boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 Sign In

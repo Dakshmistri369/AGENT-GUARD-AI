@@ -15,12 +15,15 @@ import {
   ChevronLeft,
   ChevronRight,
   FolderOpen,
+  X,
 } from 'lucide-react';
 import { AnimatedBrandLogo, type LogoScanState } from '../brand/AnimatedBrandLogo';
 
 export interface SidebarProps {
   scanState?: LogoScanState;
   findingsCount?: number;
+  isMobileDrawer?: boolean;
+  onCloseMobileDrawer?: () => void;
 }
 
 interface NavSection {
@@ -67,45 +70,78 @@ const NAV_SECTIONS: NavSection[] = [
 export const Sidebar: React.FC<SidebarProps> = ({
   scanState = 'idle',
   findingsCount = 0,
+  isMobileDrawer = false,
+  onCloseMobileDrawer,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
+  const isEffectiveCollapsed = !isMobileDrawer && collapsed;
+
   return (
     <aside
+      aria-label="Main Navigation"
       style={{
-        width: collapsed ? '68px' : '230px',
-        minWidth: collapsed ? '68px' : '230px',
+        width: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '230px',
+        minWidth: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '230px',
+        maxWidth: isMobileDrawer ? '100%' : undefined,
         background: '#f8fafc',
-        borderRight: '1px solid #e2e8f0',
+        borderRight: isMobileDrawer ? 'none' : '1px solid #e2e8f0',
         display: 'flex',
         flexDirection: 'column',
         transition: 'width 0.2s ease, min-width 0.2s ease',
         position: 'relative',
         zIndex: 20,
-        height: '100vh',
+        height: '100%',
       }}
     >
       {/* Brand Header with Animated Logo */}
       <div
         style={{
-          padding: collapsed ? '16px 12px' : '16px 16px',
+          padding: isEffectiveCollapsed ? '16px 12px' : '16px 16px',
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',
+          justifyContent: isEffectiveCollapsed ? 'center' : 'space-between',
           minHeight: '64px',
           background: '#ffffff',
         }}
       >
-        <Link to="/" style={{ textDecoration: 'none' }} title="AgentGuard AI Security Command Center">
+        <Link
+          to="/"
+          onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+          title="AgentGuard AI Security Command Center"
+        >
           <AnimatedBrandLogo
-            variant={collapsed ? 'icon' : 'full'}
+            variant={isEffectiveCollapsed ? 'icon' : 'full'}
             size="md"
             scanState={scanState}
             findingsCount={findingsCount}
           />
         </Link>
+
+        {isMobileDrawer && (
+          <button
+            onClick={onCloseMobileDrawer}
+            aria-label="Close navigation"
+            style={{
+              width: '44px',
+              height: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: 'none',
+              background: '#f1f5f9',
+              borderRadius: '8px',
+              color: '#334155',
+              cursor: 'pointer',
+              marginLeft: '8px',
+            }}
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
 
       {/* Navigation Sections */}
@@ -123,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {NAV_SECTIONS.map((section) => (
           <div key={section.title}>
             {/* Section Header (hidden when collapsed) */}
-            {!collapsed && (
+            {!isEffectiveCollapsed && (
               <div
                 style={{
                   fontSize: '10.5px',
@@ -157,12 +193,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       href={item.path}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title={collapsed ? item.label : undefined}
+                      title={isEffectiveCollapsed ? item.label : undefined}
+                      onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '10px',
-                        padding: '8px 12px',
+                        padding: '10px 12px',
+                        minHeight: '42px',
                         borderRadius: '8px',
                         fontSize: '13px',
                         fontWeight: 500,
@@ -180,7 +218,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }}
                     >
                       <Icon size={16} color="#64748b" />
-                      {!collapsed && <span>{item.label}</span>}
+                      {!isEffectiveCollapsed && <span>{item.label}</span>}
                     </a>
                   );
                 }
@@ -189,12 +227,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <NavLink
                     key={item.label}
                     to={item.path}
-                    title={collapsed ? item.label : undefined}
+                    title={isEffectiveCollapsed ? item.label : undefined}
+                    onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      padding: '8px 12px',
+                      padding: '10px 12px',
+                      minHeight: '42px',
                       borderRadius: '8px',
                       fontSize: '13px',
                       fontWeight: isActive ? 700 : 500,
@@ -219,8 +259,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }}
                   >
                     <Icon size={16} color={isActive ? '#2563eb' : '#64748b'} />
-                    {!collapsed && <span>{item.label}</span>}
-                    {item.badge && !collapsed && (
+                    {!isEffectiveCollapsed && <span>{item.label}</span>}
+                    {item.badge && !isEffectiveCollapsed && (
                       <span
                         style={{
                           marginLeft: 'auto',
@@ -244,33 +284,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
 
-      {/* Collapse / Expand Toggle Button */}
-      <button
-        onClick={() => setCollapsed((c) => !c)}
-        style={{
-          position: 'absolute',
-          right: '-11px',
-          top: '72px',
-          width: '22px',
-          height: '22px',
-          borderRadius: '50%',
-          background: '#ffffff',
-          border: '1px solid #cbd5e1',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#475569',
-          zIndex: 30,
-          boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-        }}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      </button>
+      {/* Collapse / Expand Toggle Button (desktop only) */}
+      {!isMobileDrawer && (
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          style={{
+            position: 'absolute',
+            right: '-11px',
+            top: '72px',
+            width: '22px',
+            height: '22px',
+            borderRadius: '50%',
+            background: '#ffffff',
+            border: '1px solid #cbd5e1',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#475569',
+            zIndex: 30,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+          }}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+        </button>
+      )}
 
       {/* Footer Info Pill */}
-      {!collapsed && (
+      {!isEffectiveCollapsed && (
         <div
           style={{
             padding: '12px 14px',

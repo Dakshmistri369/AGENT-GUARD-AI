@@ -51,6 +51,7 @@ export const LoginPage: React.FC = () => {
       }}
     >
       <div
+        className="p-5 sm:p-8"
         style={{
           width: '100%',
           maxWidth: '420px',
@@ -58,7 +59,6 @@ export const LoginPage: React.FC = () => {
           borderRadius: '16px',
           border: '1px solid #e2e8f0',
           boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03)',
-          padding: '36px 32px',
         }}
       >
         {/* Header with Centered Logo */}

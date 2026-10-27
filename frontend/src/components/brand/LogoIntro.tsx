@@ -436,6 +436,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
               return (
                 <motion.div
                   key={badge.id}
+                  className="hidden md:flex"
                   initial={{
                     opacity: 0,
                     scale: 0.65,
@@ -471,7 +472,6 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                     top: badge.y,
                     transform: 'translate(-50%, -50%)',
                     zIndex: 6,
-                    display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
                     padding: '8px 14px',

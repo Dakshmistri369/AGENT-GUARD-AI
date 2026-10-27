@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, useNavigate, useSearchParams } from 'react-router-dom';
+import { Outlet, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopNavigation } from './TopNavigation';
 import { api } from '../../lib/api';
@@ -8,11 +8,31 @@ import type { LogoScanState } from '../brand/AnimatedBrandLogo';
 
 export const Layout: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
   const [scanState, setScanState] = useState<LogoScanState>('idle');
   const [activeScanRepoName, setActiveScanRepoName] = useState<string | null>(null);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
+
+  // Close mobile nav on route or search param change
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [location.pathname, location.search]);
+
+  // Close mobile nav on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileNavOpen(false);
+      }
+    };
+    if (isMobileNavOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileNavOpen]);
 
   useEffect(() => {
     api.repositories
@@ -60,12 +80,40 @@ export const Layout: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
-      {/* Sidebar with Animated Brand Logo */}
-      <Sidebar scanState={scanState} />
+      {/* Permanent Desktop Sidebar (Hidden below lg breakpoint) */}
+      <div className="hidden lg:flex">
+        <Sidebar scanState={scanState} />
+      </div>
+
+      {/* Accessible Mobile Slide-over Drawer (Visible on < lg screens) */}
+      {isMobileNavOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile Navigation Drawer"
+          className="fixed inset-0 z-50 lg:hidden"
+        >
+          {/* Backdrop */}
+          <div
+            onClick={() => setIsMobileNavOpen(false)}
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+            aria-hidden="true"
+          />
+
+          {/* Slide-over Drawer with Safe-area padding */}
+          <div className="fixed inset-y-0 left-0 w-[280px] max-w-[85vw] h-full bg-[#f8fafc] shadow-2xl flex flex-col z-10 animate-slide-in pt-safe pb-safe">
+            <Sidebar
+              isMobileDrawer
+              onCloseMobileDrawer={() => setIsMobileNavOpen(false)}
+              scanState={scanState}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Main Container */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-        {/* Top Navigation Bar matching screenshot */}
+        {/* Top Navigation Bar with Mobile Hamburger */}
         <TopNavigation
           repositories={repositories}
           selectedRepoId={selectedRepoId}
@@ -73,6 +121,7 @@ export const Layout: React.FC = () => {
           isScanning={scanState === 'scanning'}
           activeScanRepoName={activeScanRepoName}
           onOpenAiAssistant={handleOpenAiAssistant}
+          onToggleMobileNav={() => setIsMobileNavOpen(true)}
         />
 
         {/* Content View */}

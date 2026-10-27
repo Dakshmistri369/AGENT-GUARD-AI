@@ -42,7 +42,7 @@ export const SettingsPage: React.FC = () => {
   }, [user]);
 
   return (
-    <div style={{ padding: '32px', maxWidth: '700px' }}>
+    <div className="p-4 sm:p-8 max-w-[700px] w-full pb-safe">
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
         <SettingsIcon size={20} color="var(--electric-blue)" />
         <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>Settings</h1>
@@ -217,15 +217,11 @@ const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.
 );
 
 const InfoRow: React.FC<{ label: string; value: string; warn?: boolean }> = ({ label, value, warn }) => (
-  <div style={{
-    display: 'flex', alignItems: 'flex-start', gap: '12px',
-    padding: '12px 16px',
-    borderBottom: '1px solid var(--border)',
-  }}>
-    <div style={{ fontSize: '12px', color: 'var(--text-muted)', width: '160px', flexShrink: 0, paddingTop: '1px' }}>
+  <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 p-3 sm:p-4 border-b border-[var(--border)]">
+    <div className="text-xs text-[var(--text-muted)] w-full sm:w-[160px] flex-shrink-0 pt-0.5 font-medium">
       {label}
     </div>
-    <div style={{ fontSize: '12px', color: warn ? 'var(--accent-amber)' : 'var(--text-secondary)', flex: 1, wordBreak: 'break-word' }}>
+    <div style={{ color: warn ? 'var(--accent-amber)' : 'var(--text-secondary)' }} className="text-xs flex-1 break-words">
       {value}
     </div>
   </div>

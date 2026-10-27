@@ -903,7 +903,7 @@ export const RepositoriesPage: React.FC = () => {
   const meta = activeRepo?.metadata_json;
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px', padding: '8px' }}>
+    <div className="max-w-[1280px] mx-auto flex flex-col gap-5 sm:gap-6 p-3 sm:p-6 pb-safe">
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
@@ -931,7 +931,7 @@ export const RepositoriesPage: React.FC = () => {
         </div>
 
         {activeRepo && scanReport && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={copyReportJson}
               className="btn btn-secondary"
@@ -956,13 +956,13 @@ export const RepositoriesPage: React.FC = () => {
       </div>
 
       {/* URL Connect Bar */}
-      <div className="glass-card" style={{ padding: '20px 24px' }}>
+      <div className="glass-card p-4 sm:p-6">
         <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} aria-label="Connect GitHub Repository">
           <label htmlFor="github-url-input" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
             Connect Public or Private GitHub Repository
           </label>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: '320px', position: 'relative' }}>
+            <div className="w-full sm:flex-1 relative min-w-0">
               <div
                 style={{
                   position: 'absolute',
@@ -1006,9 +1006,9 @@ export const RepositoriesPage: React.FC = () => {
             <button
               id="connect-repo-btn"
               type="submit"
-              className="btn btn-primary"
+              className="btn btn-primary w-full sm:w-auto"
               disabled={!urlValidation.valid || isConnecting}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '170px', justifyContent: 'center' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '160px', minHeight: '40px', justifyContent: 'center' }}
               aria-label="Connect repository"
             >
               {isConnecting ? (
@@ -1402,28 +1402,28 @@ export const RepositoriesPage: React.FC = () => {
 
           {/* 6-Stage Security Verification Stepper */}
           {(isScanning || currentScan) && (
-            <div className="glass-card" style={{ padding: '20px 24px' }}>
+            <div className="glass-card p-3.5 sm:p-5">
               <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   {isScanning ? (
-                    <RotateCw size={15} className="animate-spin" color="var(--electric-blue-bright)" />
+                    <RotateCw size={15} className="animate-spin flex-shrink-0" color="var(--electric-blue-bright)" />
                   ) : currentScan?.status === 'completed' ? (
-                    <CheckCircle2 size={16} color="var(--accent-green)" />
+                    <CheckCircle2 size={16} className="flex-shrink-0" color="var(--accent-green)" />
                   ) : currentScan?.status === 'failed' ? (
-                    <XCircle size={16} color="var(--accent-rose)" />
+                    <XCircle size={16} className="flex-shrink-0" color="var(--accent-rose)" />
                   ) : (
-                    <Clock size={16} color="var(--text-muted)" />
+                    <Clock size={16} className="flex-shrink-0" color="var(--text-muted)" />
                   )}
-                  <span>
+                  <span style={{ wordBreak: 'break-word' }}>
                     {isScanning
                       ? currentScan?.status === 'queued'
                         ? `Scan #${currentScan?.id} Queued — Waiting for Worker Slot`
                         : 'Security Verification in Progress — Executing Isolated Workspaces'
                       : currentScan?.status === 'completed'
-                      ? `Scan #${currentScan.id} Completed — Verified at SHA ${currentScan.commit_sha?.slice(0, 7) || 'latest'}`
-                      : currentScan?.status === 'timed_out_partial'
-                      ? `Scan #${currentScan.id} Completed with Partial Results (Timeout Ceiling Reached)`
-                      : `Scan #${currentScan?.id} Status: ${currentScan?.status}`}
+                        ? `Scan #${currentScan.id} Completed — Verified at SHA ${currentScan.commit_sha?.slice(0, 7) || 'latest'}`
+                        : currentScan?.status === 'timed_out_partial'
+                          ? `Scan #${currentScan.id} Completed with Partial Results (Timeout Ceiling Reached)`
+                          : `Scan #${currentScan?.id} Status: ${currentScan?.status}`}
                   </span>
                 </div>
                 {currentScan?.completed_at && (
@@ -1433,8 +1433,8 @@ export const RepositoriesPage: React.FC = () => {
                 )}
               </div>
 
-              {/* 6 Stages Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
+              {/* 6 Stages Grid - Responsive 1 col on phone, 2 on small tablet, 3 on tablet, 6 on desktop */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
                 {SCAN_STAGES.map((stg, idx) => {
                   const isScanRunning = isScanning || currentScan?.status === 'running' || currentScan?.status === 'queued' || currentScan?.status === 'pending';
                   const isCompletedScan = currentScan?.status === 'completed' || currentScan?.status === 'timed_out_partial';
@@ -1534,7 +1534,7 @@ export const RepositoriesPage: React.FC = () => {
           )}
 
           {/* Navigation Tabs Bar */}
-          <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '2px', flexWrap: 'wrap' }}>
+          <div className="flex gap-1.5 sm:gap-2 border-b border-[var(--border)] pb-0.5 overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap">
             <button
               onClick={() => switchTab('findings')}
               style={{
@@ -1542,13 +1542,16 @@ export const RepositoriesPage: React.FC = () => {
                 border: 'none',
                 borderBottom: activeTab === 'findings' ? '2px solid var(--electric-blue)' : '2px solid transparent',
                 color: activeTab === 'findings' ? 'var(--electric-blue-bright)' : 'var(--text-secondary)',
-                padding: '10px 16px',
+                padding: '10px 14px',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                minHeight: '42px',
               }}
               aria-selected={activeTab === 'findings'}
             >
@@ -1576,13 +1579,16 @@ export const RepositoriesPage: React.FC = () => {
                 border: 'none',
                 borderBottom: activeTab === 'solutions' ? '2px solid var(--accent-green)' : '2px solid transparent',
                 color: activeTab === 'solutions' ? 'var(--accent-green)' : 'var(--text-secondary)',
-                padding: '10px 16px',
+                padding: '10px 14px',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                minHeight: '42px',
               }}
               aria-selected={activeTab === 'solutions'}
             >
@@ -1610,13 +1616,16 @@ export const RepositoriesPage: React.FC = () => {
                 border: 'none',
                 borderBottom: activeTab === 'matrix' ? '2px solid var(--teal)' : '2px solid transparent',
                 color: activeTab === 'matrix' ? 'var(--teal-bright)' : 'var(--text-secondary)',
-                padding: '10px 16px',
+                padding: '10px 14px',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                minHeight: '42px',
               }}
               aria-selected={activeTab === 'matrix'}
             >
@@ -1636,13 +1645,16 @@ export const RepositoriesPage: React.FC = () => {
                 border: 'none',
                 borderBottom: activeTab === 'ai' ? '2px solid var(--accent-purple)' : '2px solid transparent',
                 color: activeTab === 'ai' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                padding: '10px 16px',
+                padding: '10px 14px',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                minHeight: '42px',
               }}
               aria-selected={activeTab === 'ai'}
             >
@@ -1657,13 +1669,16 @@ export const RepositoriesPage: React.FC = () => {
                 border: 'none',
                 borderBottom: activeTab === 'history' ? '2px solid var(--accent-amber)' : '2px solid transparent',
                 color: activeTab === 'history' ? 'var(--accent-amber)' : 'var(--text-secondary)',
-                padding: '10px 16px',
+                padding: '10px 14px',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                minHeight: '42px',
               }}
               aria-selected={activeTab === 'history'}
             >
@@ -1881,14 +1896,14 @@ export const RepositoriesPage: React.FC = () => {
                     </div>
 
                     {/* Filter controls row */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', width: '100%' }}>
+                    <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center flex-wrap gap-3 mb-4">
+                      <div className="flex items-center gap-2.5 flex-wrap w-full">
                         {/* Search */}
-                        <div style={{ position: 'relative', width: '220px' }}>
+                        <div className="relative w-full sm:w-[220px]">
                           <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} aria-hidden="true" />
                           <input
-                            className="input"
-                            style={{ paddingLeft: '32px', height: '34px', fontSize: '12px' }}
+                            className="input w-full"
+                            style={{ paddingLeft: '32px', height: '36px', fontSize: '12px' }}
                             placeholder="Search rules, paths, messages..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -1898,8 +1913,8 @@ export const RepositoriesPage: React.FC = () => {
 
                         {/* Severity Filter */}
                         <select
-                          className="input"
-                          style={{ height: '34px', fontSize: '12px', width: '135px' }}
+                          className="input flex-1 min-w-[130px]"
+                          style={{ height: '36px', fontSize: '12px' }}
                           value={selectedSeverity}
                           onChange={(e) => setSelectedSeverity(e.target.value)}
                           aria-label="Filter by severity"
@@ -1914,8 +1929,8 @@ export const RepositoriesPage: React.FC = () => {
 
                         {/* Scanner Engine Filter */}
                         <select
-                          className="input"
-                          style={{ height: '34px', fontSize: '12px', width: '150px' }}
+                          className="input flex-1 min-w-[130px]"
+                          style={{ height: '36px', fontSize: '12px' }}
                           value={selectedScanner}
                           onChange={(e) => setSelectedScanner(e.target.value)}
                           aria-label="Filter by scanner engine"
@@ -1930,8 +1945,8 @@ export const RepositoriesPage: React.FC = () => {
 
                         {/* Verification Status Filter */}
                         <select
-                          className="input"
-                          style={{ height: '34px', fontSize: '12px', width: '140px' }}
+                          className="input flex-1 min-w-[130px]"
+                          style={{ height: '36px', fontSize: '12px' }}
                           value={selectedVerification}
                           onChange={(e) => setSelectedVerification(e.target.value)}
                           aria-label="Filter by verification status"
@@ -1944,8 +1959,8 @@ export const RepositoriesPage: React.FC = () => {
 
                         {/* Classification Filter */}
                         <select
-                          className="input"
-                          style={{ height: '34px', fontSize: '12px', width: '160px' }}
+                          className="input flex-1 min-w-[140px]"
+                          style={{ height: '36px', fontSize: '12px' }}
                           value={selectedClassification}
                           onChange={(e) => setSelectedClassification(e.target.value)}
                           aria-label="Filter by credential classification"
@@ -1991,8 +2006,8 @@ export const RepositoriesPage: React.FC = () => {
                         )}
                       </div>
                     ) : (
-                      <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', minWidth: '720px', borderCollapse: 'collapse', fontSize: '13px' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
                               <th style={{ padding: '10px 12px', width: '32px' }}></th>
@@ -2854,7 +2869,7 @@ export const RepositoriesPage: React.FC = () => {
               {scanReport ? (
                 <>
                   {/* Summary Metric Counters */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#34d399' }}>
                         {solutionPlan?.total_solutions ?? 0}
@@ -2965,7 +2980,7 @@ export const RepositoriesPage: React.FC = () => {
                                 gap: '12px',
                               }}
                             >
-                              <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#0f172a', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                              <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#0f172a', overflowX: 'auto', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>
                                 $ {cmd}
                               </code>
                               <button
@@ -3314,7 +3329,7 @@ export const RepositoriesPage: React.FC = () => {
                     )}
 
                   {/* Multi-Engine Scanner Execution & Availability Matrix */}
-                  <div className="glass-card" style={{ padding: '20px 24px' }}>
+                  <div className="glass-card p-4 sm:p-6">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Shield size={16} color="var(--electric-blue-bright)" />
@@ -3327,7 +3342,7 @@ export const RepositoriesPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
                       {scanReport.scanners_run.map((sc, idx) => {
                         const isCompleted = sc.status === 'completed' || sc.status === 'success';
                         const isUnavailable = sc.status === 'skipped_unavailable';
@@ -3452,7 +3467,7 @@ export const RepositoriesPage: React.FC = () => {
                   </p>
 
                   {/* 4-Agent Results Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '12px' }}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-3">
                     {/* Agent 1: Threat Modeler */}
                     {scanReport.ai_analysis.threat_model && (
                       <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #bfdbfe', borderTop: '3px solid #2563eb' }}>
@@ -3587,8 +3602,8 @@ export const RepositoriesPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table style={{ width: '100%', minWidth: '640px', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>
                         <th style={{ padding: '10px 12px' }}>Scan ID</th>
