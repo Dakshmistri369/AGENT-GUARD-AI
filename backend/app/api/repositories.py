@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db
@@ -160,17 +160,37 @@ async def connect_repository(
 @router.get("", response_model=RepositoryListResponse)
 async def list_repositories(
     response: Response,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> RepositoryListResponse:
-    """List connected GitHub repositories owned by current user."""
+    """List connected GitHub repositories owned by current user with pagination."""
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
-    stmt = select(Repository).where(Repository.owner_id == current_user.id).order_by(Repository.updated_at.desc())
+    import math
+
+    # Fast SQL count
+    count_stmt = select(func.count(Repository.id)).where(Repository.owner_id == current_user.id)
+    total = (await db.execute(count_stmt)).scalar() or 0
+
+    offset = (page - 1) * page_size
+    stmt = (
+        select(Repository)
+        .where(Repository.owner_id == current_user.id)
+        .order_by(Repository.updated_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
     result = await db.execute(stmt)
     repos = result.scalars().all()
+    pages = math.ceil(total / page_size) if total > 0 else 1
+
     return RepositoryListResponse(
         items=[RepositoryResponse.model_validate(r) for r in repos],
-        total=len(repos),
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=pages,
     )
 
 

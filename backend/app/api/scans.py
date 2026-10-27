@@ -13,7 +13,7 @@ from __future__ import annotations
 import datetime
 import logging
 from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -612,15 +612,17 @@ async def cancel_scan(
 async def list_repository_scans(
     repository_id: int,
     response: Response,
+    limit: int = Query(50, ge=1, le=100, description="Max scans to return"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[ScanResponse]:
-    """List all scans for a repository."""
+    """List scans for a repository with pagination and minimal projection."""
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
 
-    # Verify repository ownership
+    # Verify repository ownership using minimal projection
     repo_res = await db.execute(
-        select(Repository).where(
+        select(Repository.id).where(
             Repository.id == repository_id, Repository.owner_id == current_user.id
         )
     )
@@ -631,6 +633,8 @@ async def list_repository_scans(
         select(Scan)
         .where(Scan.repository_id == repository_id)
         .order_by(Scan.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     res = await db.execute(stmt)
     scans = res.scalars().all()
@@ -675,32 +679,35 @@ async def list_user_findings(
     severity: Optional[str] = None,
     scanner: Optional[str] = None,
     verification_status: Optional[str] = None,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(100, ge=1, le=500, description="Findings per page"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
     """
     List all security findings across user repositories with exact file paths and lines.
     Allows filtering by repository, severity, scanner engine, and verification status.
-    Returns findings with attached repository context for consolidated reporting.
+    Returns paginated findings with attached repository context for consolidated reporting.
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    import math
 
-    # 1. Fetch user's repositories
-    repo_stmt = select(Repository).where(Repository.owner_id == current_user.id)
+    # 1. Fetch user's repositories with minimal projection
+    repo_stmt = select(Repository.id, Repository.name, Repository.full_name, Repository.url).where(Repository.owner_id == current_user.id)
     if repository_id is not None:
         repo_stmt = repo_stmt.where(Repository.id == repository_id)
     repo_res = await db.execute(repo_stmt)
-    user_repos = list(repo_res.scalars().all())
+    user_repos = repo_res.mappings().all()
 
     if not user_repos:
-        return {"total": 0, "repository_count": 0, "findings": [], "repositories": []}
+        return {"total": 0, "page": page, "page_size": page_size, "pages": 1, "repository_count": 0, "findings": [], "repositories": []}
 
-    repo_map = {r.id: r for r in user_repos}
+    repo_map = {r["id"]: r for r in user_repos}
     repo_ids = list(repo_map.keys())
 
     # 2. For each repository, fetch latest completed scan
     scans_stmt = (
-        select(Scan)
+        select(Scan.id, Scan.repository_id)
         .where(
             Scan.repository_id.in_(repo_ids),
             Scan.status.in_(["completed", "timed_out_partial"]),
@@ -708,43 +715,57 @@ async def list_user_findings(
         .order_by(Scan.created_at.desc())
     )
     scans_res = await db.execute(scans_stmt)
-    all_scans = list(scans_res.scalars().all())
+    all_scans = scans_res.mappings().all()
 
     # Map each repo to its latest scan
-    latest_scan_by_repo: dict[int, Scan] = {}
+    latest_scan_by_repo: dict[int, int] = {}
     for s in all_scans:
-        if s.repository_id and s.repository_id not in latest_scan_by_repo:
-            latest_scan_by_repo[s.repository_id] = s
+        r_id = s["repository_id"]
+        if r_id and r_id not in latest_scan_by_repo:
+            latest_scan_by_repo[r_id] = s["id"]
 
     if not latest_scan_by_repo:
         return {
             "total": 0,
+            "page": page,
+            "page_size": page_size,
+            "pages": 1,
             "repository_count": len(user_repos),
             "findings": [],
             "repositories": [
-                {"id": r.id, "name": r.name, "full_name": r.full_name, "url": r.url}
+                {"id": r["id"], "name": r["name"], "full_name": r["full_name"], "url": r["url"]}
                 for r in user_repos
             ],
         }
 
-    latest_scan_ids = [s.id for s in latest_scan_by_repo.values()]
-    scan_to_repo_id = {s.id: s.repository_id for s in latest_scan_by_repo.values()}
+    latest_scan_ids = list(latest_scan_by_repo.values())
+    scan_to_repo_id = {s_id: r_id for r_id, s_id in latest_scan_by_repo.items()}
 
-    # 3. Query findings for these latest scans
+    # 3. Query total count and paginated page of findings
+    count_stmt = select(func.count(Finding.id)).where(Finding.scan_id.in_(latest_scan_ids))
     findings_stmt = (
         select(Finding)
         .where(Finding.scan_id.in_(latest_scan_ids))
         .order_by(Finding.id.asc())
     )
     if severity and severity.lower() != "all":
+        count_stmt = count_stmt.where(Finding.severity.ilike(severity))
         findings_stmt = findings_stmt.where(Finding.severity.ilike(severity))
     if scanner and scanner.lower() != "all":
+        count_stmt = count_stmt.where(Finding.scanner.ilike(scanner))
         findings_stmt = findings_stmt.where(Finding.scanner.ilike(scanner))
     if verification_status and verification_status.lower() != "all":
+        count_stmt = count_stmt.where(Finding.verification_status.ilike(verification_status))
         findings_stmt = findings_stmt.where(Finding.verification_status.ilike(verification_status))
+
+    total_count = (await db.execute(count_stmt)).scalar() or 0
+
+    offset = (page - 1) * page_size
+    findings_stmt = findings_stmt.offset(offset).limit(page_size)
 
     findings_res = await db.execute(findings_stmt)
     findings = list(findings_res.scalars().all())
+    pages = math.ceil(total_count / page_size) if total_count > 0 else 1
 
     items = []
     for f in findings:
@@ -761,9 +782,9 @@ async def list_user_findings(
         items.append({
             "id": f.id,
             "scan_id": f.scan_id,
-            "repository_id": repo_obj.id if repo_obj else None,
-            "repository_name": repo_obj.full_name if repo_obj else None,
-            "repository_url": repo_obj.url if repo_obj else None,
+            "repository_id": repo_obj["id"] if repo_obj else None,
+            "repository_name": repo_obj["full_name"] if repo_obj else None,
+            "repository_url": repo_obj["url"] if repo_obj else None,
             "scanner": f.scanner,
             "scanner_version": f.scanner_version,
             "rule_id": f.rule_id,
@@ -790,11 +811,14 @@ async def list_user_findings(
         })
 
     return {
-        "total": len(items),
+        "total": total_count,
+        "page": page,
+        "page_size": page_size,
+        "pages": pages,
         "repository_count": len(user_repos),
         "findings": items,
         "repositories": [
-            {"id": r.id, "name": r.name, "full_name": r.full_name, "url": r.url}
+            {"id": r["id"], "name": r["name"], "full_name": r["full_name"], "url": r["url"]}
             for r in user_repos
         ],
     }

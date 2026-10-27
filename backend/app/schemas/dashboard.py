@@ -119,3 +119,28 @@ class DashboardSummaryResponse(BaseModel):
     scanner_health: list[ScannerHealthItem]
     metrics: OverallMetrics
     recent_activity: list[RecentScanItem]
+
+
+class DashboardMetricsResponse(BaseModel):
+    """
+    Compact, single-query aggregated metrics for fast dashboard rendering.
+    Explicitly marks metrics as unavailable (None) if the database cannot be queried.
+    """
+    metrics_available: bool = Field(default=True, description="True if database metrics were measured; False if temporarily unavailable")
+    error: str | None = Field(default=None, description="Error explanation if metrics are unavailable")
+    total_repositories: int | None = Field(default=None, description="Total connected repositories owned by user")
+    total_scans: int | None = Field(default=None, description="Total scan jobs for user repositories")
+    completed_scans: int | None = Field(default=None, description="Completed scans")
+    running_scans: int | None = Field(default=None, description="Currently running scans")
+    failed_scans: int | None = Field(default=None, description="Failed scans")
+    total_findings: int | None = Field(default=None, description="Total findings across all user repositories")
+    critical_findings: int | None = Field(default=None, description="Critical severity findings")
+    high_findings: int | None = Field(default=None, description="High severity findings")
+    medium_findings: int | None = Field(default=None, description="Medium severity findings")
+    low_findings: int | None = Field(default=None, description="Low severity findings")
+    info_findings: int | None = Field(default=None, description="Info severity findings")
+    false_positives: int | None = Field(default=None, description="Verified false positives")
+    potential_issues: int | None = Field(default=None, description="Unverified or confirmed issues")
+    patches_available: int | None = Field(default=None, description="Findings with automated fix/remediation")
+    computed_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+

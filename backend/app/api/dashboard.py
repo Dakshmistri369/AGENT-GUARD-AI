@@ -10,7 +10,7 @@ import shutil
 import logging
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import and_, case, func, or_, select
+from sqlalchemy import and_, case, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db
@@ -21,6 +21,7 @@ from app.models.scan import Scan
 from app.models.user import User
 from app.schemas.dashboard import (
     CriticalIssueItem,
+    DashboardMetricsResponse,
     DashboardSummaryResponse,
     FalsePositivesMetrics,
     OverallMetrics,
@@ -79,6 +80,132 @@ def _categorize_finding(rule_id: str | None, title: str | None, scanner: str) ->
         return "Path Traversal", "PT", "CWE-22"
 
     return "Insecure Design / Logic Flaw", "ID", "CWE-657"
+
+
+@router.get("/api/dashboard/metrics", response_model=DashboardMetricsResponse)
+async def get_dashboard_metrics(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DashboardMetricsResponse:
+    """
+    Compact single-query aggregated metrics endpoint.
+    Aggregates repository, scan, finding, and patch metrics directly in PostgreSQL
+    with owner_id scoping. Returns explicit unavailable states if the database cannot be queried.
+    """
+    response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    try:
+        sql = text("""
+            WITH user_repos AS (
+                SELECT id FROM repositories WHERE owner_id = :user_id
+            ),
+            scan_stats AS (
+                SELECT 
+                    COUNT(*) AS total_scans,
+                    COUNT(*) FILTER (WHERE status = 'completed') AS completed_scans,
+                    COUNT(*) FILTER (WHERE status IN ('running', 'queued', 'pending')) AS running_scans,
+                    COUNT(*) FILTER (WHERE status = 'failed') AS failed_scans
+                FROM scans
+                WHERE repository_id IN (SELECT id FROM user_repos)
+            ),
+            finding_stats AS (
+                SELECT
+                    COUNT(f.id) AS total_findings,
+                    COUNT(f.id) FILTER (WHERE lower(f.severity) = 'critical') AS critical_findings,
+                    COUNT(f.id) FILTER (WHERE lower(f.severity) = 'high') AS high_findings,
+                    COUNT(f.id) FILTER (WHERE lower(f.severity) = 'medium') AS medium_findings,
+                    COUNT(f.id) FILTER (WHERE lower(f.severity) = 'low') AS low_findings,
+                    COUNT(f.id) FILTER (WHERE lower(f.severity) = 'info') AS info_findings,
+                    COUNT(f.id) FILTER (WHERE f.verification_status = 'false_positive') AS false_positives,
+                    COUNT(f.id) FILTER (WHERE f.verification_status IN ('unverified', 'confirmed')) AS potential_issues,
+                    COUNT(f.id) FILTER (
+                        WHERE f.verification_status IN ('unverified', 'confirmed') 
+                        AND (f.remediation IS NOT NULL OR f.code_snippet IS NOT NULL OR lower(f.scanner) IN ('bandit', 'detect_secrets', 'detect-secrets', 'osv_scanner', 'semgrep'))
+                    ) AS patches_available
+                FROM findings f
+                JOIN scans s ON f.scan_id = s.id
+                WHERE s.repository_id IN (SELECT id FROM user_repos)
+            ),
+            repo_stats AS (
+                SELECT COUNT(*) AS total_repositories FROM user_repos
+            )
+            SELECT 
+                r.total_repositories,
+                s.total_scans,
+                s.completed_scans,
+                s.running_scans,
+                s.failed_scans,
+                f.total_findings,
+                f.critical_findings,
+                f.high_findings,
+                f.medium_findings,
+                f.low_findings,
+                f.info_findings,
+                f.false_positives,
+                f.potential_issues,
+                f.patches_available
+            FROM repo_stats r
+            CROSS JOIN scan_stats s
+            CROSS JOIN finding_stats f;
+        """)
+        res = await db.execute(sql, {"user_id": current_user.id})
+        row = res.mappings().one_or_none()
+        if not row:
+            return DashboardMetricsResponse(
+                metrics_available=True,
+                total_repositories=0,
+                total_scans=0,
+                completed_scans=0,
+                running_scans=0,
+                failed_scans=0,
+                total_findings=0,
+                critical_findings=0,
+                high_findings=0,
+                medium_findings=0,
+                low_findings=0,
+                info_findings=0,
+                false_positives=0,
+                potential_issues=0,
+                patches_available=0,
+            )
+
+        return DashboardMetricsResponse(
+            metrics_available=True,
+            total_repositories=row["total_repositories"] or 0,
+            total_scans=row["total_scans"] or 0,
+            completed_scans=row["completed_scans"] or 0,
+            running_scans=row["running_scans"] or 0,
+            failed_scans=row["failed_scans"] or 0,
+            total_findings=row["total_findings"] or 0,
+            critical_findings=row["critical_findings"] or 0,
+            high_findings=row["high_findings"] or 0,
+            medium_findings=row["medium_findings"] or 0,
+            low_findings=row["low_findings"] or 0,
+            info_findings=row["info_findings"] or 0,
+            false_positives=row["false_positives"] or 0,
+            potential_issues=row["potential_issues"] or 0,
+            patches_available=row["patches_available"] or 0,
+        )
+    except Exception as exc:
+        logger.error("Failed to compute dashboard metrics: %s", exc)
+        return DashboardMetricsResponse(
+            metrics_available=False,
+            error=f"Metrics temporarily unavailable: {type(exc).__name__}",
+            total_repositories=None,
+            total_scans=None,
+            completed_scans=None,
+            running_scans=None,
+            failed_scans=None,
+            total_findings=None,
+            critical_findings=None,
+            high_findings=None,
+            medium_findings=None,
+            low_findings=None,
+            info_findings=None,
+            false_positives=None,
+            potential_issues=None,
+            patches_available=None,
+        )
 
 
 @router.get("/api/dashboard/summary", response_model=DashboardSummaryResponse)
@@ -151,71 +278,58 @@ async def get_dashboard_summary(
             recent_activity=[],
         )
 
-    # 2. Scans metrics via fast SQL counts
-    total_scans_res = await db.execute(
-        select(func.count(Scan.id)).where(Scan.repository_id.in_(repo_ids))
-    )
-    total_scans = total_scans_res.scalar() or 0
-
-    scans_30d_res = await db.execute(
-        select(func.count(Scan.id)).where(
-            Scan.repository_id.in_(repo_ids),
-            Scan.created_at >= thirty_days_ago,
+    # 2. Consolidated SQL aggregation query combining scans, findings, severity, and verification status in 1 round-trip
+    agg_sql = text("""
+        WITH scan_agg AS (
+            SELECT 
+                COUNT(*) AS total_scans,
+                COUNT(*) FILTER (WHERE created_at >= :thirty_days_ago) AS scans_30d
+            FROM scans
+            WHERE repository_id IN (SELECT id FROM repositories WHERE owner_id = :user_id)
+        ),
+        finding_agg AS (
+            SELECT
+                COUNT(f.id) AS total_issues,
+                COUNT(f.id) FILTER (WHERE lower(f.severity) = 'critical') AS critical_c,
+                COUNT(f.id) FILTER (WHERE lower(f.severity) = 'high') AS high_c,
+                COUNT(f.id) FILTER (WHERE lower(f.severity) = 'medium') AS med_c,
+                COUNT(f.id) FILTER (WHERE lower(f.severity) = 'low') AS low_c,
+                COUNT(f.id) FILTER (WHERE lower(f.severity) = 'info') AS info_c,
+                COUNT(f.id) FILTER (WHERE f.verification_status = 'false_positive') AS false_positives,
+                COUNT(f.id) FILTER (WHERE f.verification_status IN ('unverified', 'confirmed')) AS potential_issues,
+                COUNT(f.id) FILTER (
+                    WHERE f.verification_status IN ('unverified', 'confirmed')
+                    AND (f.remediation IS NOT NULL OR f.code_snippet IS NOT NULL OR lower(f.scanner) IN ('bandit', 'detect_secrets', 'detect-secrets', 'osv_scanner', 'semgrep'))
+                ) AS patches_count
+            FROM findings f
+            JOIN scans s ON f.scan_id = s.id
+            WHERE s.repository_id IN (SELECT id FROM repositories WHERE owner_id = :user_id)
         )
-    )
-    scans_30d = scans_30d_res.scalar() or 0
+        SELECT 
+            s.total_scans, s.scans_30d,
+            f.total_issues, f.critical_c, f.high_c, f.med_c, f.low_c, f.info_c,
+            f.false_positives, f.potential_issues, f.patches_count
+        FROM scan_agg s CROSS JOIN finding_agg f;
+    """)
+    agg_res = await db.execute(agg_sql, {"user_id": current_user.id, "thirty_days_ago": thirty_days_ago})
+    agg_row = agg_res.mappings().one()
 
-    # 3. Overall Findings Count via SQL aggregation
-    total_issues_res = await db.execute(
-        select(func.count(Finding.id))
-        .join(Scan, Finding.scan_id == Scan.id)
-        .where(Scan.repository_id.in_(repo_ids))
-    )
-    total_issues = total_issues_res.scalar() or 0
-
-    # Verification status breakdown (false positives vs potential issues)
-    verif_res = await db.execute(
-        select(Finding.verification_status, func.count(Finding.id))
-        .join(Scan, Finding.scan_id == Scan.id)
-        .where(Scan.repository_id.in_(repo_ids))
-        .group_by(Finding.verification_status)
-    )
-    verif_counts = {v_status: count for v_status, count in verif_res.all()}
-    false_positives_count = verif_counts.get("false_positive", 0)
-    potential_issues_count = verif_counts.get("unverified", 0) + verif_counts.get("confirmed", 0)
+    total_scans = agg_row["total_scans"] or 0
+    scans_30d = agg_row["scans_30d"] or 0
+    total_issues = agg_row["total_issues"] or 0
+    false_positives_count = agg_row["false_positives"] or 0
+    potential_issues_count = agg_row["potential_issues"] or 0
     fp_percentage = round((false_positives_count / total_issues * 100), 1) if total_issues > 0 else 0.0
 
-    # 4. Patches Generated (fast SQL evaluation)
-    patch_condition = and_(
-        Finding.verification_status.in_(["unverified", "confirmed"]),
-        or_(
-            Finding.remediation.isnot(None),
-            Finding.code_snippet.isnot(None),
-            func.lower(Finding.scanner).in_(["bandit", "detect_secrets", "detect-secrets", "osv_scanner", "semgrep"]),
-        ),
-    )
-    patches_res = await db.execute(
-        select(func.count(Finding.id))
-        .join(Scan, Finding.scan_id == Scan.id)
-        .where(Scan.repository_id.in_(repo_ids), patch_condition)
-    )
-    patches_count = patches_res.scalar() or 0
+    patches_count = agg_row["patches_count"] or 0
     patch_pct = round((patches_count / potential_issues_count * 100), 1) if potential_issues_count > 0 else 0.0
 
-    # 5. Severity distribution via SQL GROUP BY
-    sev_res = await db.execute(
-        select(func.lower(Finding.severity), func.count(Finding.id))
-        .join(Scan, Finding.scan_id == Scan.id)
-        .where(Scan.repository_id.in_(repo_ids))
-        .group_by(func.lower(Finding.severity))
-    )
-    sev_counts = {sev: count for sev, count in sev_res.all()}
     severity_dist = SeverityDistribution(
-        critical=sev_counts.get("critical", 0),
-        high=sev_counts.get("high", 0),
-        medium=sev_counts.get("medium", 0),
-        low=sev_counts.get("low", 0),
-        info=sev_counts.get("info", 0),
+        critical=agg_row["critical_c"] or 0,
+        high=agg_row["high_c"] or 0,
+        medium=agg_row["med_c"] or 0,
+        low=agg_row["low_c"] or 0,
+        info=agg_row["info_c"] or 0,
         total=total_issues,
     )
 

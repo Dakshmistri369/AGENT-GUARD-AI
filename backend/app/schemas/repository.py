@@ -61,3 +61,6 @@ class RepositoryResponse(BaseModel):
 class RepositoryListResponse(BaseModel):
     items: list[RepositoryResponse]
     total: int
+    page: int = 1
+    page_size: int = 50
+    pages: int = 1
