@@ -266,6 +266,7 @@ class ScanExecutionService:
                 critical_c = high_c = med_c = low_c = info_c = 0
                 scanner_counts: dict[str, int] = {}
 
+                findings_to_persist: list[Finding] = []
                 for rf in raw_findings:
                     sev = (rf.get("severity") or "medium").lower()
                     if sev == "critical":
@@ -306,7 +307,14 @@ class ScanExecutionService:
                         classification_reason=rf.get("classification_reason"),
                         secret_redacted_preview=rf.get("secret_redacted_preview"),
                     )
-                    db.add(finding_obj)
+                    findings_to_persist.append(finding_obj)
+
+                # Batch persist in chunks of 200 with intermediate flush
+                CHUNK_SIZE = 200
+                for i in range(0, len(findings_to_persist), CHUNK_SIZE):
+                    chunk = findings_to_persist[i : i + CHUNK_SIZE]
+                    db.add_all(chunk)
+                    await db.flush()
 
                 summary_dict = {
                     "total_findings": len(raw_findings),
@@ -373,23 +381,29 @@ class ScanExecutionService:
 
             except asyncio.CancelledError:
                 logger.warning("Scan %d execution was cancelled.", scan_id)
-                scan.status = "cancelled"
-                scan.stage = "cancelled"
-                scan.error_message = "Scan was cancelled by user or system shutdown."
-                scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
-                await db.commit()
+                await db.rollback()
+                scan_rec = await db.get(Scan, scan_id)
+                if scan_rec:
+                    scan_rec.status = "cancelled"
+                    scan_rec.stage = "cancelled"
+                    scan_rec.error_message = "Scan was cancelled by user or system shutdown."
+                    scan_rec.completed_at = datetime.datetime.now(datetime.timezone.utc)
+                    await db.commit()
                 raise
 
             except Exception as exc:
                 logger.error("Scan %d failed with exception: %s", scan_id, exc, exc_info=True)
-                scan.status = "failed"
-                valid_stages = {"validating", "fetching_metadata", "inspecting_file_tree", "running_scanners", "reviewing_evidence", "generating_report"}
-                if scan.stage not in valid_stages:
-                    scan.stage = "validating"
-                scan.error_message = str(exc)
-                scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
-                await db.commit()
-                return {"scan_id": scan_id, "status": "failed", "error": str(exc)}
+                await db.rollback()
+                scan_rec = await db.get(Scan, scan_id)
+                if scan_rec:
+                    scan_rec.status = "failed"
+                    valid_stages = {"validating", "fetching_metadata", "inspecting_file_tree", "running_scanners", "reviewing_evidence", "generating_report"}
+                    if scan_rec.stage not in valid_stages:
+                        scan_rec.stage = "validating"
+                    scan_rec.error_message = str(exc)[:1000]
+                    scan_rec.completed_at = datetime.datetime.now(datetime.timezone.utc)
+                    await db.commit()
+                return {"scan_id": scan_id, "status": "failed", "error": str(exc)[:1000]}
 
             finally:
                 if workspace_dir:

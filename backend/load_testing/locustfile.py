@@ -32,6 +32,19 @@ class DashboardViewerUser(HttpUser):
             else:
                 resp.failure(f"Unexpected status: {resp.status_code}")
 
+    @task(5)
+    def view_dashboard_metrics_cte(self):
+        """Monitor high-performance PostgreSQL CTE metrics endpoint."""
+        with self.client.get(
+            "/api/dashboard/metrics",
+            name="/api/dashboard/metrics",
+            catch_response=True,
+        ) as resp:
+            if resp.status_code == 200:
+                resp.success()
+            else:
+                resp.failure(f"Unexpected status: {resp.status_code}")
+
     @task(3)
     def view_queue_and_fleet_status(self):
         """Monitor background worker liveness and queue depth."""

@@ -27,16 +27,21 @@ _BACKGROUND_TASKS: set[asyncio.Task] = set()
 
 class ScanQueueClient:
     def __init__(self, redis_url: str | None = None, max_retries: int = 3):
-        settings = get_settings()
-        self.redis_url = redis_url if redis_url is not None else settings.redis_url
-        self.max_retries = max_retries or settings.max_job_retries
-        self.queue_name = settings.queue_name
+        self.settings = get_settings()
+        self.redis_url = redis_url if redis_url is not None else self.settings.redis_url
+        self.max_retries = max_retries or self.settings.max_job_retries
+        self.queue_name = self.settings.queue_name
         self._redis = None
         self._arq_pool = None
 
     async def _get_redis(self):
         """Lazily initialize Redis connection if configured."""
         if not self.redis_url:
+            if self.settings.environment == "production":
+                raise RuntimeError(
+                    "Production deployment requires a configured REDIS_URL for asynchronous scan workers. "
+                    "Running without Redis in production is not supported."
+                )
             return None
         if self._redis is None:
             try:
@@ -50,13 +55,22 @@ class ScanQueueClient:
                 )
                 await self._redis.ping()
             except Exception as exc:
-                logger.warning("Redis connection to %s failed (%s); using in-memory queue fallback.", self.redis_url, exc)
+                logger.error("Redis connection to %s failed: %s", self.redis_url, exc)
+                if self.settings.environment == "production" or bool(self.redis_url):
+                    raise RuntimeError(
+                        f"CRITICAL: Failed to connect to Redis at {self.redis_url}: {exc}. "
+                        "Scan queue operations cannot continue. Please verify REDIS_URL and server connectivity."
+                    ) from exc
                 self._redis = None
         return self._redis
 
     async def _get_arq_pool(self):
         """Get arq connection pool if Redis is reachable."""
         if not self.redis_url:
+            if self.settings.environment == "production":
+                raise RuntimeError(
+                    "Production deployment requires a configured REDIS_URL for asynchronous scan workers."
+                )
             return None
         if self._arq_pool is None:
             try:
@@ -65,7 +79,12 @@ class ScanQueueClient:
                 arq_settings = RedisSettings.from_dsn(self.redis_url)
                 self._arq_pool = await create_pool(arq_settings)
             except Exception as exc:
-                logger.warning("Arq Redis pool creation failed (%s); falling back to direct executor.", exc)
+                logger.error("Arq Redis pool creation failed for %s: %s", self.redis_url, exc)
+                if self.settings.environment == "production" or bool(self.redis_url):
+                    raise RuntimeError(
+                        f"CRITICAL: Arq Redis connection pool failed for {self.redis_url}: {exc}. "
+                        "Scan queue operations cannot continue. Please verify REDIS_URL."
+                    ) from exc
                 self._arq_pool = None
         return self._arq_pool
 
@@ -104,7 +123,9 @@ class ScanQueueClient:
                     logger.info("Scan %d deduplicated (already queued/running with ID %s)", scan_id, dedup_key)
                     return {"job_id": dedup_key, "enqueued": False, "mode": "arq_redis", "reason": "duplicate"}
             except Exception as exc:
-                logger.error("Failed to enqueue with arq: %s. Falling back to background executor.", exc)
+                logger.error("Failed to enqueue with arq: %s", exc)
+                if self.settings.environment == "production" or bool(self.redis_url):
+                    raise RuntimeError(f"CRITICAL: Failed to enqueue scan with Redis/arq: {exc}") from exc
 
         # In-memory execution path (dev / pytest)
         async with _IN_MEMORY_LOCK:
