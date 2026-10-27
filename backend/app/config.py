@@ -109,6 +109,13 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str = ""
     enable_demo_auth: bool = False
 
+    # ── Background Worker & Job Queue (arq + Redis) ───────────────────────────
+    redis_url: str = ""           # e.g. redis://localhost:6379/0 or rediss://...
+    queue_name: str = "agentguard:scans"
+    max_job_retries: int = 3
+    worker_heartbeat_ttl_seconds: int = 60
+    enable_async_worker: bool = True
+
     # ── Derived properties ────────────────────────────────────────────────────
     @property
     def max_upload_size_bytes(self) -> int:

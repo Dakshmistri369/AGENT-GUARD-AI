@@ -371,16 +371,26 @@ class TestRepositoryAPI:
             assert repo_data["full_name"] == "octocat/Hello-World"
             assert repo_data["pinned_sha"] == "1234567890abcdef1234567890abcdef12345678"
 
-            # 2. Analyze repository (metadata-only)
+            # 2. Analyze repository (asynchronous enqueue)
             analyze_resp = await client.post(
                 f"/api/repositories/{repo_id}/analyze",
                 json={"metadata_only": True},
             )
-            assert analyze_resp.status_code == 201
+            assert analyze_resp.status_code == 202
             scan_data = analyze_resp.json()
             scan_id = scan_data["id"]
+            assert scan_data["status"] == "queued"
+
+            # Wait briefly for in-memory worker to complete execution
+            import asyncio
+            for _ in range(20):
+                await asyncio.sleep(0.1)
+                st_resp = await client.get(f"/api/scans/{scan_id}")
+                if st_resp.status_code == 200 and st_resp.json()["status"] in ["completed", "failed"]:
+                    scan_data = st_resp.json()
+                    break
+
             assert scan_data["status"] == "completed"
-            assert scan_data["stage"] == "completed"
 
             # 3. Fetch scan report
             report_resp = await client.get(f"/api/scans/{scan_id}/report")

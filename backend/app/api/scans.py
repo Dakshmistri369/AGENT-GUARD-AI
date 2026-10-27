@@ -36,6 +36,7 @@ from app.security.workspace import cleanup_workspace, create_isolated_workspace
 from app.services.ai_scanner_review import AIScannerReviewService
 from app.services.git_service import GitExecutionError, GitService
 from app.services.github_service import GitHubService
+from app.queue.client import get_queue_client
 from app.services.report_service import ReportService
 from app.services.repository_analyzer import RepositoryAnalyzer
 from app.services.security_scanner import SecurityScannerService
@@ -58,7 +59,7 @@ class NotificationLogRequest(BaseModel):
 @router.post(
     "/api/repositories/{repository_id}/analyze",
     response_model=ScanResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def analyze_repository(
     repository_id: int,
@@ -68,11 +69,11 @@ async def analyze_repository(
     current_user: User = Depends(get_current_user),
 ) -> ScanResponse:
     """
-    Run security analysis on the designated repository through 6 verified stages.
-    Pins commit SHA, inspects metadata tree, runs isolated static scanners, and persists findings.
+    Initiate asynchronous security analysis on the designated repository.
+    Creates a queued scan record and immediately enqueues background execution.
+    Returns HTTP 202 Accepted without awaiting scan completion.
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
-    settings = get_settings()
 
     # Verify repository ownership
     stmt = select(Repository).where(
@@ -83,257 +84,71 @@ async def analyze_repository(
     if not repo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found.")
 
-    # Create Initial Scan Record
-    now = datetime.datetime.now(datetime.timezone.utc)
+    # Idempotency check: if an active scan is already queued or running, return it
+    existing_stmt = (
+        select(Scan)
+        .where(
+            Scan.repository_id == repository_id,
+            Scan.status.in_(["queued", "running"]),
+        )
+        .order_by(Scan.created_at.desc())
+    )
+    existing_res = await db.execute(existing_stmt)
+    existing_scan = existing_res.scalar_one_or_none()
+    if existing_scan:
+        logger.info("Idempotent hit: Scan %d is already %s for repository %d", existing_scan.id, existing_scan.status, repository_id)
+        return ScanResponse.model_validate(existing_scan)
+
+    # Create Initial Scan Record in queued state
+    target_branch = payload.branch or repo.default_branch or "main"
     scan = Scan(
         repository_id=repo.id,
-        status="running",
-        stage="validating",
+        status="queued",
+        stage="queued",
         commit_sha=repo.pinned_sha,
-        started_at=now,
+        started_at=None,
+        configuration={
+            "metadata_only": payload.metadata_only,
+            "branch": target_branch,
+        },
     )
     db.add(scan)
     await db.commit()
     await db.refresh(scan)
 
-    workspace_dir = None
-    try:
-        # ── Stage 1: Validating repository ──────────────────────────────────
-        scan.stage = "validating"
-        owner, repo_name, normalized_url = validate_and_normalize_github_url(repo.url)
-        await db.commit()
+    # Enqueue background job via queue client
+    queue_client = get_queue_client()
+    await queue_client.enqueue_scan(scan_id=scan.id, repository_id=repo.id)
 
-        # ── Stage 2: Fetching repository metadata ───────────────────────────
-        scan.stage = "fetching_metadata"
-        github_svc = GitHubService()
-        target_branch = payload.branch or repo.default_branch
+    return ScanResponse.model_validate(scan)
 
-        try:
-            latest_sha = await github_svc.get_commit_sha(owner, repo_name, target_branch)
-            scan.commit_sha = latest_sha
-            repo.pinned_sha = latest_sha
-        except Exception as exc:
-            logger.warning("Could not refresh commit SHA: %s", exc)
 
-        await db.commit()
+@router.get("/api/scans/queue/status")
+async def get_queue_status(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Get background worker liveness signals, queue health, and dead-letter queue records."""
+    response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    client = get_queue_client()
+    redis_available = await client.is_redis_available()
+    heartbeats = await client.get_worker_heartbeats()
+    dlq_jobs = await client.get_dead_letter_jobs(limit=20)
 
-        # ── Stage 3: Inspecting file tree ───────────────────────────────────
-        scan.stage = "inspecting_file_tree"
-        tree_items = []
-        is_truncated = False
-        if scan.commit_sha:
-            try:
-                tree_items, is_truncated = await github_svc.get_git_tree(
-                    owner, repo_name, scan.commit_sha
-                )
-            except Exception as exc:
-                logger.warning("Could not fetch recursive git tree: %s", exc)
-
-        meta = RepositoryAnalyzer.analyze_tree(
-            tree_items=tree_items,
-            owner=owner,
-            name=repo_name,
-            default_branch=target_branch,
-            pinned_sha=scan.commit_sha,
-            is_truncated=is_truncated,
-            max_files=settings.max_repo_files,
-            max_depth=settings.max_tree_depth,
-        )
-        repo.metadata_json = meta.model_dump()
-        await db.commit()
-
-        # ── Stage 4: Running security scanners ──────────────────────────────
-        scan.stage = "running_scanners"
-        await db.commit()
-
-        raw_findings: list[dict[str, Any]] = []
-        scanners_run: list[dict[str, Any]] = []
-        coverage_summary: dict[str, Any] = {}
-        scanner_matrix: dict[str, Any] = {}
-        scan_timed_out: bool = False
-
-        orchestrator = ScannerOrchestrator()
-        git_svc = GitService(timeout_seconds=settings.scan_timeout_seconds)
-
-        if not payload.metadata_only and git_svc.is_git_available():
-            workspace_dir = create_isolated_workspace(settings.scan_workspace_dir, scan.id)
-            try:
-                await git_svc.clone_repository(
-                    normalized_url=repo.url,
-                    target_dir=workspace_dir,
-                    branch=target_branch,
-                    depth=1,
-                )
-                raw_findings, scanners_run, coverage_summary, scanner_matrix = await orchestrator.run_scans(
-                    workspace_path=workspace_dir,
-                    metadata=repo.metadata_json or {},
-                    commit_sha=scan.commit_sha,
-                    timeout_seconds=settings.scanner_timeout_seconds,
-                    job_max_runtime_seconds=settings.scanner_job_max_runtime_seconds,
-                )
-                scan_timed_out = coverage_summary.get("job_timed_out", False)
-            except GitExecutionError as git_err:
-                logger.warning("Git clone failed, falling back to metadata-only analysis: %s", git_err)
-                scanner_matrix = orchestrator.get_scanner_matrix(repo.metadata_json or {})
-                coverage_summary = {
-                    "is_complete": False,
-                    "applicable_scanners": [sc["name"] for sc in scanner_matrix.values() if sc["applicable"]],
-                    "executed_scanners": [],
-                    "missing_scanners": [],
-                    "failed_scanners": [],
-                    "skipped_scanners": [sc["name"] for sc in scanner_matrix.values()],
-                    "notes": [f"Git clone failed: {git_err}. Deeper code scanning disabled."],
-                }
-                scanners_run.append({
-                    "name": "git_clone",
-                    "status": "warning",
-                    "detail": str(git_err),
-                })
-        else:
-            reason = "Metadata-only scan requested" if payload.metadata_only else "Git executable not available on server"
-            scanner_matrix = orchestrator.get_scanner_matrix(repo.metadata_json or {})
-            coverage_summary = {
-                "is_complete": False,
-                "applicable_scanners": [sc["name"] for sc in scanner_matrix.values() if sc["applicable"]],
-                "executed_scanners": [],
-                "missing_scanners": [],
-                "failed_scanners": [],
-                "skipped_scanners": [sc["name"] for sc in scanner_matrix.values()],
-                "notes": [f"Static code scanners skipped: {reason}"],
-            }
-            scanners_run = [
-                {
-                    "name": sc["name"],
-                    "scanner_id": sc_id,
-                    "version": sc["version"],
-                    "status": "skipped_not_applicable" if not sc["applicable"] else "skipped_metadata_only",
-                    "reason": sc["applicability_reason"] if not sc["applicable"] else reason,
-                    "findings_count": 0,
-                    "duration_seconds": 0.0,
-                }
-                for sc_id, sc in scanner_matrix.items()
-            ]
-
-        # ── Stage 5: Reviewing evidence ─────────────────────────────────────
-        scan.stage = "reviewing_evidence"
-        await db.commit()
-
-        ai_review_svc = AIScannerReviewService(settings=settings)
-        ai_analysis = await ai_review_svc.review_findings(
-            findings=raw_findings,
-            repo_metadata=repo.metadata_json or {},
-            coverage_summary=coverage_summary,
-        )
-
-        # ── Stage 6: Generating the report ──────────────────────────────────
-        scan.stage = "generating_report"
-        await db.commit()
-
-        # Persist findings to database
-        db_findings: list[Finding] = []
-        critical_c = high_c = med_c = low_c = info_c = 0
-        scanner_counts: dict[str, int] = {}
-
-        for rf in raw_findings:
-            sev = (rf.get("severity") or "medium").lower()
-            if sev == "critical":
-                critical_c += 1
-            elif sev == "high":
-                high_c += 1
-            elif sev == "medium":
-                med_c += 1
-            elif sev == "low":
-                low_c += 1
-            else:
-                info_c += 1
-
-            sc_name = rf.get("scanner", "agentguard_sast")
-            scanner_counts[sc_name] = scanner_counts.get(sc_name, 0) + 1
-
-            finding_obj = Finding(
-                scan_id=scan.id,
-                fingerprint=rf.get("fingerprint"),
-                title=rf.get("title", "Security Finding"),
-                severity=sev,
-                confidence=rf.get("confidence", "medium"),
-                scanner=sc_name,
-                scanner_version=rf.get("scanner_version"),
-                rule_id=rf.get("rule_id"),
-                file_path=rf.get("file_path"),
-                line_number=rf.get("line_number"),
-                line_end=rf.get("line_end"),
-                column_number=rf.get("column_number"),
-                code_snippet=rf.get("code_snippet"),
-                location_type=rf.get("location_type"),
-                commit_sha=rf.get("commit_sha") or scan.commit_sha,
-                sanitized_evidence=rf.get("sanitized_evidence"),
-                explanation=rf.get("explanation"),
-                remediation=rf.get("remediation"),
-                verification_status=rf.get("verification_status", "unverified"),
-                classification=rf.get("classification"),
-                classification_reason=rf.get("classification_reason"),
-                secret_redacted_preview=rf.get("secret_redacted_preview"),
-            )
-            db.add(finding_obj)
-            db_findings.append(finding_obj)
-
-        summary_dict = {
-            "total_findings": len(raw_findings),
-            "critical": critical_c,
-            "high": high_c,
-            "medium": med_c,
-            "low": low_c,
-            "info": info_c,
-            "scanner_breakdown": scanner_counts,
-        }
-
-        if scan_timed_out:
-            scan.status = "timed_out_partial"
-            scan.stage = "timed_out_partial"
-            logger.warning(
-                "Scan %s timed out at job level after %ss. "
-                "Partial findings (%d) preserved. Status: timed_out_partial",
-                scan.id, settings.scanner_job_max_runtime_seconds, len(raw_findings),
-            )
-        else:
-            scan.status = "completed"
-            scan.stage = "completed"
-        scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
-        scan.summary = summary_dict
-        scan.files_discovered = coverage_summary.get("files_discovered", 0)
-        scan.files_scanned = coverage_summary.get("files_scanned", 0)
-        scan.files_skipped = coverage_summary.get("files_skipped", 0)
-        scan.skip_manifest = coverage_summary.get("skip_manifest") or {}
-        scan.configuration = {
-            "metadata_only": payload.metadata_only,
-            "branch": target_branch,
-            "scanners_run": scanners_run,
-            "ai_analysis": ai_analysis,
-            "coverage_summary": coverage_summary,
-            "scanner_matrix": scanner_matrix,
-        }
-
-        await db.commit()
-        await db.refresh(scan)
-        return ScanResponse.model_validate(scan)
-
-    except Exception as exc:
-        logger.error("Scan failed on repository %s: %s", repository_id, exc, exc_info=True)
-        scan.status = "failed"
-        scan.stage = "failed"
-        scan.error_message = str(exc)
-        scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
-        await db.commit()
-        await db.refresh(scan)
-        return ScanResponse.model_validate(scan)
-
-    finally:
-        if workspace_dir:
-            cleanup_workspace(workspace_dir)
+    return {
+        "status": "online",
+        "redis_connected": redis_available,
+        "queue_name": client.queue_name,
+        "max_retries": client.max_retries,
+        "active_workers": len(heartbeats),
+        "worker_heartbeats": heartbeats,
+        "dead_letter_jobs_count": len(dlq_jobs),
+        "dead_letter_jobs": dlq_jobs,
+    }
 
 
 @router.get("/api/scans/{scan_id}", response_model=ScanResponse)
-async def get_scan_status(
+async def get_scan(
     scan_id: int,
     response: Response,
     db: AsyncSession = Depends(get_db),
@@ -342,15 +157,33 @@ async def get_scan_status(
     """Get scan progress, current stage, summary, and status."""
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
 
-    stmt = (
-        select(Scan)
-        .join(Repository, Scan.repository_id == Repository.id, isouter=True)
-        .where(Scan.id == scan_id)
-    )
+    stmt = select(Scan).where(Scan.id == scan_id)
     result = await db.execute(stmt)
     scan = result.scalar_one_or_none()
     if not scan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found.")
+
+    # Ownership check
+    authorized = False
+    if scan.repository_id:
+        r_res = await db.execute(
+            select(Repository).where(
+                Repository.id == scan.repository_id, Repository.owner_id == current_user.id
+            )
+        )
+        if r_res.scalar_one_or_none():
+            authorized = True
+    elif scan.project_id:
+        p_res = await db.execute(
+            select(Project).where(
+                Project.id == scan.project_id, Project.owner_id == current_user.id
+            )
+        )
+        if p_res.scalar_one_or_none():
+            authorized = True
+
+    if not authorized:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
 
     return ScanResponse.model_validate(scan)
 
@@ -685,6 +518,28 @@ async def cancel_scan(
     if not scan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found.")
 
+    # Ownership check
+    authorized = False
+    if scan.repository_id:
+        r_res = await db.execute(
+            select(Repository).where(
+                Repository.id == scan.repository_id, Repository.owner_id == current_user.id
+            )
+        )
+        if r_res.scalar_one_or_none():
+            authorized = True
+    elif scan.project_id:
+        p_res = await db.execute(
+            select(Project).where(
+                Project.id == scan.project_id, Project.owner_id == current_user.id
+            )
+        )
+        if p_res.scalar_one_or_none():
+            authorized = True
+
+    if not authorized:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
+
     if scan.status in ["completed", "failed", "cancelled"]:
         return ScanResponse.model_validate(scan)
 
@@ -706,6 +561,15 @@ async def list_repository_scans(
 ) -> list[ScanResponse]:
     """List all scans for a repository."""
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+
+    # Verify repository ownership
+    repo_res = await db.execute(
+        select(Repository).where(
+            Repository.id == repository_id, Repository.owner_id == current_user.id
+        )
+    )
+    if not repo_res.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found or access denied.")
 
     stmt = (
         select(Scan)

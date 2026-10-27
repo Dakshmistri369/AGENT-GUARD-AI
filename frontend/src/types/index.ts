@@ -37,7 +37,7 @@ export interface HealthStatus {
 }
 
 export type SeverityLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
-export type ScanStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type ScanStatus = 'pending' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'timed_out_partial';
 
 export interface RepositoryMetadata {
   owner: string;

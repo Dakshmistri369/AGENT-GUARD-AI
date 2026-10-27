@@ -374,24 +374,24 @@ export const RepositoriesPage: React.FC = () => {
     setIsScanning(true);
     setScanReport(null);
 
-    // Live polling timer to update scan stages in real time as each engine executes
     let pollTimer: any = null;
     const repoId = activeRepo.id;
-    pollTimer = setInterval(async () => {
-      try {
-        const scans = await api.scans.listByRepo(repoId);
-        if (scans.length > 0) {
-          const latest = scans[0];
-          setCurrentScan(latest);
-          setPastScans(scans);
-          if (latest.status !== 'running') {
-            clearInterval(pollTimer);
-          }
-        }
-      } catch (err) {
-        // ignore polling network errors
+
+    const stopPollingAndFinish = async (latestScan: any) => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
       }
-    }, 2500);
+      setIsScanning(false);
+      try {
+        const rep = await api.scans.report(latestScan.id);
+        setScanReport(rep);
+        const updatedRepo = await api.repositories.get(repoId);
+        setActiveRepo(updatedRepo);
+      } catch (e) {
+        // Report might not be available if failed immediately
+      }
+    };
 
     try {
       const scan = await api.scans.analyze(activeRepo.id, {
@@ -404,19 +404,33 @@ export const RepositoriesPage: React.FC = () => {
       const scans = await api.scans.listByRepo(activeRepo.id);
       setPastScans(scans);
 
-      if (scan.status === 'completed' || scan.status === 'failed') {
-        const rep = await api.scans.report(scan.id);
-        setScanReport(rep);
-        // Refresh active repository to reflect refreshed pinned SHA / metadata
-        const updatedRepo = await api.repositories.get(activeRepo.id);
-        setActiveRepo(updatedRepo);
+      // If already finished
+      if (scan.status !== 'queued' && scan.status !== 'running') {
+        await stopPollingAndFinish(scan);
+        return;
       }
+
+      // Live polling timer to poll until terminal state
+      pollTimer = setInterval(async () => {
+        try {
+          const updatedScans = await api.scans.listByRepo(repoId);
+          if (updatedScans.length > 0) {
+            const latest = updatedScans[0];
+            setCurrentScan(latest);
+            setPastScans(updatedScans);
+            if (latest.status !== 'queued' && latest.status !== 'running') {
+              await stopPollingAndFinish(latest);
+            }
+          }
+        } catch (err) {
+          // ignore polling network errors
+        }
+      }, 2000);
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || err?.message || 'Analysis failed';
-      alert(`Scan failed: ${msg}`);
-    } finally {
       if (pollTimer) clearInterval(pollTimer);
       setIsScanning(false);
+      const msg = err?.response?.data?.detail || err?.message || 'Analysis failed to start';
+      alert(`Scan failed: ${msg}`);
     }
   };
 

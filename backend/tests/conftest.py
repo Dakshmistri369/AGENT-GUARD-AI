@@ -41,9 +41,16 @@ DEMO_USER_ID = 1
 DEMO_USER_EMAIL = "demo@agentguard.local"
 
 
+import app.database.session as session_module
+session_module.engine = test_engine
+session_module.AsyncSessionLocal = TestSessionLocal
+
+
 @pytest_asyncio.fixture(scope="session")
 async def setup_db():
     """Create all tables once per test session; drop after."""
+    session_module.engine = test_engine
+    session_module.AsyncSessionLocal = TestSessionLocal
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
@@ -57,7 +64,20 @@ async def db_session(setup_db) -> AsyncGenerator[AsyncSession, None]:
     """Fresh async session per test; rolls back after each test."""
     async with TestSessionLocal() as session:
         yield session
+        from app.queue.client import get_queue_client
+        await get_queue_client().wait_all_jobs(timeout=3.0)
         await session.rollback()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def clean_database_tables(setup_db):
+    """Ensure every test starts with clean database tables."""
+    yield
+    from app.queue.client import get_queue_client
+    await get_queue_client().wait_all_jobs(timeout=3.0)
+    async with test_engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
 
 
 @pytest_asyncio.fixture

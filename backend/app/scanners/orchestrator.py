@@ -144,6 +144,7 @@ class ScannerOrchestrator:
 
         # Prepare scanner execution tasks
         tasks = []
+        scanner_task_map = {}
         for sc in self.scanners:
             mat = scanner_matrix[sc.scanner_id]
             applicable = mat["applicable"]
@@ -176,29 +177,58 @@ class ScannerOrchestrator:
                 except Exception as exc:
                     return scanner, is_avail, matrix_entry, None, exc
 
-            tasks.append(_execute_scanner(sc, available, mat))
+            coro = _execute_scanner(sc, available, mat)
+            tasks.append((coro, sc, available, mat))
 
-        # Run applicable scanners concurrently
+        # Run applicable scanners concurrently with outer timeout and partial preservation
         timed_out_job = False
+        results = []
         if tasks:
             import asyncio
-            try:
-                results = await asyncio.wait_for(
-                    asyncio.gather(*tasks),
-                    timeout=float(job_max_runtime_seconds),
-                )
-            except asyncio.TimeoutError:
+            task_future_to_info = {}
+            for coro, sc, is_avail, mat in tasks:
+                fut = asyncio.ensure_future(coro)
+                task_future_to_info[fut] = (sc, is_avail, mat)
+
+            done, pending = await asyncio.wait(
+                list(task_future_to_info.keys()),
+                timeout=float(job_max_runtime_seconds),
+            )
+
+            if pending:
                 timed_out_job = True
-                logger.error(
+                logger.warning(
                     "OUTER JOB TIMEOUT: Scan exceeded %ss job limit. "
-                    "Partial findings preserved. Incomplete scanners listed.",
+                    "%d scanners timed out. Preserving %d completed scanner results.",
                     job_max_runtime_seconds,
+                    len(pending),
+                    len(done),
                 )
-                results = []
                 coverage_notes.append(
                     f"⚠️ Outer job safety timeout reached ({job_max_runtime_seconds}s). "
-                    "Some scanners did not complete. Results are PARTIAL, not a full audit."
+                    f"{len(pending)} scanner(s) did not complete in time. Results are PARTIAL, not a full audit."
                 )
+                for p in pending:
+                    p.cancel()
+                    sc, is_avail, mat = task_future_to_info[p]
+                    failed_scanners.append(sc.name)
+                    scanners_run.append({
+                        "name": sc.name,
+                        "scanner_id": sc.scanner_id,
+                        "version": mat["version"],
+                        "status": "timed_out",
+                        "error": f"Outer job safety timeout reached ({job_max_runtime_seconds}s)",
+                        "findings_count": 0,
+                        "duration_seconds": float(job_max_runtime_seconds),
+                    })
+
+            for d in done:
+                try:
+                    res_tuple = d.result()
+                    results.append(res_tuple)
+                except Exception as exc:
+                    sc, is_avail, mat = task_future_to_info[d]
+                    results.append((sc, is_avail, mat, None, exc))
             for sc, is_avail, mat, res, exc in results:
                 if exc is not None:
                     logger.error("Unexpected error in scanner %s: %s", sc.name, exc)
