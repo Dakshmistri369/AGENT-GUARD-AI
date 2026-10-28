@@ -42,7 +42,11 @@ class RateLimiter:
         """
         now = time.time()
         client = get_queue_client()
-        redis_conn = await client._get_redis()
+        try:
+            redis_conn = await client._get_redis()
+        except Exception as exc:
+            logger.warning("Redis rate limiter connection unavailable (%s); falling back to memory.", exc)
+            redis_conn = None
 
         if redis_conn:
             try:

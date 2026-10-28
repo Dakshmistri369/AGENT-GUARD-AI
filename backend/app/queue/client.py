@@ -89,8 +89,25 @@ class ScanQueueClient:
         return self._arq_pool
 
     async def is_redis_available(self) -> bool:
-        redis_conn = await self._get_redis()
-        return redis_conn is not None
+        """Safe non-throwing probe to check if Redis is configured and reachable."""
+        try:
+            if not self.redis_url:
+                return False
+            redis_conn = await self._get_redis()
+            if redis_conn is None:
+                return False
+            await redis_conn.ping()
+            return True
+        except Exception as exc:
+            logger.warning("Redis ping probe failed: %s", exc)
+            return False
+
+    async def is_queue_available(self) -> bool:
+        """Check if queue subsystem is ready to accept jobs."""
+        if self.settings.environment == "production":
+            return await self.is_redis_available()
+        # In non-production, queue is always available (falls back to in-memory)
+        return True
 
     async def enqueue_scan(
         self,

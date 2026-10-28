@@ -125,6 +125,16 @@ class WorkerSettings:
     max_jobs = 4  # Controlled worker concurrency per process
 
     @staticmethod
+    def _create_redis_settings():
+        from arq.connections import RedisSettings
+        s = get_settings()
+        if s.redis_url:
+            return RedisSettings.from_dsn(s.redis_url)
+        return RedisSettings()
+
+    redis_settings = _create_redis_settings()
+
+    @staticmethod
     async def on_startup(ctx: dict[str, Any]):
         client = get_queue_client()
         await client.record_heartbeat(WORKER_ID, {"status": "started", "pid": os.getpid()})

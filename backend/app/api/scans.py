@@ -82,6 +82,21 @@ async def analyze_repository(
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
     settings = get_settings()
+    queue_client = get_queue_client()
+
+    # Pre-flight queue readiness check in production: fail fast before creating dirty DB records
+    if settings.environment == "production":
+        is_ready = await queue_client.is_redis_available()
+        if not is_ready:
+            logger.error("Scan rejected in production: Redis background worker queue is unavailable.")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Scan queue service is currently unavailable. An active Redis connection and arq background "
+                    "worker are required in production. Please configure REDIS_URL and verify worker service health."
+                ),
+                headers={"Retry-After": "30"},
+            )
 
     # Verify repository ownership
     stmt = select(Repository).where(
@@ -105,6 +120,23 @@ async def analyze_repository(
     existing_scan = existing_res.scalars().first()
     if existing_scan:
         logger.info("Idempotent hit: Scan %d is already %s for repository %d", existing_scan.id, existing_scan.status, repository_id)
+        # If existing scan is still queued, attempt re-enqueue to ensure worker has not lost the job
+        if existing_scan.status == "queued":
+            try:
+                await queue_client.enqueue_scan(scan_id=existing_scan.id, repository_id=repository_id)
+            except Exception as exc:
+                logger.warning("Re-enqueue attempt for scan %d encountered error: %s", existing_scan.id, exc)
+                if settings.environment == "production":
+                    existing_scan.status = "failed"
+                    existing_scan.stage = "failed"
+                    existing_scan.error_message = f"Background queue dispatch failed during retry: {exc}"
+                    existing_scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
+                    await db.commit()
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="Scan queue dispatch failed. The pending scan has been marked as failed. Please retry when the worker queue is online.",
+                        headers={"Retry-After": "30"},
+                    ) from exc
         return ScanResponse.model_validate(existing_scan)
 
     # ── Milestone B Defense 1: Global Queue Backpressure ───────────────────────
@@ -175,11 +207,30 @@ async def analyze_repository(
     await db.commit()
     await db.refresh(scan)
 
-    # Enqueue background job via queue client
-    queue_client = get_queue_client()
-    await queue_client.enqueue_scan(scan_id=scan.id, repository_id=repo.id)
-    await invalidate_dashboard_cache(current_user.id)
+    # Enqueue background job via queue client with failure-safe terminal update
+    try:
+        await queue_client.enqueue_scan(scan_id=scan.id, repository_id=repo.id)
+    except Exception as exc:
+        logger.error("Enqueue failure for scan %d on repository %d: %s", scan.id, repo.id, exc)
+        scan.status = "failed"
+        scan.stage = "failed"
+        scan.error_message = (
+            f"Failed to dispatch scan to background worker queue: {exc}. "
+            "Please verify Redis connectivity and worker health."
+        )
+        scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
+        await db.commit()
+        await invalidate_dashboard_cache(current_user.id)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Scan dispatch failed: unable to enqueue job to background worker queue. "
+                "The scan has been safely marked as failed rather than remaining indefinitely queued. Please retry."
+            ),
+            headers={"Retry-After": "30"},
+        ) from exc
 
+    await invalidate_dashboard_cache(current_user.id)
     return ScanResponse.model_validate(scan)
 
 

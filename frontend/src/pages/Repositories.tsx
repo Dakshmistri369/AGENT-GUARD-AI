@@ -1276,7 +1276,11 @@ export const RepositoriesPage: React.FC = () => {
             <AlertCircle size={22} color={scanError.isConcurrent ? '#d97706' : '#dc2626'} style={{ flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: '13.5px', fontWeight: 700, color: scanError.isConcurrent ? '#92400e' : '#991b1b' }}>
-                {scanError.isConcurrent ? 'Concurrent Scan Limit Reached' : 'Scan Failed to Start'}
+                {scanError.isConcurrent
+                  ? 'Concurrent Scan Limit Reached'
+                  : scanError.message.toLowerCase().includes('queue') || scanError.message.toLowerCase().includes('redis')
+                  ? 'Background Scan Queue Unavailable'
+                  : 'Scan Failed to Start'}
               </div>
               <div style={{ fontSize: '12.5px', color: scanError.isConcurrent ? '#b45309' : '#b91c1c', marginTop: '2px', lineHeight: 1.4 }}>
                 {scanError.message}

@@ -24,6 +24,8 @@ services:
         generateValue: true
       - key: DATABASE_URL
         sync: false
+      - key: REDIS_URL
+        sync: false
       - key: SUPABASE_URL
         value: "https://ohnwhldqnemjvpjvpclw.supabase.co"
       - key: SUPABASE_PUBLISHABLE_KEY
@@ -38,5 +40,38 @@ services:
         value: "nvidia/llama-3.1-nemotron-70b-instruct"
       - key: SEMGREP_RULE_TIMEOUT_SECONDS
         value: "0"
+      - key: SCANNER_JOB_MAX_RUNTIME_SECONDS
+        value: "1800"
+
+  - type: worker
+    name: agentguard-worker
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m arq app.queue.worker.WorkerSettings"
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SUPABASE_URL
+        value: "https://ohnwhldqnemjvpjvpclw.supabase.co"
+      - key: SUPABASE_PUBLISHABLE_KEY
+        value: "sb_publishable_EZSCRcATGUomHAV_lkbxSQ_00pzuyN1"
+      - key: AI_PROVIDER
+        value: "nemotron"
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_BASE_URL
+        value: "https://integrate.api.nvidia.com/v1"
+      - key: AI_MODEL
+        value: "nvidia/llama-3.1-nemotron-70b-instruct"
       - key: SCANNER_JOB_MAX_RUNTIME_SECONDS
         value: "1800"
