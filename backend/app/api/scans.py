@@ -16,7 +16,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
-from sqlalchemy.orm import defer
+from sqlalchemy.orm import defer, undefer
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.security.rate_limiter import require_scan_rate_limit
 
@@ -137,7 +137,7 @@ async def analyze_repository(
                         detail="Scan queue dispatch failed. The pending scan has been marked as failed. Please retry when the worker queue is online.",
                         headers={"Retry-After": "30"},
                     ) from exc
-        return ScanResponse.model_validate(existing_scan)
+        return ScanResponse.from_orm_safe(existing_scan)
 
     # ── Milestone B Defense 1: Global Queue Backpressure ───────────────────────
     queue_depth_stmt = select(func.count(Scan.id)).where(Scan.status == "queued")
@@ -231,7 +231,7 @@ async def analyze_repository(
         ) from exc
 
     await invalidate_dashboard_cache(current_user.id)
-    return ScanResponse.model_validate(scan)
+    return ScanResponse.from_orm_safe(scan)
 
 
 @router.get("/api/scans/queue/status")
@@ -431,7 +431,7 @@ async def get_scan(
     """Get scan progress, current stage, summary, and status."""
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
 
-    stmt = select(Scan).where(Scan.id == scan_id)
+    stmt = select(Scan).options(undefer(Scan.skip_manifest)).where(Scan.id == scan_id)
     result = await db.execute(stmt)
     scan = result.scalar_one_or_none()
     if not scan:
@@ -459,7 +459,7 @@ async def get_scan(
     if not authorized:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
 
-    return ScanResponse.model_validate(scan)
+    return ScanResponse.from_orm_safe(scan)
 
 
 @router.get("/api/scans/{scan_id}/report", response_model=ScanReportResponse)
@@ -815,7 +815,7 @@ async def cancel_scan(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found or access denied.")
 
     if scan.status in ["completed", "failed", "cancelled"]:
-        return ScanResponse.model_validate(scan)
+        return ScanResponse.from_orm_safe(scan)
 
     scan.status = "cancelled"
     scan.stage = "cancelled"
@@ -823,7 +823,7 @@ async def cancel_scan(
     scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
     await db.commit()
     await db.refresh(scan)
-    return ScanResponse.model_validate(scan)
+    return ScanResponse.from_orm_safe(scan)
 
 
 @router.get("/api/repositories/{repository_id}/scans", response_model=list[ScanResponse])
@@ -849,7 +849,7 @@ async def list_repository_scans(
 
     stmt = (
         select(Scan)
-        .options(defer(Scan.skip_manifest))
+        .options(undefer(Scan.skip_manifest))
         .where(Scan.repository_id == repository_id)
         .order_by(Scan.created_at.desc())
         .limit(limit)
@@ -857,7 +857,7 @@ async def list_repository_scans(
     )
     res = await db.execute(stmt)
     scans = res.scalars().all()
-    return [ScanResponse.model_validate(s) for s in scans]
+    return [ScanResponse.from_orm_safe(s) for s in scans]
 
 
 @router.post("/api/scans/osv/query")

@@ -37,7 +37,7 @@ class ScanResponse(BaseModel):
     id: int
     repository_id: int | None = None
     project_id: int | None = None
-    status: str  # pending | running | completed | failed | cancelled
+    status: str  # pending | running | completed | failed | cancelled | timed_out_partial
     stage: str | None = None  # validating | fetching_metadata | inspecting_file_tree | running_scanners | reviewing_evidence | generating_report | completed
     commit_sha: str | None = None
     error_message: str | None = None
@@ -50,6 +50,26 @@ class ScanResponse(BaseModel):
     files_skipped: int = 0
     skip_manifest: dict[str, Any] | None = None
     created_at: datetime.datetime
+
+    @classmethod
+    def from_orm_safe(cls, scan: Any) -> "ScanResponse":
+        """
+        Safely construct a ScanResponse from an ORM Scan instance without risking
+        SQLAlchemy MissingGreenlet exceptions from unloaded or deferred attributes.
+        """
+        from sqlalchemy import inspect as sa_inspect
+        try:
+            state = sa_inspect(scan)
+            unloaded = state.unloaded if state is not None else set()
+        except Exception:
+            unloaded = set()
+
+        data = {}
+        for field_name in cls.model_fields:
+            if field_name not in unloaded:
+                data[field_name] = getattr(scan, field_name, None)
+
+        return cls.model_validate(data)
 
 
 class ScanReportResponse(BaseModel):
