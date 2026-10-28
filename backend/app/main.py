@@ -150,7 +150,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         import logging
         logging.getLogger("agentguard.main").warning("Could not reap orphan workspaces on startup: %s", reaper_err)
 
+    # Queue Supervisor & Embedded Runner: guarantees rapid execution even without external worker fleets
+    try:
+        from app.queue.supervisor import start_queue_supervisor
+        await start_queue_supervisor()
+    except Exception as sup_err:
+        import logging
+        logging.getLogger("agentguard.main").warning("Could not start queue supervisor: %s", sup_err)
+
     yield
+
+    try:
+        from app.queue.supervisor import stop_queue_supervisor
+        await stop_queue_supervisor()
+    except Exception:
+        pass
 
     await engine.dispose()
 

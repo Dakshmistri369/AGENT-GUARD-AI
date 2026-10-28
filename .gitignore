@@ -28,4 +28,5 @@ backend/bin/*.exe
 backend/bin/*.bin
 !bin/.gitkeep
 !backend/bin/.gitkeep
+backend/load_testing/*.csv
 

@@ -45,8 +45,12 @@ SKIP_EXTENSIONS = {
     # Binaries, compiled code, archives, media, fonts
     ".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".pdf", ".zip",
     ".tar", ".gz", ".tgz", ".bz2", ".7z", ".mp4", ".webm", ".mp3",
+    ".mov", ".avi", ".mkv", ".flv", ".wav", ".ogg",
     ".woff", ".woff2", ".ttf", ".eot", ".otf",
     ".so", ".dylib", ".dll", ".exe", ".pyc", ".class", ".jar", ".wasm",
+    ".apk", ".dmg", ".iso", ".psd", ".ai",
+    # Office documents and presentations
+    ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls", ".odt", ".ods", ".odp",
     # Generated bundles & minified code
     ".min.js", ".min.css", ".map",
     # Data blobs & databases

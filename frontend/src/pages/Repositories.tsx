@@ -530,8 +530,13 @@ export const RepositoriesPage: React.FC = () => {
     if (!currentScan || isCancelling) return;
     setIsCancelling(true);
     try {
+      if (activePollRef.current) {
+        activePollRef.current.cancel();
+        activePollRef.current = null;
+      }
       const cancelled = await api.scans.cancel(currentScan.id);
       setCurrentScan(cancelled);
+      setIsScanning(false);
       const scans = await api.scans.listByRepo(activeRepo!.id);
       setPastScans(scans);
     } catch (err) {
@@ -1462,14 +1467,15 @@ export const RepositoriesPage: React.FC = () => {
                   />
                 </div>
 
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }} title="Scan repository structure and manifest dependencies via API in ~2 seconds without full git clone">
                   <input
                     type="checkbox"
                     checked={metadataOnly}
                     onChange={(e) => setMetadataOnly(e.target.checked)}
                     disabled={isScanning}
                   />
-                  Metadata-only
+                  <span>Metadata-only</span>
+                  <span style={{ fontSize: '10px', color: 'var(--accent-cyan)', background: 'rgba(6, 182, 212, 0.1)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Fast (2s)</span>
                 </label>
 
                 {isScanning ? (
@@ -1625,13 +1631,19 @@ export const RepositoriesPage: React.FC = () => {
                   <span style={{ wordBreak: 'break-word' }}>
                     {isScanning
                       ? currentScan?.status === 'queued'
-                        ? `Scan #${currentScan?.id} Queued — Waiting for Worker Slot`
-                        : 'Security Verification in Progress — Executing Isolated Workspaces'
+                        ? `Scan #${currentScan?.id} Queued — Preparing Scanner Slot...`
+                        : `Security Verification in Progress — ${
+                            currentScan?.stage
+                              ? currentScan.stage.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+                              : 'Executing Workspaces'
+                          }`
                       : currentScan?.status === 'completed'
                         ? `Scan #${currentScan.id} Completed — Verified at SHA ${currentScan.commit_sha?.slice(0, 7) || 'latest'}`
-                        : currentScan?.status === 'timed_out_partial'
-                          ? `Scan #${currentScan.id} Completed with Partial Results (Timeout Ceiling Reached)`
-                          : `Scan #${currentScan?.id} Status: ${currentScan?.status}`}
+                        : currentScan?.status === 'cancelled'
+                          ? `Scan #${currentScan?.id} Cancelled by User`
+                          : currentScan?.status === 'timed_out_partial'
+                            ? `Scan #${currentScan.id} Completed with Partial Results (Timeout Ceiling Reached)`
+                            : `Scan #${currentScan?.id} Status: ${currentScan?.status}`}
                   </span>
                 </div>
                 {currentScan?.completed_at && (
@@ -1654,12 +1666,17 @@ export const RepositoriesPage: React.FC = () => {
                   let isStageFailed = false;
 
                   if (isScanRunning) {
-                    const currentStageIdx = SCAN_STAGES.findIndex((s) => s.id === currentScan?.stage);
-                    if (currentStageIdx >= 0) {
-                      isStageDone = idx < currentStageIdx;
-                      isStageCurrent = idx === currentStageIdx;
+                    if (currentScan?.stage === 'queued' || currentScan?.status === 'queued') {
+                      isStageDone = false;
+                      isStageCurrent = false;
                     } else {
-                      isStageCurrent = idx === 0;
+                      const currentStageIdx = SCAN_STAGES.findIndex((s) => s.id === currentScan?.stage);
+                      if (currentStageIdx >= 0) {
+                        isStageDone = idx < currentStageIdx;
+                        isStageCurrent = idx === currentStageIdx;
+                      } else {
+                        isStageCurrent = idx === 0;
+                      }
                     }
                   } else if (isFailedScan) {
                     const failStageIdx = SCAN_STAGES.findIndex((s) => s.id === currentScan?.stage);

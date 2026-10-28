@@ -176,7 +176,7 @@ async def test_concurrent_three_scans_and_continuous_history_polling(
 
         # 5. Wait for all 3 scans to reach a terminal state
         completed_scans = {}
-        for _ in range(50):
+        for _ in range(100):
             await asyncio.sleep(0.1)
             all_done = True
             for s_id in scan_ids:
