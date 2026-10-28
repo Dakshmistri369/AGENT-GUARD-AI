@@ -152,6 +152,31 @@ async def test_list_repository_scans_with_populated_and_null_manifest(
 
 
 @pytest.mark.asyncio
+async def test_list_repository_scans_empty_history(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """
+    Verify GET /api/repositories/{repository_id}/scans returns an empty list (200 OK)
+    when a repository exists and is owned by the user, but has zero scan records.
+    """
+    repo = Repository(
+        id=599,
+        owner_id=1,
+        name="empty-scan-repo",
+        owner_name="acme",
+        full_name="acme/empty-scan-repo",
+        url="https://github.com/acme/empty-scan-repo",
+        default_branch="main",
+    )
+    db_session.add(repo)
+    await db_session.commit()
+
+    res = await client.get("/api/repositories/599/scans")
+    assert res.status_code == 200
+    assert res.json() == []
+
+
+@pytest.mark.asyncio
 async def test_list_repository_scans_pagination(
     client: AsyncClient, db_session: AsyncSession
 ):
