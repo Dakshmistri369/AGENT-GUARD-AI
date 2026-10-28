@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   GitBranch,
   Search,
@@ -56,6 +57,16 @@ type TabType = 'findings' | 'solutions' | 'matrix' | 'ai' | 'history';
 
 export const RepositoriesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // Hover prefetching helper for instant navigation
+  const prefetchRepoScans = useCallback((repoId: number) => {
+    queryClient.prefetchQuery({
+      queryKey: ['repoScans', repoId],
+      queryFn: () => api.scans.listByRepo(repoId, 50, 0),
+      staleTime: 30_000,
+    });
+  }, [queryClient]);
 
   // Input & validation state
   const [repoUrl, setRepoUrl] = useState('');
@@ -126,6 +137,28 @@ export const RepositoriesPage: React.FC = () => {
   const findingsPageSize = 25;
   const [historyPage, setHistoryPage] = useState<number>(1);
   const historyPageSize = 10;
+
+  // Instant navigation with keepPreviousData to prevent UI flashes during pagination
+  useQuery({
+    queryKey: ['scanHistory', activeRepo?.id, historyPage],
+    queryFn: () => api.scans.listByRepo(activeRepo!.id, historyPageSize, (historyPage - 1) * historyPageSize),
+    enabled: !!activeRepo?.id,
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+
+  useQuery({
+    queryKey: ['findingsPaged', activeRepo?.id, findingsScope, findingsPage],
+    queryFn: () =>
+      api.findings.list({
+        page: findingsPage,
+        page_size: findingsPageSize,
+        repository_id: findingsScope === 'all' ? undefined : activeRepo?.id,
+      }),
+    enabled: !!activeRepo?.id || findingsScope === 'all',
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     setFindingsPage(1);
@@ -249,7 +282,11 @@ export const RepositoriesPage: React.FC = () => {
   const loadRepositories = async () => {
     setIsLoadingRepos(true);
     try {
-      const res = await api.repositories.list();
+      const res = await queryClient.fetchQuery({
+        queryKey: ['repositories'],
+        queryFn: () => api.repositories.list(),
+        staleTime: 30_000,
+      });
       setRepositories(res.items);
       // Lazy-load all-repo findings on demand when switching to all-scope rather than blocking initial mount
       if (res.items.length > 0 && !activeRepo) {
@@ -278,9 +315,13 @@ export const RepositoriesPage: React.FC = () => {
     setHistoryPage(1);
     setIsLoadingHistory(true);
 
-    // Load past scans for this repo
+    // Load past scans for this repo with TanStack cache
     try {
-      const scans = await api.scans.listByRepo(repo.id, 50, 0);
+      const scans = await queryClient.fetchQuery({
+        queryKey: ['repoScans', repo.id],
+        queryFn: () => api.scans.listByRepo(repo.id, 50, 0),
+        staleTime: 30_000,
+      });
       setPastScans(scans);
       if (scans.length > 0) {
         const latest = scans[0];
@@ -289,7 +330,11 @@ export const RepositoriesPage: React.FC = () => {
           setIsScanning(true);
           pollScanStatus(latest.id, repo.id);
         } else if (latest.status === 'completed' || latest.status === 'failed' || latest.status === 'timed_out_partial') {
-          const rep = await api.scans.report(latest.id);
+          const rep = await queryClient.fetchQuery({
+            queryKey: ['scanReport', latest.id],
+            queryFn: () => api.scans.report(latest.id),
+            staleTime: 60_000,
+          });
           setScanReport(rep);
         }
       }
@@ -1172,6 +1217,7 @@ export const RepositoriesPage: React.FC = () => {
                 <button
                   key={repo.id}
                   onClick={() => selectRepository(repo)}
+                  onMouseEnter={() => prefetchRepoScans(repo.id)}
                   style={{
                     fontSize: '12px',
                     padding: '5px 12px',
@@ -3246,6 +3292,20 @@ export const RepositoriesPage: React.FC = () => {
                                         }}
                                       >
                                         {sol.severity}
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: '11px',
+                                          padding: '2px 7px',
+                                          borderRadius: '4px',
+                                          background: '#f1f5f9',
+                                          color: '#0369a1',
+                                          fontFamily: 'JetBrains Mono, monospace',
+                                          fontWeight: 600,
+                                          border: '1px solid #bae6fd',
+                                        }}
+                                      >
+                                        Line {sol.line_number || 1}
                                       </span>
                                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
                                         {sol.action_summary}

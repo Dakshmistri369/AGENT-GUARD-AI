@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import and_, case, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import get_cached_json, set_cached_json, invalidate_dashboard_cache
 from app.dependencies import get_current_user, get_db
 from app.models.finding import Finding
 from app.models.project import Project
@@ -89,11 +90,20 @@ async def get_dashboard_metrics(
     current_user: User = Depends(get_current_user),
 ) -> DashboardMetricsResponse:
     """
-    Compact single-query aggregated metrics endpoint.
+    Compact single-query aggregated metrics endpoint with Redis read-through caching.
     Aggregates repository, scan, finding, and patch metrics directly in PostgreSQL
-    with owner_id scoping. Returns explicit unavailable states if the database cannot be queried.
+    with owner_id scoping. Returns cached payload on hit; falls back safely to live CTE on miss.
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    cache_key = f"dashboard:metrics:{current_user.id}"
+
+    # 1. Read-through cache check (0 DB connections on HIT)
+    cached = await get_cached_json(cache_key)
+    if cached and isinstance(cached, dict) and cached.get("metrics_available") is True:
+        response.headers["X-Cache"] = "HIT"
+        return DashboardMetricsResponse.model_validate(cached)
+
+    response.headers["X-Cache"] = "MISS"
     try:
         sql = text("""
             WITH user_repos AS (
@@ -151,7 +161,7 @@ async def get_dashboard_metrics(
         res = await db.execute(sql, {"user_id": current_user.id})
         row = res.mappings().one_or_none()
         if not row:
-            return DashboardMetricsResponse(
+            result = DashboardMetricsResponse(
                 metrics_available=True,
                 total_repositories=0,
                 total_scans=0,
@@ -168,24 +178,29 @@ async def get_dashboard_metrics(
                 potential_issues=0,
                 patches_available=0,
             )
+        else:
+            result = DashboardMetricsResponse(
+                metrics_available=True,
+                total_repositories=row["total_repositories"] or 0,
+                total_scans=row["total_scans"] or 0,
+                completed_scans=row["completed_scans"] or 0,
+                running_scans=row["running_scans"] or 0,
+                failed_scans=row["failed_scans"] or 0,
+                total_findings=row["total_findings"] or 0,
+                critical_findings=row["critical_findings"] or 0,
+                high_findings=row["high_findings"] or 0,
+                medium_findings=row["medium_findings"] or 0,
+                low_findings=row["low_findings"] or 0,
+                info_findings=row["info_findings"] or 0,
+                false_positives=row["false_positives"] or 0,
+                potential_issues=row["potential_issues"] or 0,
+                patches_available=row["patches_available"] or 0,
+            )
 
-        return DashboardMetricsResponse(
-            metrics_available=True,
-            total_repositories=row["total_repositories"] or 0,
-            total_scans=row["total_scans"] or 0,
-            completed_scans=row["completed_scans"] or 0,
-            running_scans=row["running_scans"] or 0,
-            failed_scans=row["failed_scans"] or 0,
-            total_findings=row["total_findings"] or 0,
-            critical_findings=row["critical_findings"] or 0,
-            high_findings=row["high_findings"] or 0,
-            medium_findings=row["medium_findings"] or 0,
-            low_findings=row["low_findings"] or 0,
-            info_findings=row["info_findings"] or 0,
-            false_positives=row["false_positives"] or 0,
-            potential_issues=row["potential_issues"] or 0,
-            patches_available=row["patches_available"] or 0,
-        )
+        # Store in Redis with 30s TTL only when metrics_available is True
+        await set_cached_json(cache_key, result.model_dump(mode="json"), ex=30)
+        return result
+
     except Exception as exc:
         logger.error("Failed to compute dashboard metrics: %s", exc)
         return DashboardMetricsResponse(

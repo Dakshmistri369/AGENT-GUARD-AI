@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import invalidate_dashboard_cache
 from app.dependencies import get_current_user, get_db
 from app.models.repository import Repository
 from app.models.user import User
@@ -154,6 +155,7 @@ async def connect_repository(
     db.add(new_repo)
     await db.commit()
     await db.refresh(new_repo)
+    await invalidate_dashboard_cache(current_user.id)
     return RepositoryResponse.model_validate(new_repo)
 
 
@@ -227,3 +229,4 @@ async def delete_repository(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found.")
     await db.delete(repo)
     await db.commit()
+    await invalidate_dashboard_cache(current_user.id)

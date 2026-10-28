@@ -248,6 +248,40 @@ async def test_demo_mode_fallback_when_enable_demo_auth_in_production(auth_clien
     assert resp.status_code == 200
     data = resp.json()
     assert data["email"] == settings.demo_user_email
+
+
+@pytest.mark.asyncio
+async def test_stateless_jwt_zero_db_cache_hit(auth_client: AsyncClient, monkeypatch):
+    """Subsequent requests with verified JWT hit Redis cache and return 200 with zero DB queries."""
+    from unittest.mock import AsyncMock
+    import app.dependencies as deps
+
+    token = create_test_token(sub="cache_test_sub_999", email="cached@agentguard.dev")
+
+    # 1. First request provisions user and caches in Redis
+    resp1 = await auth_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp1.status_code == 200
+    user_id = resp1.json()["id"]
+    assert user_id > 0
+
+    # 2. Mock get_or_create_user_from_claims to ensure it is NEVER called on cache hit
+    mock_db_auth = AsyncMock()
+    monkeypatch.setattr(deps, "get_or_create_user_from_claims", mock_db_auth)
+
+    # 3. Second request must hit cache and return 200 without calling DB provisioning
+    resp2 = await auth_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp2.status_code == 200
+    assert resp2.json()["id"] == user_id
+    assert resp2.json()["email"] == "cached@agentguard.dev"
+    assert resp2.json()["supabase_user_id"] == "cache_test_sub_999"
+    mock_db_auth.assert_not_called()
+
     assert "id" in data and data["id"] > 0
 
 
@@ -262,3 +296,37 @@ async def test_zero_config_mock_in_production_allows_demo_user(auth_client: Asyn
     assert resp.status_code == 200
     data = resp.json()
     assert data["email"] == settings.demo_user_email
+
+
+@pytest.mark.asyncio
+async def test_stateless_jwt_zero_db_cache_hit(auth_client: AsyncClient, monkeypatch):
+    """Subsequent requests with verified JWT hit Redis cache and return 200 with zero DB queries."""
+    from unittest.mock import AsyncMock
+    import app.dependencies as deps
+
+    token = create_test_token(sub="cache_test_sub_999", email="cached@agentguard.dev")
+
+    # 1. First request provisions user and caches in Redis
+    resp1 = await auth_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp1.status_code == 200
+    user_id = resp1.json()["id"]
+    assert user_id > 0
+
+    # 2. Mock get_or_create_user_from_claims to ensure it is NEVER called on cache hit
+    mock_db_auth = AsyncMock()
+    monkeypatch.setattr(deps, "get_or_create_user_from_claims", mock_db_auth)
+
+    # 3. Second request must hit cache and return 200 without calling DB provisioning
+    resp2 = await auth_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp2.status_code == 200
+    assert resp2.json()["id"] == user_id
+    assert resp2.json()["email"] == "cached@agentguard.dev"
+    assert resp2.json()["supabase_user_id"] == "cache_test_sub_999"
+    mock_db_auth.assert_not_called()
+

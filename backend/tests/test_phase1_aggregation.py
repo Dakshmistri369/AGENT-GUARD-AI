@@ -79,6 +79,8 @@ async def test_dashboard_metrics_aggregation_with_seeded_data(client: AsyncClien
     )
     db_session.add_all([f1, f2, f3])
     await db_session.commit()
+    from app.core.cache import invalidate_dashboard_cache
+    await invalidate_dashboard_cache(1)
 
     # Query metrics endpoint
     resp = await client.get("/api/dashboard/metrics")
@@ -143,3 +145,36 @@ async def test_pagination_correctness(client: AsyncClient, db_session: AsyncSess
     r_data2 = r_resp2.json()
     assert len(r_data2["items"]) == 1
     assert r_data2["page"] == 2
+
+
+@pytest.mark.asyncio
+async def test_dashboard_metrics_redis_read_through_and_invalidation(client: AsyncClient, monkeypatch):
+    """Test read-through caching on GET /api/dashboard/metrics: MISS -> HIT -> Invalidation -> MISS."""
+    from app.core.cache import invalidate_dashboard_cache
+    from unittest.mock import AsyncMock
+    import app.api.dashboard as dash_mod
+
+    # Clean any previous cache state for user 1
+    await invalidate_dashboard_cache(1)
+
+    # 1. First request is a cache MISS; queries DB and populates cache
+    resp1 = await client.get("/api/dashboard/metrics")
+    assert resp1.status_code == 200
+    assert resp1.headers.get("X-Cache") == "MISS"
+    data1 = resp1.json()
+    assert data1["metrics_available"] is True
+
+    # 2. Second request is a cache HIT; does NOT query the database CTE
+    resp2 = await client.get("/api/dashboard/metrics")
+    assert resp2.status_code == 200
+    assert resp2.headers.get("X-Cache") == "HIT"
+    assert resp2.json() == data1
+
+    # 3. Invalidate cache for user 1 (e.g. triggered on scan finish or repo creation)
+    await invalidate_dashboard_cache(1)
+
+    # 4. Third request is a cache MISS again
+    resp3 = await client.get("/api/dashboard/metrics")
+    assert resp3.status_code == 200
+    assert resp3.headers.get("X-Cache") == "MISS"
+

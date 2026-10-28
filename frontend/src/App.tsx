@@ -4,8 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
-import { LogoIntro } from './components/brand/LogoIntro';
 import { ENABLE_LOGIN_PAGES } from './config/authFeatures';
+
+// Lazy-load LogoIntro so initial page load bundle is not bloated
+const LogoIntro = lazy(() => import('./components/brand/LogoIntro').then((m) => ({ default: m.LogoIntro })));
 
 // Code-split page routes so initial bundle is minimal and fast
 const OverviewPage = lazy(() => import('./pages/Overview').then((m) => ({ default: m.OverviewPage })));
@@ -58,17 +60,19 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         {showIntro && (
-          <LogoIntro
-            forcePlay={false}
-            durationSeconds={2.0}
-            onComplete={() => {
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('agentguard_intro_seen', 'true');
-                sessionStorage.setItem('agentguard_intro_completed', 'true');
-              }
-              setShowIntro(false);
-            }}
-          />
+          <Suspense fallback={null}>
+            <LogoIntro
+              forcePlay={false}
+              durationSeconds={2.0}
+              onComplete={() => {
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('agentguard_intro_seen', 'true');
+                  sessionStorage.setItem('agentguard_intro_completed', 'true');
+                }
+                setShowIntro(false);
+              }}
+            />
+          </Suspense>
         )}
         <BrowserRouter>
           <Suspense fallback={<PageLoadingFallback />}>

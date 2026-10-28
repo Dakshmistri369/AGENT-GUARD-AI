@@ -16,10 +16,12 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
+from sqlalchemy.orm import defer
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.security.rate_limiter import require_scan_rate_limit
 
 from app.config import get_settings
+from app.core.cache import invalidate_dashboard_cache
 from app.dependencies import get_current_user, get_db
 from app.models.finding import Finding
 from app.models.project import Project
@@ -171,6 +173,7 @@ async def analyze_repository(
     # Enqueue background job via queue client
     queue_client = get_queue_client()
     await queue_client.enqueue_scan(scan_id=scan.id, repository_id=repo.id)
+    await invalidate_dashboard_cache(current_user.id)
 
     return ScanResponse.model_validate(scan)
 
@@ -631,6 +634,7 @@ async def list_repository_scans(
 
     stmt = (
         select(Scan)
+        .options(defer(Scan.skip_manifest))
         .where(Scan.repository_id == repository_id)
         .order_by(Scan.created_at.desc())
         .limit(limit)
