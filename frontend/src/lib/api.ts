@@ -8,6 +8,7 @@ import type {
   ValidateUrlResponse,
   Scan,
   ScanReport,
+  ActiveScansResponse,
   Finding,
   FindingSolution,
   RepositorySolutionPlan,
@@ -214,6 +215,9 @@ export const api = {
 
     listByRepo: (repositoryId: number, limit = 50, offset = 0): Promise<Scan[]> =>
       client.get(`/api/repositories/${repositoryId}/scans`, { params: { limit, offset } }).then(r => r.data),
+
+    getActive: (signal?: AbortSignal): Promise<ActiveScansResponse> =>
+      client.get('/api/scans/active', { timeout: 10000, signal }).then(r => r.data),
   },
 
   solutions: {
@@ -231,11 +235,11 @@ export const api = {
   },
 
   dashboard: {
-    getSummary: (): Promise<DashboardSummaryResponse> =>
-      client.get('/api/dashboard/summary').then(r => r.data),
+    getSummary: (options?: { timeout?: number; signal?: AbortSignal }): Promise<DashboardSummaryResponse> =>
+      client.get('/api/dashboard/summary', { timeout: options?.timeout ?? 15000, signal: options?.signal }).then(r => r.data),
 
-    getMetrics: (): Promise<DashboardMetricsResponse> =>
-      client.get('/api/dashboard/metrics').then(r => r.data),
+    getMetrics: (options?: { timeout?: number; signal?: AbortSignal }): Promise<DashboardMetricsResponse> =>
+      client.get('/api/dashboard/metrics', { timeout: options?.timeout ?? 15000, signal: options?.signal }).then(r => r.data),
   },
 
   findings: {

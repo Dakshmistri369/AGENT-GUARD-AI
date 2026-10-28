@@ -16,6 +16,7 @@ import {
 import type { Repository } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { SHOW_SIGN_IN_BUTTON } from '../../config/authFeatures';
+import { BackgroundScanIndicator } from '../scans/BackgroundScanIndicator';
 
 export interface TopNavigationProps {
   repositories?: Repository[];
@@ -214,6 +215,9 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
       {/* Right: Quick actions, AI assistant, user pill */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        {/* Background Scan Activity Indicator (always visible across all pages) */}
+        <BackgroundScanIndicator />
+
         {/* Cinematic Animated Logo Intro Button (desktop/tablet only) */}
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('agentguard:replay-intro'))}

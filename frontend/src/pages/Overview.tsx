@@ -22,7 +22,7 @@ import { SummaryCard } from '../components/dashboard/SummaryCard';
 import { ChartPanel } from '../components/dashboard/ChartPanel';
 import { CriticalFindingRow } from '../components/dashboard/CriticalFindingRow';
 import { ScannerStatus } from '../components/dashboard/ScannerStatus';
-import type { CriticalIssueItem, DashboardSummaryResponse } from '../types';
+import type { CriticalIssueItem, DashboardSummaryResponse, ActiveScansResponse } from '../types';
 
 export const OverviewPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +31,15 @@ export const OverviewPage: React.FC = () => {
   const [selectedIssue, setSelectedIssue] = useState<CriticalIssueItem | null>(null);
   const [updatingFindingId, setUpdatingFindingId] = useState<number | null>(null);
 
-  // TanStack Query for live Dashboard Analytics with instant localStorage hydration
+  // Live background active scans polling (6s interval)
+  const { data: activeScansData } = useQuery<ActiveScansResponse>({
+    queryKey: ['activeScans'],
+    queryFn: ({ signal }) => api.scans.getActive(signal),
+    refetchInterval: 6_000,
+  });
+  const activeScans = activeScansData?.scans ?? [];
+
+  // TanStack Query for live Dashboard Analytics with 15s timeout and instant localStorage hydration
   const {
     data: summary,
     isLoading,
@@ -41,8 +49,8 @@ export const OverviewPage: React.FC = () => {
     isFetching,
   } = useQuery<DashboardSummaryResponse>({
     queryKey: ['dashboardSummary'],
-    queryFn: async () => {
-      const res = await api.dashboard.getSummary();
+    queryFn: async ({ signal }) => {
+      const res = await api.dashboard.getSummary({ timeout: 15000, signal });
       try {
         localStorage.setItem('agentguard_dashboard_summary', JSON.stringify(res));
       } catch {}
@@ -56,6 +64,7 @@ export const OverviewPage: React.FC = () => {
       return undefined;
     },
     staleTime: 60_000,
+    retry: 1,
     refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
   });
@@ -234,6 +243,68 @@ export const OverviewPage: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Active Background Scans Live Banner ── */}
+      {activeScans.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            marginBottom: '20px',
+            boxShadow: '0 2px 6px rgba(16, 185, 129, 0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span
+                className="animate-ping"
+                style={{
+                  position: 'absolute',
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  background: 'rgba(16, 185, 129, 0.6)',
+                }}
+              />
+              <RefreshCw size={18} className="animate-spin text-emerald-600" style={{ position: 'relative' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>{activeScans.length} Background Scan{activeScans.length > 1 ? 's' : ''} Active</span>
+                <span style={{ fontSize: '11px', background: '#d1fae5', color: '#047857', padding: '1px 7px', borderRadius: '9999px', fontWeight: 600 }}>
+                  Live arq Engine
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#047857', marginTop: '2px' }}>
+                {activeScans.map((s) => `${s.repository_name} (${s.stage ? s.stage.replace(/_/g, ' ') : s.status})`).join(' • ')}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => navigate('/repositories?tab=history')}
+              className="btn btn-secondary"
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 12px',
+                color: '#065f46',
+                borderColor: 'rgba(16, 185, 129, 0.5)',
+                background: '#ffffff',
+                fontWeight: 600,
+              }}
+            >
+              View Scan Pipeline →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Error Banner or Demo Notice ── */}
       {isError && (() => {
         const is401 = (error as any)?.response?.status === 401 || (error as any)?.message?.includes('401');
@@ -391,19 +462,28 @@ export const OverviewPage: React.FC = () => {
           title="Issues By Vulnerability Type"
           infoTooltip="Distribution of security findings grouped by CWE and scanner rule categories."
         >
-          {isLoading ? (
+          {isLoading && !summary ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
               <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
             </div>
-          ) : isError ? (
+          ) : isError && !summary ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
               <ShieldAlert size={32} color="#d97706" style={{ marginBottom: '8px' }} />
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Metrics Unavailable</div>
-              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
                 {isUnauthorized
                   ? 'Vulnerability distributions require authorized access or active demo workspace scans.'
-                  : 'Unable to retrieve vulnerability metrics from backend service.'}
+                  : (error instanceof Error ? error.message : 'Unable to retrieve vulnerability metrics from backend service.')}
               </div>
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="btn btn-secondary"
+                style={{ fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
+                {isFetching ? 'Retrying...' : 'Retry'}
+              </button>
             </div>
           ) : !summary || summary.vulnerability_types.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
@@ -497,19 +577,28 @@ export const OverviewPage: React.FC = () => {
           title="Issues By Severity"
           infoTooltip="Total security findings categorized by standard CVSS / scanner severity levels."
         >
-          {isLoading ? (
+          {isLoading && !summary ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
               <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
             </div>
-          ) : isError ? (
+          ) : isError && !summary ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
               <ShieldAlert size={32} color="#d97706" style={{ marginBottom: '8px' }} />
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Severity Breakdown Unavailable</div>
-              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
                 {isUnauthorized
                   ? 'Severity metrics require authorized access or active demo workspace scans.'
-                  : 'Backend service offline or unreachable.'}
+                  : (error instanceof Error ? error.message : 'Backend service offline or unreachable.')}
               </div>
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="btn btn-secondary"
+                style={{ fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
+                {isFetching ? 'Retrying...' : 'Retry'}
+              </button>
             </div>
           ) : !summary || summary.severity_distribution.total === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
@@ -634,7 +723,13 @@ export const OverviewPage: React.FC = () => {
           title="Scanner Health & Coverage"
           infoTooltip="Live operational status of configured static scanners, package analyzers, and secret detectors."
         >
-          <ScannerStatus scanners={summary?.scanner_health ?? []} isLoading={isLoading} />
+          <ScannerStatus
+            scanners={summary?.scanner_health ?? []}
+            isLoading={isLoading && !summary}
+            isError={isError && !summary}
+            errorMessage={error instanceof Error ? error.message : undefined}
+            onRetry={() => refetch()}
+          />
         </ChartPanel>
       </div>
 
@@ -645,9 +740,26 @@ export const OverviewPage: React.FC = () => {
           title="Metrics"
           infoTooltip="Calculated engineer hours saved through automated AST scanners and precision patch generation."
         >
-          {isLoading ? (
+          {isLoading && !summary ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '240px' }}>
               <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
+            </div>
+          ) : isError && !summary ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+              <Clock size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Metrics Unavailable</div>
+              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
+                {error instanceof Error ? error.message : 'Unable to query efficiency and time-saved metrics.'}
+              </div>
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="btn btn-secondary"
+                style={{ fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
+                {isFetching ? 'Retrying...' : 'Retry'}
+              </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', height: '240px', justifyContent: 'space-between', padding: '12px 8px' }}>
@@ -727,21 +839,30 @@ export const OverviewPage: React.FC = () => {
             </button>
           }
         >
-          {isLoading ? (
+          {isLoading && !summary ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
               {[1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse" style={{ height: '52px', borderRadius: '8px', background: '#f1f5f9' }} />
               ))}
             </div>
-          ) : isError ? (
+          ) : isError && !summary ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
               <ShieldAlert size={32} color="#d97706" style={{ marginBottom: '8px' }} />
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Critical Findings Unavailable</div>
-              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
                 {isUnauthorized
                   ? 'Private repository findings are protected. Authorized access required.'
-                  : 'Unable to query critical security findings.'}
+                  : (error instanceof Error ? error.message : 'Unable to query critical security findings.')}
               </div>
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="btn btn-secondary"
+                style={{ fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
+                {isFetching ? 'Retrying...' : 'Retry'}
+              </button>
             </div>
           ) : !summary || summary.most_critical_issues.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
@@ -782,21 +903,30 @@ export const OverviewPage: React.FC = () => {
             </button>
           }
         >
-          {isLoading ? (
+          {isLoading && !summary ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
               {[1, 2].map((i) => (
                 <div key={i} className="animate-pulse" style={{ height: '56px', borderRadius: '8px', background: '#f1f5f9' }} />
               ))}
             </div>
-          ) : isError ? (
+          ) : isError && !summary ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
               <GitBranch size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Repositories Inaccessible</div>
-              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
                 {isUnauthorized
                   ? 'Private repository list is protected. Sign-in required for private audits.'
-                  : 'Unable to connect to repository registry.'}
+                  : (error instanceof Error ? error.message : 'Unable to connect to repository registry.')}
               </div>
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="btn btn-secondary"
+                style={{ fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
+                <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
+                {isFetching ? 'Retrying...' : 'Retry'}
+              </button>
             </div>
           ) : !summary || summary.issues_by_repository.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>

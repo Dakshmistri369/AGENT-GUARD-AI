@@ -29,6 +29,8 @@ from app.models.repository import Repository
 from app.models.scan import Scan
 from app.models.user import User
 from app.schemas.scan import (
+    ActiveScanItem,
+    ActiveScansResponse,
     ScanReportResponse,
     ScanResponse,
     ScanSummaryResponse,
@@ -204,6 +206,59 @@ async def get_queue_status(
         "dead_letter_jobs_count": len(dlq_jobs),
         "dead_letter_jobs": dlq_jobs,
     }
+
+
+@router.get("/api/scans/active", response_model=ActiveScansResponse)
+async def get_active_scans(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ActiveScansResponse:
+    """
+    Retrieve all non-terminal (pending, queued, running) scans for repositories
+    owned by the authenticated user. Strictly tenant-isolated.
+    """
+    response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    stmt = (
+        select(Scan, Repository.name, Repository.full_name)
+        .join(Repository, Scan.repository_id == Repository.id)
+        .where(
+            Repository.owner_id == current_user.id,
+            Scan.status.in_(["pending", "queued", "running"]),
+        )
+        .order_by(Scan.created_at.desc())
+    )
+    res = await db.execute(stmt)
+    rows = res.all()
+
+    items: list[ActiveScanItem] = []
+    for scan, repo_name, repo_full_name in rows:
+        start_time = scan.started_at or scan.created_at
+        if start_time is not None:
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=datetime.timezone.utc)
+            elapsed = int((now - start_time).total_seconds())
+        else:
+            elapsed = 0
+
+        items.append(
+            ActiveScanItem(
+                id=scan.id,
+                repository_id=scan.repository_id,
+                repository_name=repo_name or f"repo-{scan.repository_id}",
+                repository_full_name=repo_full_name or repo_name or f"repo-{scan.repository_id}",
+                status=scan.status,
+                stage=scan.stage,
+                commit_sha=scan.commit_sha,
+                started_at=scan.started_at,
+                created_at=scan.created_at,
+                elapsed_seconds=max(0, elapsed),
+            )
+        )
+
+    return ActiveScansResponse(active_count=len(items), scans=items)
 
 
 @router.get("/api/scans/{scan_id}", response_model=ScanResponse)

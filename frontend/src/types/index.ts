@@ -144,6 +144,24 @@ export interface Scan {
   created_at: string;
 }
 
+export interface ActiveScanItem {
+  id: number;
+  repository_id: number | null;
+  repository_name: string;
+  repository_full_name: string;
+  status: ScanStatus;
+  stage: string | null;
+  commit_sha: string | null;
+  started_at: string | null;
+  created_at: string;
+  elapsed_seconds: number;
+}
+
+export interface ActiveScansResponse {
+  active_count: number;
+  scans: ActiveScanItem[];
+}
+
 export interface ScanReport {
   scan_id: number;
   repository_id: number | null;

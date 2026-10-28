@@ -77,3 +77,23 @@ class ScanReportResponse(BaseModel):
     coverage_summary: dict[str, Any] | None = None
     scanner_matrix: dict[str, Any] | None = None
     generated_at: datetime.datetime
+
+
+class ActiveScanItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    repository_id: int | None = None
+    repository_name: str
+    repository_full_name: str
+    status: str
+    stage: str | None = None
+    commit_sha: str | None = None
+    started_at: datetime.datetime | None = None
+    created_at: datetime.datetime
+    elapsed_seconds: int = 0
+
+
+class ActiveScansResponse(BaseModel):
+    active_count: int
+    scans: list[ActiveScanItem]

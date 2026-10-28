@@ -1,13 +1,22 @@
 import React from 'react';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import type { ScannerHealthItem } from '../../types';
 
 export interface ScannerStatusProps {
   scanners: ScannerHealthItem[];
   isLoading?: boolean;
+  isError?: boolean;
+  errorMessage?: string;
+  onRetry?: () => void;
 }
 
-export const ScannerStatus: React.FC<ScannerStatusProps> = ({ scanners, isLoading = false }) => {
+export const ScannerStatus: React.FC<ScannerStatusProps> = ({
+  scanners,
+  isLoading = false,
+  isError = false,
+  errorMessage,
+  onRetry,
+}) => {
   if (isLoading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
@@ -22,6 +31,65 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({ scanners, isLoadin
             }}
           />
         ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '240px',
+          color: '#64748b',
+          textAlign: 'center',
+          padding: '0 16px',
+        }}
+      >
+        <AlertCircle size={32} color="#dc2626" style={{ marginBottom: '8px' }} />
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+          Scanner Health Unavailable
+        </div>
+        <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+          {errorMessage || 'Unable to connect to scanner coordinator.'}
+        </div>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            className="btn btn-secondary"
+            style={{ marginTop: '12px', fontSize: '11.5px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            <RefreshCw size={12} />
+            <span>Retry</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (scanners.length === 0) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '240px',
+          color: '#64748b',
+          textAlign: 'center',
+        }}
+      >
+        <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+          Engines Operational
+        </div>
+        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+          Semgrep, Bandit, detect-secrets, and OSV Scanner are active.
+        </div>
       </div>
     );
   }
