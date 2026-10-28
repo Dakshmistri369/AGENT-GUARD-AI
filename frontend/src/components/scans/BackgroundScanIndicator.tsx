@@ -31,6 +31,8 @@ export const BackgroundScanIndicator: React.FC = () => {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [toasts, setToasts] = useState<ScanToast[]>([]);
+  const [cancellingScanId, setCancellingScanId] = useState<number | null>(null);
+  const [isCancellingAll, setIsCancellingAll] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Keep track of tracked active scans to detect terminal state transitions
@@ -164,6 +166,34 @@ export const BackgroundScanIndicator: React.FC = () => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const handleCancelSingle = async (scanId: number) => {
+    setCancellingScanId(scanId);
+    try {
+      await api.scans.cancel(scanId);
+      await queryClient.invalidateQueries({ queryKey: ['activeScans'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+      await queryClient.invalidateQueries({ queryKey: ['repositories'] });
+    } catch (err) {
+      console.error('Failed to cancel scan', err);
+    } finally {
+      setCancellingScanId(null);
+    }
+  };
+
+  const handleCancelAll = async () => {
+    setIsCancellingAll(true);
+    try {
+      await api.scans.cancelAll();
+      await queryClient.invalidateQueries({ queryKey: ['activeScans'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+      await queryClient.invalidateQueries({ queryKey: ['repositories'] });
+    } catch (err) {
+      console.error('Failed to cancel all active scans', err);
+    } finally {
+      setIsCancellingAll(false);
+    }
   };
 
   return (
@@ -324,21 +354,51 @@ export const BackgroundScanIndicator: React.FC = () => {
                 Background Scan Activity
               </span>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              aria-label="Close active scans list"
-              style={{
-                border: 'none',
-                background: 'transparent',
-                color: '#94a3b8',
-                cursor: 'pointer',
-                padding: '2px',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <X size={15} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {activeCount > 0 && (
+                <button
+                  onClick={handleCancelAll}
+                  disabled={isCancellingAll}
+                  style={{
+                    border: '1px solid #fecaca',
+                    background: '#fef2f2',
+                    color: '#dc2626',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    cursor: isCancellingAll ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="Cancel all running and queued background scans"
+                >
+                  {isCancellingAll ? (
+                    <RefreshCw size={10} className="animate-spin text-red-600" />
+                  ) : (
+                    <XCircle size={11} color="#dc2626" />
+                  )}
+                  <span>{isCancellingAll ? 'Cancelling...' : 'Cancel All'}</span>
+                </button>
+              )}
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close active scans list"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
           </div>
 
           {/* Body Content */}
@@ -449,30 +509,59 @@ export const BackgroundScanIndicator: React.FC = () => {
                         {formatStage(scan.stage)}
                       </span>
 
-                      <button
-                        onClick={() => {
-                          setIsOpen(false);
-                          if (scan.repository_id) {
-                            navigate(`/repositories?repoId=${scan.repository_id}&tab=history`);
-                          } else {
-                            navigate('/repositories?tab=history');
-                          }
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#2563eb',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          fontWeight: 600,
-                          fontSize: '11px',
-                        }}
-                      >
-                        <span>View</span>
-                        <ChevronRight size={12} />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          onClick={() => handleCancelSingle(scan.id)}
+                          disabled={cancellingScanId === scan.id}
+                          style={{
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            color: '#dc2626',
+                            cursor: cancellingScanId === scan.id ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            fontWeight: 600,
+                            fontSize: '11px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            transition: 'all 0.15s ease',
+                          }}
+                          title="Cancel this ongoing scan"
+                        >
+                          {cancellingScanId === scan.id ? (
+                            <RefreshCw size={9} className="animate-spin text-red-600" />
+                          ) : (
+                            <XCircle size={10} color="#dc2626" />
+                          )}
+                          <span>{cancellingScanId === scan.id ? '...' : 'Cancel'}</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setIsOpen(false);
+                            if (scan.repository_id) {
+                              navigate(`/repositories?repoId=${scan.repository_id}&tab=history`);
+                            } else {
+                              navigate('/repositories?tab=history');
+                            }
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#2563eb',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            fontWeight: 600,
+                            fontSize: '11px',
+                          }}
+                        >
+                          <span>View</span>
+                          <ChevronRight size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

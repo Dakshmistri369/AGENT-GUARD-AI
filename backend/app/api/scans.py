@@ -119,6 +119,9 @@ async def analyze_repository(
         )
 
     # ── Milestone B Defense 2: Per-User Active Scan Concurrency Cap ───────────
+    # Automatically reap any zombie / stuck scans for this user before measuring concurrency
+    await reap_stale_scans_for_user(db, current_user.id)
+
     active_user_scans_stmt = (
         select(func.count(Scan.id))
         .join(Repository, Scan.repository_id == Repository.id)
@@ -208,6 +211,66 @@ async def get_queue_status(
     }
 
 
+async def reap_stale_scans_for_user(db: AsyncSession, user_id: int) -> int:
+    """
+    Finds scans owned by user that are stuck in 'queued' or 'running' beyond
+    acceptable runtime thresholds and transitions them to 'timed_out_partial'
+    to prevent orphan jobs from permanently blocking the user's concurrency quota.
+    """
+    now = datetime.datetime.now(datetime.timezone.utc)
+    queued_cutoff = now - datetime.timedelta(minutes=15)
+    running_cutoff = now - datetime.timedelta(minutes=30)
+
+    stmt = (
+        select(Scan)
+        .join(Repository, Scan.repository_id == Repository.id)
+        .where(
+            Repository.owner_id == user_id,
+            Scan.status.in_(["queued", "running"]),
+        )
+    )
+    res = await db.execute(stmt)
+    scans = res.scalars().all()
+    if not scans:
+        return 0
+
+    reaped_count = 0
+    for scan in scans:
+        scan_time = scan.started_at or scan.created_at
+        if scan_time is None:
+            continue
+        if scan_time.tzinfo is None:
+            scan_time = scan_time.replace(tzinfo=datetime.timezone.utc)
+
+        is_stale = False
+        if scan.status == "queued" and scan_time < queued_cutoff:
+            is_stale = True
+        elif scan.status == "running" and scan_time < running_cutoff:
+            is_stale = True
+
+        if is_stale:
+            scan.status = "timed_out_partial"
+            scan.stage = "timed_out_partial"
+            scan.error_message = (
+                "Scan timed out after exceeding maximum background execution window. "
+                "Automatically cleaned up by concurrency watchdog."
+            )
+            scan.completed_at = now
+            reaped_count += 1
+            logger.warning(
+                "Reaped stale scan ID %d (status=%s, created_at=%s) for user %d",
+                scan.id,
+                scan.status,
+                scan.created_at,
+                user_id,
+            )
+
+    if reaped_count > 0:
+        await db.commit()
+
+    return reaped_count
+
+
 @router.get("/api/scans/active", response_model=ActiveScansResponse)
 async def get_active_scans(
     response: Response,
@@ -220,6 +283,9 @@ async def get_active_scans(
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
     now = datetime.datetime.now(datetime.timezone.utc)
+
+    # Reaps stale scans before returning active telemetry
+    await reap_stale_scans_for_user(db, current_user.id)
 
     stmt = (
         select(Scan, Repository.name, Repository.full_name)
@@ -259,6 +325,49 @@ async def get_active_scans(
         )
 
     return ActiveScansResponse(active_count=len(items), scans=items)
+
+
+@router.post("/api/scans/active/cancel-all")
+async def cancel_all_active_scans(
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    """
+    Cancel all currently active (pending, queued, running) scans for repositories
+    owned by the authenticated user.
+    """
+    response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    stmt = (
+        select(Scan)
+        .join(Repository, Scan.repository_id == Repository.id)
+        .where(
+            Repository.owner_id == current_user.id,
+            Scan.status.in_(["pending", "queued", "running"]),
+        )
+    )
+    res = await db.execute(stmt)
+    scans = res.scalars().all()
+
+    cancelled_ids: list[int] = []
+    for scan in scans:
+        scan.status = "cancelled"
+        scan.stage = "cancelled"
+        scan.error_message = "Scan was cancelled by user via bulk cancel."
+        scan.completed_at = now
+        cancelled_ids.append(scan.id)
+
+    if cancelled_ids:
+        await db.commit()
+        await invalidate_dashboard_cache(current_user.id)
+
+    return {
+        "cancelled_count": len(cancelled_ids),
+        "cancelled_scan_ids": cancelled_ids,
+        "message": f"Successfully cancelled {len(cancelled_ids)} active scan(s).",
+    }
 
 
 @router.get("/api/scans/{scan_id}", response_model=ScanResponse)

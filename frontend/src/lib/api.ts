@@ -218,6 +218,9 @@ export const api = {
 
     getActive: (signal?: AbortSignal): Promise<ActiveScansResponse> =>
       client.get('/api/scans/active', { timeout: 10000, signal }).then(r => r.data),
+
+    cancelAll: (): Promise<{ cancelled_count: number; cancelled_scan_ids: number[]; message: string }> =>
+      client.post('/api/scans/active/cancel-all').then(r => r.data),
   },
 
   solutions: {

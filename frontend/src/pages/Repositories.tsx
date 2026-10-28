@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
+  X,
   FolderGit2,
   Download,
   RotateCw,
@@ -94,6 +96,8 @@ export const RepositoriesPage: React.FC = () => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [metadataOnly, setMetadataOnly] = useState(false);
   const [targetBranch, setTargetBranch] = useState('');
+  const [scanError, setScanError] = useState<{ message: string; isConcurrent?: boolean } | null>(null);
+  const [generalError, setGeneralError] = useState<string | null>(null);
 
   // Past scans history
   const [pastScans, setPastScans] = useState<Scan[]>([]);
@@ -468,7 +472,7 @@ export const RepositoriesPage: React.FC = () => {
         setPastScans([]);
       }
     } catch (err: any) {
-      alert(`Failed to delete repository: ${err?.message || 'Error'}`);
+      setGeneralError(`Failed to delete repository: ${err?.message || 'Error'}`);
     } finally {
       setIsDeletingRepo(false);
     }
@@ -477,6 +481,7 @@ export const RepositoriesPage: React.FC = () => {
   const handleStartAnalysis = async () => {
     if (!activeRepo) return;
 
+    setScanError(null);
     setIsScanning(true);
     setScanReport(null);
     const repoId = activeRepo.id;
@@ -512,7 +517,12 @@ export const RepositoriesPage: React.FC = () => {
       if (activePollRef.current) activePollRef.current.cancel();
       setIsScanning(false);
       const msg = err?.response?.data?.detail || err?.message || 'Analysis failed to start';
-      alert(`Scan failed: ${msg}`);
+      const isConcurrent = Boolean(
+        err?.response?.status === 429 ||
+        msg.toLowerCase().includes('concurrent scan limit') ||
+        msg.toLowerCase().includes('active scan')
+      );
+      setScanError({ message: msg, isConcurrent });
     }
   };
 
@@ -538,7 +548,7 @@ export const RepositoriesPage: React.FC = () => {
       setScanReport(rep);
       switchTab('findings');
     } catch (err: any) {
-      alert(`Could not load report for scan #${scan.id}: ${err?.message || 'Error'}`);
+      setGeneralError(`Could not load report for scan #${scan.id}: ${err?.message || 'Error'}`);
     }
   };
 
@@ -865,7 +875,7 @@ export const RepositoriesPage: React.FC = () => {
       }
     } catch (err: any) {
       const msg = err?.response?.data?.detail || err?.message || 'AI Enhancement failed';
-      alert(`AI Solution generation error: ${msg}`);
+      setGeneralError(`AI Solution generation error: ${msg}`);
     } finally {
       setEnhancingFindingId(null);
     }
@@ -1243,6 +1253,119 @@ export const RepositoriesPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ── Concurrency & Scan Error Notifications ── */}
+      {scanError && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: '20px',
+            padding: '14px 18px',
+            borderRadius: '10px',
+            background: scanError.isConcurrent ? '#fffbeb' : '#fef2f2',
+            border: `1px solid ${scanError.isConcurrent ? '#fde68a' : '#fecaca'}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <AlertCircle size={22} color={scanError.isConcurrent ? '#d97706' : '#dc2626'} style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: scanError.isConcurrent ? '#92400e' : '#991b1b' }}>
+                {scanError.isConcurrent ? 'Concurrent Scan Limit Reached' : 'Scan Failed to Start'}
+              </div>
+              <div style={{ fontSize: '12.5px', color: scanError.isConcurrent ? '#b45309' : '#b91c1c', marginTop: '2px', lineHeight: 1.4 }}>
+                {scanError.message}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {scanError.isConcurrent && (
+              <button
+                onClick={async () => {
+                  try {
+                    await api.scans.cancelAll();
+                    setScanError(null);
+                    await queryClient.invalidateQueries({ queryKey: ['activeScans'] });
+                    await queryClient.invalidateQueries({ queryKey: ['repositories'] });
+                    if (activeRepo) {
+                      const updatedScans = await api.scans.listByRepo(activeRepo.id);
+                      setPastScans(updatedScans);
+                    }
+                  } catch (e) {
+                    console.error('Failed to cancel active scans', e);
+                  }
+                }}
+                className="btn btn-secondary"
+                style={{
+                  fontSize: '11.5px',
+                  padding: '5px 12px',
+                  background: '#ffffff',
+                  borderColor: '#f59e0b',
+                  color: '#b45309',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+                title="Cancel all running scans and free up your concurrency slots immediately"
+              >
+                Cancel Ongoing Scans & Free Slots
+              </button>
+            )}
+            <button
+              onClick={() => setScanError(null)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                color: '#64748b',
+                cursor: 'pointer',
+                padding: '4px',
+              }}
+              aria-label="Dismiss scan error"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {generalError && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: '20px',
+            padding: '12px 16px',
+            borderRadius: '10px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AlertCircle size={18} color="#dc2626" />
+            <span style={{ fontSize: '12.5px', color: '#991b1b', fontWeight: 600 }}>{generalError}</span>
+          </div>
+          <button
+            onClick={() => setGeneralError(null)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: '#64748b',
+              cursor: 'pointer',
+              padding: '4px',
+            }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       {/* Main Analysis Section */}
       {isLoadingRepos ? (

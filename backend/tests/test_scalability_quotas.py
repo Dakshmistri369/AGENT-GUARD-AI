@@ -130,6 +130,8 @@ class TestPerUserConcurrencyAndQuotas:
         # Patch max_daily_scans_per_user = 2 and allow high concurrency for test
         with patch.object(get_settings(), "max_daily_scans_per_user", 2), patch.object(
             get_settings(), "max_concurrent_scans_per_user", 10
+        ), patch.object(
+            ScanExecutionService, "execute_scan", new_callable=AsyncMock, return_value={"status": "completed"}
         ):
             # Scan 1: Allowed
             resp1 = await client.post(f"/api/repositories/{repo_id}/analyze", json={"metadata_only": True})

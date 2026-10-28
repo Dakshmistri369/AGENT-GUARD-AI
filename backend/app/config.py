@@ -118,7 +118,7 @@ class Settings(BaseSettings):
     enable_async_worker: bool = True
 
     # ── Scalability Quotas, Limits & Backpressure (Milestone B & C) ───────────
-    max_concurrent_scans_per_user: int = 2        # Max concurrent active (queued/running) scans per user
+    max_concurrent_scans_per_user: int = 5        # Max concurrent active (queued/running) scans per user
     max_daily_scans_per_user: int = 50           # Max scans per user per 24-hour rolling window
     max_queue_depth: int = 100                   # Global queue capacity before HTTP 429 backpressure
     rate_limit_per_minute_api: int = 60          # General API endpoints rate limit per client
