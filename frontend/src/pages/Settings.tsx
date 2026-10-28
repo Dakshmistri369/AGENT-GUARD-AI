@@ -42,7 +42,7 @@ export const SettingsPage: React.FC = () => {
   }, [user]);
 
   return (
-    <div className="p-4 sm:p-8 max-w-[700px] w-full pb-safe">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl w-full pb-safe mx-auto">
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
         <SettingsIcon size={20} color="var(--electric-blue)" />
         <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>Settings</h1>
@@ -218,7 +218,7 @@ const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.
 
 const InfoRow: React.FC<{ label: string; value: string; warn?: boolean }> = ({ label, value, warn }) => (
   <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 p-3 sm:p-4 border-b border-[var(--border)]">
-    <div className="text-xs text-[var(--text-muted)] w-full sm:w-[160px] flex-shrink-0 pt-0.5 font-medium">
+    <div className="text-xs text-[var(--text-muted)] w-full sm:w-44 flex-shrink-0 pt-0.5 font-medium">
       {label}
     </div>
     <div style={{ color: warn ? 'var(--accent-amber)' : 'var(--text-secondary)' }} className="text-xs flex-1 break-words">

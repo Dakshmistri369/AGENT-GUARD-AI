@@ -88,8 +88,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside
       aria-label="Main Navigation"
       style={{
-        width: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '230px',
-        minWidth: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '230px',
+        width: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '256px',
+        minWidth: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '256px',
         maxWidth: isMobileDrawer ? '100%' : undefined,
         background: '#f8fafc',
         borderRight: isMobileDrawer ? 'none' : '1px solid #e2e8f0',
@@ -104,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand Header with Animated Logo */}
       <div
         style={{
-          padding: isEffectiveCollapsed ? '10px 6px' : '10px 14px',
+          padding: isEffectiveCollapsed ? '10px 8px' : '10px 16px',
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
@@ -308,9 +308,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        padding: '10px 12px',
-                        minHeight: '42px',
+                        justifyContent: isEffectiveCollapsed ? 'center' : 'flex-start',
+                        gap: isEffectiveCollapsed ? '0' : '12px',
+                        padding: isEffectiveCollapsed ? '10px 0' : '10px 14px',
+                        minHeight: '40px',
+                        height: '40px',
                         borderRadius: '8px',
                         fontSize: '13px',
                         fontWeight: 500,
@@ -327,8 +329,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         e.currentTarget.style.color = '#334155';
                       }}
                     >
-                      <Icon size={16} color="#64748b" />
-                      {!isEffectiveCollapsed && <span>{item.label}</span>}
+                      <Icon size={16} color="#64748b" className="shrink-0" />
+                      {!isEffectiveCollapsed && <span style={{ lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
                     </a>
                   );
                 }
@@ -342,16 +344,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '10px',
-                      padding: '10px 12px',
-                      minHeight: '42px',
+                      justifyContent: isEffectiveCollapsed ? 'center' : 'flex-start',
+                      gap: isEffectiveCollapsed ? '0' : '12px',
+                      padding: isEffectiveCollapsed ? '10px 0' : '10px 14px',
+                      minHeight: '40px',
+                      height: '40px',
                       borderRadius: '8px',
                       fontSize: '13px',
                       fontWeight: isActive ? 700 : 500,
                       textDecoration: 'none',
                       color: isActive ? '#1d4ed8' : '#0f172a',
                       background: isActive ? '#eff6ff' : 'transparent',
-                      borderLeft: isActive ? '3px solid #2563eb' : '3px solid transparent',
+                      borderLeft: isEffectiveCollapsed ? 'none' : (isActive ? '3px solid #2563eb' : '3px solid transparent'),
                       transition: 'all 0.15s ease',
                       position: 'relative',
                     }}
@@ -368,8 +372,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }
                     }}
                   >
-                    <Icon size={16} color={isActive ? '#2563eb' : '#64748b'} />
-                    {!isEffectiveCollapsed && <span>{item.label}</span>}
+                    <Icon size={16} color={isActive ? '#2563eb' : '#64748b'} className="shrink-0" />
+                    {!isEffectiveCollapsed && <span style={{ lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
                     {item.badge && !isEffectiveCollapsed && (
                       <span
                         style={{

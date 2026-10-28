@@ -33,6 +33,7 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
         flexDirection: 'column',
         boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
         minHeight,
+        height: '100%',
         position: 'relative',
       }}
       className={className}

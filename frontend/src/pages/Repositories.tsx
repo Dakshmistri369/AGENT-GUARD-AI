@@ -993,7 +993,7 @@ export const RepositoriesPage: React.FC = () => {
   const meta = activeRepo?.metadata_json;
 
   return (
-    <div className="max-w-[1360px] mx-auto flex flex-col gap-6 px-5 sm:px-8 lg:px-10 py-6 sm:py-8 pb-safe">
+    <div className="max-w-7xl xl:max-w-screen-2xl mx-auto flex flex-col gap-6 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-safe">
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', paddingLeft: '2px' }}>
         <div>

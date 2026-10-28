@@ -12,6 +12,7 @@ Used by background workers (arq/Redis) and async queue runners.
 """
 from __future__ import annotations
 
+import asyncio
 import datetime
 import logging
 import time

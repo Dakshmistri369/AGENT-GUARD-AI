@@ -37,7 +37,7 @@ const CreateModal: React.FC<{ onClose: () => void; onCreated: () => void }> = ({
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
       backdropFilter: 'blur(4px)',
     }}>
-      <div className="glass-card animate-slide-in w-full max-w-[440px] mx-4 p-5 sm:p-7">
+      <div className="glass-card animate-slide-in w-full max-w-md mx-4 p-5 sm:p-7">
         <h2 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '20px', color: 'var(--text-primary)' }}>
           Create New Project
         </h2>
@@ -209,7 +209,7 @@ export const ProjectsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-8 max-w-[900px] w-full pb-safe">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl w-full pb-safe mx-auto">
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>

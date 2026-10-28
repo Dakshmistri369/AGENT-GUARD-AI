@@ -136,7 +136,7 @@ export const Layout: React.FC = () => {
           />
 
           {/* Slide-over Drawer with Safe-area padding */}
-          <div className="fixed inset-y-0 left-0 w-[280px] max-w-[85vw] h-full bg-[#f8fafc] shadow-2xl flex flex-col z-10 animate-slide-in pt-safe pb-safe">
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] h-full bg-[#f8fafc] shadow-2xl flex flex-col z-10 animate-slide-in pt-safe pb-safe">
             <Sidebar
               isMobileDrawer
               onCloseMobileDrawer={() => setIsMobileNavOpen(false)}
