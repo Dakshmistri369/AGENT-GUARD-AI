@@ -24,6 +24,8 @@ export interface SidebarProps {
   findingsCount?: number;
   isMobileDrawer?: boolean;
   onCloseMobileDrawer?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 interface NavSection {
@@ -72,11 +74,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   findingsCount = 0,
   isMobileDrawer = false,
   onCloseMobileDrawer,
+  collapsed: externalCollapsed,
+  onToggleCollapse: externalToggleCollapse,
 }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
   const location = useLocation();
 
-  const isEffectiveCollapsed = !isMobileDrawer && collapsed;
+  const isCollapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed;
+  const toggleCollapse = externalToggleCollapse || (() => setInternalCollapsed((c) => !c));
+  const isEffectiveCollapsed = !isMobileDrawer && isCollapsed;
 
   return (
     <aside
@@ -98,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand Header with Animated Logo */}
       <div
         style={{
-          padding: isEffectiveCollapsed ? '10px 8px' : '10px 14px',
+          padding: isEffectiveCollapsed ? '10px 6px' : '10px 14px',
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
@@ -109,58 +115,120 @@ export const Sidebar: React.FC<SidebarProps> = ({
           position: 'relative',
         }}
       >
-        <Link
-          to="/"
-          onClick={(e) => {
-            if (isMobileDrawer) {
-              onCloseMobileDrawer?.();
-            } else if (isEffectiveCollapsed) {
-              e.preventDefault();
-              setCollapsed(false);
-            }
-          }}
-          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}
-          title={isEffectiveCollapsed ? 'Click to expand navigation' : 'AgentGuard AI Security Command Center'}
-        >
-          <AnimatedBrandLogo
-            variant={isEffectiveCollapsed ? 'icon' : 'full'}
-            size="md"
-            scanState={scanState}
-            findingsCount={findingsCount}
-          />
-        </Link>
+        {!isEffectiveCollapsed ? (
+          <>
+            <Link
+              to="/"
+              onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
+              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', minWidth: 0, overflow: 'hidden' }}
+              title="AgentGuard AI Security Command Center"
+            >
+              <AnimatedBrandLogo
+                variant="full"
+                size="md"
+                scanState={scanState}
+                findingsCount={findingsCount}
+              />
+            </Link>
 
-        {/* Collapse toggle (desktop expanded) */}
-        {!isMobileDrawer && !isEffectiveCollapsed && (
-          <button
-            onClick={() => setCollapsed(true)}
-            title="Collapse sidebar"
-            aria-label="Collapse sidebar"
+            {/* Collapse toggle (desktop expanded) */}
+            {!isMobileDrawer && (
+              <button
+                onClick={toggleCollapse}
+                title="Collapse sidebar (Ctrl+B)"
+                aria-label="Collapse sidebar"
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#64748b',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#e2e8f0';
+                  e.currentTarget.style.color = '#0f172a';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#f8fafc';
+                  e.currentTarget.style.color = '#64748b';
+                }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+            )}
+          </>
+        ) : (
+          /* Collapsed state header: icon + bright expand button */
+          <div
             style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '6px',
-              border: '1px solid #e2e8f0',
-              background: '#f8fafc',
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#64748b',
-              transition: 'all 0.15s ease',
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#e2e8f0';
-              e.currentTarget.style.color = '#0f172a';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#f8fafc';
-              e.currentTarget.style.color = '#64748b';
+              width: '100%',
+              gap: '4px',
             }}
           >
-            <ChevronLeft size={16} />
-          </button>
+            <Link
+              to="/"
+              onClick={(e) => {
+                if (isMobileDrawer) {
+                  onCloseMobileDrawer?.();
+                } else {
+                  e.preventDefault();
+                  toggleCollapse();
+                }
+              }}
+              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+              title="Click to expand navigation (Ctrl+B)"
+            >
+              <AnimatedBrandLogo
+                variant="icon"
+                size="md"
+                scanState={scanState}
+                findingsCount={findingsCount}
+              />
+            </Link>
+
+            {!isMobileDrawer && (
+              <button
+                onClick={toggleCollapse}
+                title="Expand sidebar (Ctrl+B)"
+                aria-label="Expand sidebar"
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: '#eff6ff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#2563eb',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                  boxShadow: '0 1px 2px rgba(37,99,235,0.12)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#2563eb';
+                  e.currentTarget.style.color = '#ffffff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#eff6ff';
+                  e.currentTarget.style.color = '#2563eb';
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
+            )}
+          </div>
         )}
 
         {isMobileDrawer && (
@@ -356,8 +424,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           {!isMobileDrawer && (
             <button
-              onClick={() => setCollapsed(true)}
-              title="Collapse sidebar"
+              onClick={toggleCollapse}
+              title="Collapse sidebar (Ctrl+B)"
               aria-label="Collapse sidebar"
               style={{
                 width: '24px',
@@ -398,8 +466,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }}
           >
             <button
-              onClick={() => setCollapsed(false)}
-              title="Expand sidebar"
+              onClick={toggleCollapse}
+              title="Expand sidebar (Ctrl+B)"
               aria-label="Expand sidebar"
               style={{
                 width: '36px',

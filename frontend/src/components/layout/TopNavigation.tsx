@@ -10,6 +10,8 @@ import {
   Play,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import type { Repository } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +25,8 @@ export interface TopNavigationProps {
   activeScanRepoName?: string | null;
   onOpenAiAssistant?: () => void;
   onToggleMobileNav?: () => void;
+  isSidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export const TopNavigation: React.FC<TopNavigationProps> = ({
@@ -33,6 +37,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   activeScanRepoName,
   onOpenAiAssistant,
   onToggleMobileNav,
+  isSidebarCollapsed = false,
+  onToggleSidebar,
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -91,6 +97,40 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             className="lg:hidden"
           >
             <Menu size={22} />
+          </button>
+        )}
+
+        {/* Desktop Sidebar Toggle Button (expand / collapse sidebar anytime) */}
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            aria-label={isSidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+            title={isSidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+            className="hidden lg:flex"
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+              background: isSidebarCollapsed ? '#eff6ff' : '#ffffff',
+              color: isSidebarCollapsed ? '#2563eb' : '#475569',
+              cursor: 'pointer',
+              marginRight: '6px',
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isSidebarCollapsed ? '#dbeafe' : '#f1f5f9';
+              e.currentTarget.style.borderColor = '#cbd5e1';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isSidebarCollapsed ? '#eff6ff' : '#ffffff';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+          >
+            {isSidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
           </button>
         )}
 

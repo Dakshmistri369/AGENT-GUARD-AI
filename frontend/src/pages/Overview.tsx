@@ -31,7 +31,7 @@ export const OverviewPage: React.FC = () => {
   const [selectedIssue, setSelectedIssue] = useState<CriticalIssueItem | null>(null);
   const [updatingFindingId, setUpdatingFindingId] = useState<number | null>(null);
 
-  // TanStack Query for live Dashboard Analytics
+  // TanStack Query for live Dashboard Analytics with instant localStorage hydration
   const {
     data: summary,
     isLoading,
@@ -41,7 +41,20 @@ export const OverviewPage: React.FC = () => {
     isFetching,
   } = useQuery<DashboardSummaryResponse>({
     queryKey: ['dashboardSummary'],
-    queryFn: () => api.dashboard.getSummary(),
+    queryFn: async () => {
+      const res = await api.dashboard.getSummary();
+      try {
+        localStorage.setItem('agentguard_dashboard_summary', JSON.stringify(res));
+      } catch {}
+      return res;
+    },
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem('agentguard_dashboard_summary');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+      return undefined;
+    },
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,

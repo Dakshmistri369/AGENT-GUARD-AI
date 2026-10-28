@@ -16,6 +16,37 @@ export const Layout: React.FC = () => {
   const [activeScanRepoName, setActiveScanRepoName] = useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
 
+  // Desktop sidebar collapsed state with localStorage persistence
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('agentguard_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('agentguard_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Keyboard shortcut Ctrl+B or Cmd+B to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        handleToggleSidebar();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Close mobile nav on route or search param change
   useEffect(() => {
     setIsMobileNavOpen(false);
@@ -82,7 +113,11 @@ export const Layout: React.FC = () => {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
       {/* Permanent Desktop Sidebar (Hidden below lg breakpoint) */}
       <div className="hidden lg:flex">
-        <Sidebar scanState={scanState} />
+        <Sidebar
+          scanState={scanState}
+          collapsed={isSidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
+        />
       </div>
 
       {/* Accessible Mobile Slide-over Drawer (Visible on < lg screens) */}
@@ -113,7 +148,7 @@ export const Layout: React.FC = () => {
 
       {/* Main Container */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-        {/* Top Navigation Bar with Mobile Hamburger */}
+        {/* Top Navigation Bar with Mobile Hamburger and Desktop Sidebar Toggle */}
         <TopNavigation
           repositories={repositories}
           selectedRepoId={selectedRepoId}
@@ -122,6 +157,8 @@ export const Layout: React.FC = () => {
           activeScanRepoName={activeScanRepoName}
           onOpenAiAssistant={handleOpenAiAssistant}
           onToggleMobileNav={() => setIsMobileNavOpen(true)}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={handleToggleSidebar}
         />
 
         {/* Content View */}

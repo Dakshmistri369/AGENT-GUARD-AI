@@ -130,7 +130,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
             fontFamily: 'Inter, system-ui, sans-serif',
           }}
         >
-          {isLoading ? (
+          {isLoading && (value === undefined || value === '—') ? (
             <div
               className="animate-pulse"
               style={{
@@ -142,7 +142,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
               }}
             />
           ) : (
-            value
+            <span className={isLoading ? 'opacity-80 transition-opacity' : ''}>{value ?? 0}</span>
           )}
         </div>
 
