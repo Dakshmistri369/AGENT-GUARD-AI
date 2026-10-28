@@ -103,8 +103,10 @@ async def delete_cached(key: str) -> bool:
 
 
 async def invalidate_dashboard_cache(user_id: int | str) -> bool:
-    """Invalidate cached dashboard metrics for the given user."""
-    return await delete_cached(f"dashboard:metrics:{user_id}")
+    """Invalidate cached dashboard metrics and summary for the given user."""
+    res1 = await delete_cached(f"dashboard:metrics:{user_id}")
+    res2 = await delete_cached(f"dashboard:summary:{user_id}")
+    return res1 and res2
 
 
 async def invalidate_user_auth_cache(user_id: int | str, sub: Optional[str] = None) -> bool:

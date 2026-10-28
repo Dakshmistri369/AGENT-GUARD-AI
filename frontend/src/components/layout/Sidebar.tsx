@@ -98,20 +98,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Brand Header with Animated Logo */}
       <div
         style={{
-          padding: isEffectiveCollapsed ? '16px 12px' : '16px 16px',
+          padding: isEffectiveCollapsed ? '10px 8px' : '10px 14px',
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: isEffectiveCollapsed ? 'center' : 'space-between',
-          minHeight: '64px',
+          minHeight: '56px',
+          height: '56px',
           background: '#ffffff',
+          position: 'relative',
         }}
       >
         <Link
           to="/"
-          onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
+          onClick={(e) => {
+            if (isMobileDrawer) {
+              onCloseMobileDrawer?.();
+            } else if (isEffectiveCollapsed) {
+              e.preventDefault();
+              setCollapsed(false);
+            }
+          }}
           style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}
-          title="AgentGuard AI Security Command Center"
+          title={isEffectiveCollapsed ? 'Click to expand navigation' : 'AgentGuard AI Security Command Center'}
         >
           <AnimatedBrandLogo
             variant={isEffectiveCollapsed ? 'icon' : 'full'}
@@ -121,13 +130,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
           />
         </Link>
 
+        {/* Collapse toggle (desktop expanded) */}
+        {!isMobileDrawer && !isEffectiveCollapsed && (
+          <button
+            onClick={() => setCollapsed(true)}
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar"
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#64748b',
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#e2e8f0';
+              e.currentTarget.style.color = '#0f172a';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.color = '#64748b';
+            }}
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
+
         {isMobileDrawer && (
           <button
             onClick={onCloseMobileDrawer}
             aria-label="Close navigation"
             style={{
-              width: '44px',
-              height: '44px',
+              width: '40px',
+              height: '40px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -284,35 +326,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
 
-      {/* Collapse / Expand Toggle Button (desktop only) */}
-      {!isMobileDrawer && (
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          style={{
-            position: 'absolute',
-            right: '-11px',
-            top: '72px',
-            width: '22px',
-            height: '22px',
-            borderRadius: '50%',
-            background: '#ffffff',
-            border: '1px solid #cbd5e1',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#475569',
-            zIndex: 30,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-          }}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-        </button>
-      )}
-
-      {/* Footer Info Pill */}
-      {!isEffectiveCollapsed && (
+      {/* Footer Info Pill & Collapse / Expand Controls */}
+      {!isEffectiveCollapsed ? (
         <div
           style={{
             padding: '12px 14px',
@@ -323,6 +338,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             background: '#ffffff',
+            marginTop: 'auto',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -336,9 +352,82 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }}
             />
             <span style={{ color: '#0f172a', fontWeight: 600 }}>Engines Active</span>
+            <span style={{ color: '#94a3b8', fontSize: '10px', marginLeft: '2px' }}>v1.0.0</span>
           </div>
-          <span style={{ color: '#64748b', fontSize: '10px' }}>v1.0.0</span>
+          {!isMobileDrawer && (
+            <button
+              onClick={() => setCollapsed(true)}
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '4px',
+                border: 'none',
+                background: 'transparent',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#0f172a';
+                e.currentTarget.style.background = '#f1f5f9';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#94a3b8';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <ChevronLeft size={14} />
+            </button>
+          )}
         </div>
+      ) : (
+        !isMobileDrawer && (
+          <div
+            style={{
+              padding: '10px 8px',
+              borderTop: '1px solid #e2e8f0',
+              display: 'flex',
+              justifyContent: 'center',
+              background: '#ffffff',
+              marginTop: 'auto',
+            }}
+          >
+            <button
+              onClick={() => setCollapsed(false)}
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#475569',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#e2e8f0';
+                e.currentTarget.style.color = '#0f172a';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.color = '#475569';
+              }}
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        )
       )}
     </aside>
   );

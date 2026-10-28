@@ -130,6 +130,7 @@ export const Layout: React.FC = () => {
             flex: 1,
             overflowY: 'auto',
             background: '#ffffff',
+            position: 'relative',
           }}
         >
           <Outlet />

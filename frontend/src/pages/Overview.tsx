@@ -42,8 +42,9 @@ export const OverviewPage: React.FC = () => {
   } = useQuery<DashboardSummaryResponse>({
     queryKey: ['dashboardSummary'],
     queryFn: () => api.dashboard.getSummary(),
-    staleTime: 30_000,
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const isUnauthorized = Boolean(
@@ -91,31 +92,33 @@ export const OverviewPage: React.FC = () => {
   };
 
   return (
-    <div className="p-3.5 sm:p-6 lg:p-8 max-w-[1440px] mx-auto bg-white min-h-full pb-safe">
+    <div className="px-5 sm:px-8 lg:px-10 py-6 sm:py-8 max-w-[1440px] mx-auto bg-white min-h-full pb-safe">
       {/* ── Page Header with Black Fonts ────────────────────────────────────────── */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '28px',
+          marginBottom: '26px',
           flexWrap: 'wrap',
           gap: '16px',
+          paddingLeft: '2px',
         }}
       >
         <div>
           <h1
             style={{
-              fontSize: '26px',
+              fontSize: '28px',
               fontWeight: 800,
               color: '#0f172a',
-              letterSpacing: '-0.4px',
-              lineHeight: 1.2,
+              letterSpacing: '-0.5px',
+              lineHeight: 1.25,
+              margin: '0 0 6px 0',
             }}
           >
             Dashboard
           </h1>
-          <p style={{ fontSize: '13px', color: '#475569', marginTop: '4px' }}>
+          <p style={{ fontSize: '13.5px', color: '#475569', margin: 0, lineHeight: 1.5 }}>
             Multi-engine AST security, dependency supply chain, and secret exposure monitor
           </p>
         </div>
@@ -289,11 +292,9 @@ export const OverviewPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <SummaryCard
           title="Scans & Reviews"
-          value={isLoading || isError ? '—' : (summary?.scans_and_reviews.total_scans ?? 0)}
+          value={isError ? '—' : (summary?.scans_and_reviews.total_scans ?? 0)}
           subtext={
-            isLoading
-              ? 'Loading scan metrics…'
-              : isError
+            isError
               ? isUnauthorized ? 'Authentication required for private scan history' : 'Unable to connect to scan service'
               : `${summary?.scans_and_reviews.pr_reviews ?? 0} PR reviews and ${
                   summary?.scans_and_reviews.scans_last_30_days ?? 0
@@ -303,16 +304,14 @@ export const OverviewPage: React.FC = () => {
           bgColor="#f0f7ff"
           borderColor="#bfdbfe"
           onClick={() => navigate('/repositories?tab=history')}
-          isLoading={isLoading}
+          isLoading={isLoading && !summary}
         />
 
         <SummaryCard
           title="False Positives"
-          value={isLoading || isError ? '—' : (summary?.false_positives.count ?? 0)}
+          value={isError ? '—' : (summary?.false_positives.count ?? 0)}
           subtext={
-            isLoading
-              ? 'Loading review state…'
-              : isError
+            isError
               ? 'Metrics unavailable'
               : `Filtered ${summary?.false_positives.count ?? 0} false positives out of ${
                   summary?.false_positives.total_issues ?? 0
@@ -324,13 +323,13 @@ export const OverviewPage: React.FC = () => {
           badge={!isError && summary && summary.false_positives.percentage > 0 ? `${summary.false_positives.percentage}%` : undefined}
           badgeColor="#059669"
           onClick={() => navigate('/repositories?tab=findings')}
-          isLoading={isLoading}
+          isLoading={isLoading && !summary}
         />
 
         <SummaryCard
           title="Potential Issues"
           value={
-            isLoading || isError
+            isError
               ? '—'
               : summary
               ? summary.potential_issues.count > 1000
@@ -339,9 +338,7 @@ export const OverviewPage: React.FC = () => {
               : 0
           }
           subtext={
-            isLoading
-              ? 'Aggregating open findings…'
-              : isError
+            isError
               ? isUnauthorized ? 'Protected repository data requires authorization' : 'Security scanner findings offline'
               : `Found ${summary?.potential_issues.count ?? 0} potential issues out of ${
                   summary?.potential_issues.total_issues ?? 0
@@ -351,16 +348,14 @@ export const OverviewPage: React.FC = () => {
           bgColor="#fffbeb"
           borderColor="#fde68a"
           onClick={() => navigate('/repositories?tab=findings')}
-          isLoading={isLoading}
+          isLoading={isLoading && !summary}
         />
 
         <SummaryCard
           title="Patches generated"
-          value={isLoading || isError ? '—' : (summary?.patches_generated.count ?? 0)}
+          value={isError ? '—' : (summary?.patches_generated.count ?? 0)}
           subtext={
-            isLoading
-              ? 'Calculating remediation patches…'
-              : isError
+            isError
               ? 'Patches unavailable'
               : `Generated patches for ${summary?.patches_generated.count ?? 0} out of ${
                   summary?.potential_issues.count ?? 0
@@ -372,7 +367,7 @@ export const OverviewPage: React.FC = () => {
           badge={!isError && summary && summary.patches_generated.percentage > 0 ? `${summary.patches_generated.percentage}%` : undefined}
           badgeColor="#7c3aed"
           onClick={() => navigate('/repositories?tab=solutions')}
-          isLoading={isLoading}
+          isLoading={isLoading && !summary}
         />
       </div>
 

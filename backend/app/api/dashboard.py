@@ -232,8 +232,17 @@ async def get_dashboard_summary(
     """
     Generate live security command center metrics and data visualizations
     from authenticated user repositories, scans, and verified scanner findings.
+    Backed by Redis read-through caching for instant sub-50ms UI response.
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
+    cache_key = f"dashboard:summary:{current_user.id}"
+
+    # 1. Read-through cache check (0 DB connections on HIT)
+    cached_payload = await get_cached_json(cache_key)
+    if cached_payload is not None:
+        response.headers["X-Cache"] = "HIT"
+        return DashboardSummaryResponse(**cached_payload)
+
     now = datetime.datetime.now(datetime.timezone.utc)
     thirty_days_ago = now - datetime.timedelta(days=30)
 
@@ -245,7 +254,8 @@ async def get_dashboard_summary(
     repo_name_map = {r.id: r.full_name for r in repositories}
 
     if not repo_ids:
-        # Zero repositories state
+        # Zero repositories state — return immediately without caching so any newly linked repo appears instantly
+        response.headers["X-Cache"] = "MISS"
         return DashboardSummaryResponse(
             scans_and_reviews=ScansSummaryMetrics(total_scans=0, scans_last_30_days=0, pr_reviews=0),
             false_positives=FalsePositivesMetrics(count=0, total_issues=0, percentage=0.0),
@@ -574,7 +584,7 @@ async def get_dashboard_summary(
         for s in recent_scans
     ]
 
-    return DashboardSummaryResponse(
+    summary_response = DashboardSummaryResponse(
         scans_and_reviews=ScansSummaryMetrics(
             total_scans=total_scans,
             scans_last_30_days=scans_30d,
@@ -602,6 +612,11 @@ async def get_dashboard_summary(
         metrics=metrics,
         recent_activity=recent_activity,
     )
+
+    # Cache live summary in Redis + L1 for 60 seconds
+    await set_cached_json(cache_key, summary_response.model_dump(mode="json"), ex=60)
+    response.headers["X-Cache"] = "MISS"
+    return summary_response
 
 
 @router.patch("/api/findings/{finding_id}/status", response_model=FindingResponse)
@@ -652,6 +667,7 @@ async def update_finding_status(
 
     await db.commit()
     await db.refresh(finding)
+    await invalidate_dashboard_cache(current_user.id)
     return FindingResponse.model_validate(finding)
 
 

@@ -132,14 +132,13 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
         >
           {isLoading ? (
             <div
-              className="animate-spin"
+              className="animate-pulse"
               style={{
-                width: '28px',
-                height: '28px',
-                border: '3px solid rgba(37, 99, 235, 0.2)',
-                borderTopColor: accentColor,
-                borderRadius: '50%',
-                margin: '4px 0',
+                width: '42px',
+                height: '32px',
+                borderRadius: '6px',
+                background: 'rgba(148, 163, 184, 0.25)',
+                margin: '2px 0',
               }}
             />
           ) : (

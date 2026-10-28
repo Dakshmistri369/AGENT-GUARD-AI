@@ -983,29 +983,29 @@ export const RepositoriesPage: React.FC = () => {
   const meta = activeRepo?.metadata_json;
 
   return (
-    <div className="max-w-[1280px] mx-auto flex flex-col gap-5 sm:gap-6 p-3 sm:p-6 pb-safe">
+    <div className="max-w-[1360px] mx-auto flex flex-col gap-6 px-5 sm:px-8 lg:px-10 py-6 sm:py-8 pb-safe">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', paddingLeft: '2px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px', margin: 0, lineHeight: 1.25 }}>
               GitHub Security Auditor
             </h1>
             <span
               style={{
                 fontSize: '11px',
-                padding: '2px 8px',
+                padding: '3px 9px',
                 borderRadius: '6px',
                 background: 'rgba(20, 184, 166, 0.15)',
                 color: 'var(--teal-bright)',
                 border: '1px solid rgba(45, 212, 191, 0.3)',
-                fontWeight: 600,
+                fontWeight: 700,
               }}
             >
               Public & Private Ready
             </span>
           </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+          <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', margin: '6px 0 0 0', lineHeight: 1.5 }}>
             Connect repositories, inspect project structure, pin commit SHAs, and run isolated static analyzers with verifiable evidence.
           </p>
         </div>
