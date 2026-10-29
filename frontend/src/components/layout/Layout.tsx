@@ -136,7 +136,7 @@ export const Layout: React.FC = () => {
           />
 
           {/* Slide-over Drawer with Safe-area padding */}
-          <div className="fixed inset-y-0 left-0 w-[240px] max-w-[85vw] h-full bg-[#f8fafc] shadow-2xl flex flex-col z-10 animate-slide-in pt-safe pb-safe">
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] h-full bg-[#f8fafc] shadow-2xl flex flex-col z-10 animate-slide-in pt-safe pb-safe">
             <Sidebar
               isMobileDrawer
               onCloseMobileDrawer={() => setIsMobileNavOpen(false)}
@@ -147,8 +147,8 @@ export const Layout: React.FC = () => {
       )}
 
       {/* Main Container */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden overflow-y-hidden">
-        {/* Top Navigation Bar with Mobile Hamburger and Quick Actions */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+        {/* Top Navigation Bar with Mobile Hamburger and Desktop Sidebar Toggle */}
         <TopNavigation
           repositories={repositories}
           selectedRepoId={selectedRepoId}
@@ -161,8 +161,15 @@ export const Layout: React.FC = () => {
           onToggleSidebar={handleToggleSidebar}
         />
 
-        {/* Content View with guaranteed scroll and no horizontal blowouts */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50/40 relative min-w-0">
+        {/* Content View */}
+        <main
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            background: '#ffffff',
+            position: 'relative',
+          }}
+        >
           <Outlet />
         </main>
       </div>
