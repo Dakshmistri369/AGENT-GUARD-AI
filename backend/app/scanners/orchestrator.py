@@ -108,28 +108,35 @@ class ScannerOrchestrator:
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
         """
         Execute applicable and available scanners on workspace_path.
-        Returns:
-            (findings, scanners_run, coverage_summary, scanner_matrix)
-        coverage_summary['job_timed_out'] is True if the outer job limit was hit.
+        Features:
+        - High-efficiency single-pass workspace inspection (replaces multiple disk traversals).
+        - Small files are scanned first; big files are scanned after.
+        - Controlled scanner concurrency limit using asyncio.Semaphore.
+        - Preserves partial findings if any scanner fails or times out.
+        - Captures detailed per-scanner telemetry (versions, exit codes, durations).
         """
+        import asyncio
+        from app.config import get_settings
+        from app.scanners.filters import inspect_workspace
+
+        settings = get_settings()
         effective_metadata = dict(metadata or {})
-        # Always inspect the local cloned workspace to guarantee extensions/manifests/languages are complete
-        auto_meta = extract_local_workspace_metadata(workspace_path)
-        for k, v in auto_meta.items():
-            if not effective_metadata.get(k):
-                effective_metadata[k] = v
-            elif isinstance(effective_metadata[k], list) and isinstance(v, list):
-                effective_metadata[k] = sorted(list(set(effective_metadata[k] + v)))
 
-        # Discover scannable files and pre-filter oversized or binary files
-        scannable_files, skipped_files = build_scan_file_list(workspace_path)
-        files_discovered = len(scannable_files) + len(skipped_files)
-        files_scanned = len(scannable_files)
-        files_skipped = len(skipped_files)
+        # ── Step 1: Single-pass workspace inspection & small-first ordering ──────
+        inspection = inspect_workspace(workspace_path)
+        for k in ["manifests", "languages", "extensions"]:
+            v = getattr(inspection, k, None)
+            if v:
+                curr = effective_metadata.get(k)
+                if not curr:
+                    effective_metadata[k] = list(v) if isinstance(v, (set, list)) else v
+                elif isinstance(curr, list) and isinstance(v, (set, list)):
+                    effective_metadata[k] = sorted(list(set(curr + list(v))))
 
-        skip_manifest: dict[str, list[str]] = {}
-        for sk in skipped_files:
-            skip_manifest.setdefault(sk.reason, []).append(sk.path)
+        files_discovered = inspection.files_discovered
+        files_scanned = len(inspection.scannable_files)
+        files_skipped = len(inspection.skipped_files)
+        skip_manifest = dict(inspection.skip_manifest)
 
         scanner_matrix = self.get_scanner_matrix(effective_metadata)
         scanners_run: list[dict[str, Any]] = []
@@ -142,9 +149,11 @@ class ScannerOrchestrator:
         skipped_scanners: list[str] = []
         coverage_notes: list[str] = []
 
+        # Semaphore to enforce configurable concurrency limit (protects CPU & RAM)
+        sem = asyncio.Semaphore(settings.scanner_concurrency_limit)
+
         # Prepare scanner execution tasks
         tasks = []
-        scanner_task_map = {}
         for sc in self.scanners:
             mat = scanner_matrix[sc.scanner_id]
             applicable = mat["applicable"]
@@ -160,31 +169,35 @@ class ScannerOrchestrator:
                     "version": mat["version"],
                     "status": "skipped_not_applicable",
                     "reason": mat["applicability_reason"],
+                    "exit_code": 0,
                     "findings_count": 0,
                     "duration_seconds": 0.0,
                 })
                 continue
 
             async def _execute_scanner(scanner: BaseScanner, is_avail: bool, matrix_entry: dict[str, Any]):
-                try:
-                    res: ScannerResult = await scanner.scan(
-                        workspace_path=workspace_path,
-                        metadata=effective_metadata,
-                        commit_sha=commit_sha,
-                        timeout_seconds=timeout_seconds,
-                    )
-                    return scanner, is_avail, matrix_entry, res, None
-                except Exception as exc:
-                    return scanner, is_avail, matrix_entry, None, exc
+                async with sem:
+                    try:
+                        res: ScannerResult = await scanner.scan(
+                            workspace_path=workspace_path,
+                            metadata=effective_metadata,
+                            commit_sha=commit_sha,
+                            timeout_seconds=timeout_seconds,
+                            scannable_files=inspection.scannable_files,
+                            small_files=inspection.small_files,
+                            big_files=inspection.big_files,
+                        )
+                        return scanner, is_avail, matrix_entry, res, None
+                    except Exception as exc:
+                        return scanner, is_avail, matrix_entry, None, exc
 
             coro = _execute_scanner(sc, available, mat)
             tasks.append((coro, sc, available, mat))
 
-        # Run applicable scanners concurrently with outer timeout and partial preservation
+        # Run applicable scanners with controlled concurrency, outer timeout, and partial preservation
         timed_out_job = False
         results = []
         if tasks:
-            import asyncio
             task_future_to_info = {}
             for coro, sc, is_avail, mat in tasks:
                 fut = asyncio.ensure_future(coro)
@@ -218,6 +231,7 @@ class ScannerOrchestrator:
                         "version": mat["version"],
                         "status": "timed_out",
                         "error": f"Outer job safety timeout reached ({job_max_runtime_seconds}s)",
+                        "exit_code": None,
                         "findings_count": 0,
                         "duration_seconds": float(job_max_runtime_seconds),
                     })
@@ -229,6 +243,7 @@ class ScannerOrchestrator:
                 except Exception as exc:
                     sc, is_avail, mat = task_future_to_info[d]
                     results.append((sc, is_avail, mat, None, exc))
+
             for sc, is_avail, mat, res, exc in results:
                 if exc is not None:
                     logger.error("Unexpected error in scanner %s: %s", sc.name, exc)
@@ -239,11 +254,13 @@ class ScannerOrchestrator:
                         "version": mat["version"],
                         "status": "failed",
                         "error": str(exc),
+                        "exit_code": None,
                         "findings_count": 0,
                         "duration_seconds": 0.0,
                     })
                     continue
 
+                exit_c = getattr(res, "exit_code", None) if res else None
                 if not is_avail:
                     missing_scanners.append(sc.name)
                     if res.findings:
@@ -256,6 +273,7 @@ class ScannerOrchestrator:
                         "version": None,
                         "status": "skipped_unavailable",
                         "reason": res.reason or "CLI tool is not installed on host PATH",
+                        "exit_code": exit_c,
                         "findings_count": len(res.findings),
                         "duration_seconds": res.duration_seconds,
                     })
@@ -269,6 +287,7 @@ class ScannerOrchestrator:
                         "scanner_id": sc.scanner_id,
                         "version": res.scanner_version,
                         "status": "completed",
+                        "exit_code": exit_c if exit_c is not None else 0,
                         "findings_count": len(res.findings),
                         "duration_seconds": res.duration_seconds,
                     })
@@ -282,6 +301,7 @@ class ScannerOrchestrator:
                         "version": res.scanner_version,
                         "status": "timed_out",
                         "error": res.error or f"Timed out after {timeout_seconds}s",
+                        "exit_code": exit_c,
                         "findings_count": 0,
                         "duration_seconds": res.duration_seconds,
                     })
@@ -294,10 +314,21 @@ class ScannerOrchestrator:
                         "version": res.scanner_version,
                         "status": "failed",
                         "error": res.error,
+                        "exit_code": exit_c,
                         "findings_count": 0,
                         "duration_seconds": res.duration_seconds,
                     })
                 else:
+                    scanners_run.append({
+                        "name": sc.name,
+                        "scanner_id": sc.scanner_id,
+                        "version": res.scanner_version,
+                        "status": res.status,
+                        "reason": res.reason,
+                        "exit_code": exit_c,
+                        "findings_count": len(res.findings),
+                        "duration_seconds": res.duration_seconds,
+                    })
                     scanners_run.append({
                         "name": sc.name,
                         "scanner_id": sc.scanner_id,
@@ -336,6 +367,14 @@ class ScannerOrchestrator:
             "files_discovered": files_discovered,
             "files_scanned": files_scanned,
             "files_skipped": files_skipped,
+            "small_files_count": len(inspection.small_files),
+            "big_files_count": len(inspection.big_files),
+            "repository_bytes": inspection.total_repo_bytes,
+            "scanner_concurrency_limit": settings.scanner_concurrency_limit,
+            "scanner_versions": {sc["scanner_id"]: sc.get("version") for sc in scanners_run},
+            "scanner_exit_codes": {sc["scanner_id"]: sc.get("exit_code") for sc in scanners_run},
+            "scanner_timeout_status": {sc["scanner_id"]: (sc.get("status") == "timed_out") for sc in scanners_run},
+            "per_scanner_durations": {sc["scanner_id"]: sc.get("duration_seconds", 0.0) for sc in scanners_run},
             "skip_manifest": skip_manifest,
         }
 

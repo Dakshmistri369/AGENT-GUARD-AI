@@ -63,6 +63,7 @@ class SemgrepScanner(BaseScanner):
         metadata: dict[str, Any],
         commit_sha: str | None = None,
         timeout_seconds: int = 600,
+        **kwargs: Any,
     ) -> ScannerResult:
         start_time = time.time()
         available, version = self.is_available()
@@ -73,6 +74,7 @@ class SemgrepScanner(BaseScanner):
                 status="skipped_unavailable",
                 reason="Semgrep CLI is not installed or available on the host PATH",
                 duration_seconds=0.0,
+                exit_code=None,
             )
 
         applicable, reason = self.is_applicable(metadata)
@@ -83,6 +85,7 @@ class SemgrepScanner(BaseScanner):
                 status="skipped_not_applicable",
                 reason=reason,
                 duration_seconds=0.0,
+                exit_code=0,
             )
 
         exe = find_scanner_executable("semgrep")
@@ -92,7 +95,12 @@ class SemgrepScanner(BaseScanner):
                 scanner_version=version,
                 status="skipped_unavailable",
                 reason="Semgrep binary not found",
+                exit_code=None,
             )
+
+        from app.config import get_settings
+        settings = get_settings()
+        rule_timeout = str(settings.semgrep_rule_timeout_seconds if settings.semgrep_rule_timeout_seconds > 0 else 15)
 
         cmd = [
             exe,
@@ -121,8 +129,16 @@ class SemgrepScanner(BaseScanner):
             "--exclude", ".vscode",
             "--exclude", "*.min.js",
             "--exclude", "*.min.css",
+            "--exclude", "*.mp4",
+            "--exclude", "*.pptx",
+            "--exclude", "*.docx",
+            "--exclude", "*.pdf",
+            "--exclude", "*.zip",
+            "--exclude", "*.tar*",
+            "--exclude", "*.parquet",
             "--max-target-bytes", "1000000",
-            "--timeout", "0",           # 0 = no per-rule timeout (Semgrep official flag)
+            "--timeout", rule_timeout,
+            "--jobs", str(settings.scanner_concurrency_limit),
             "--max-memory", "2048",
             "--json",
             "--quiet",
@@ -143,6 +159,7 @@ class SemgrepScanner(BaseScanner):
                 status="timed_out",
                 error=f"Semgrep execution timed out after {timeout_seconds} seconds",
                 duration_seconds=round(time.time() - start_time, 2),
+                exit_code=None,
             )
         except Exception as exc:
             return ScannerResult(
@@ -151,6 +168,7 @@ class SemgrepScanner(BaseScanner):
                 status="failed",
                 error=f"Semgrep execution error: {exc}",
                 duration_seconds=round(time.time() - start_time, 2),
+                exit_code=None,
             )
 
         findings = []
@@ -236,6 +254,7 @@ class SemgrepScanner(BaseScanner):
                 status="failed",
                 error=clean_err,
                 duration_seconds=round(time.time() - start_time, 2),
+                exit_code=exit_code,
             )
 
         return ScannerResult(
@@ -244,4 +263,5 @@ class SemgrepScanner(BaseScanner):
             status="completed",
             findings=findings,
             duration_seconds=round(time.time() - start_time, 2),
+            exit_code=exit_code,
         )

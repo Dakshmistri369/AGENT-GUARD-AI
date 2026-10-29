@@ -50,13 +50,14 @@ class Settings(BaseSettings):
     max_scannable_file_bytes: int = 1 * 1024 * 1024  # 1 MB source limit
 
     # 🔒 Scanner Timeouts — Three independent layers:
-    # Layer 1: Semgrep internal per-rule timeout (0 = no per-rule limit, Semgrep official)
-    semgrep_rule_timeout_seconds: int = 0
+    # Layer 1: Semgrep internal per-rule timeout (default 15s to prevent catastrophic backtracking)
+    semgrep_rule_timeout_seconds: int = 15
     # Layer 2: Per-scanner process timeout (each individual scanner subprocess)
     scanner_timeout_seconds: int = 600              # 10 min per scanner subprocess
     # Layer 3: Outer job safety timeout (entire scan job across ALL scanners)
     scanner_job_max_runtime_seconds: int = 1800     # 30 min — configurable via env var
-    # Legacy alias kept for backwards compat; use scanner_timeout_seconds instead
+    # Concurrency limit for independent scanner subprocesses (protects Render CPU/RAM)
+    scanner_concurrency_limit: int = 2
 
     # ── AI Snippet Extraction ─────────────────────────────────────────────────
     ai_context_lines: int = 15
@@ -92,7 +93,7 @@ class Settings(BaseSettings):
     # ── GitHub & Repository Scanning ──────────────────────────────────────────
     github_token: str = ""        # optional server-side PAT, never logged
     scan_workspace_dir: str = "./scan_workspaces"
-    max_repo_files: int = 5000
+    max_repo_files: int = 10000
     max_file_size_bytes: int = 5 * 1024 * 1024  # 5 MB per file
     max_tree_depth: int = 20
     scan_timeout_seconds: int = 600
@@ -123,7 +124,7 @@ class Settings(BaseSettings):
     max_queue_depth: int = 100                   # Global queue capacity before HTTP 429 backpressure
     rate_limit_per_minute_api: int = 60          # General API endpoints rate limit per client
     rate_limit_per_minute_scan: int = 10         # Scan trigger & AI endpoints rate limit per client
-    max_repo_clone_size_mb: int = 500            # Max allowed repository clone size (500 MB)
+    max_repo_clone_size_mb: int = 1024           # Max allowed repository clone size (1024 MB / 1 GB)
     db_pool_size: int = 5                        # Sized for Supabase 60-connection cap
     db_max_overflow: int = 5                     # Max overflow per process (max 10 total/worker)
     workspace_max_age_seconds: int = 3600        # Max age before orphan workspace cleanup

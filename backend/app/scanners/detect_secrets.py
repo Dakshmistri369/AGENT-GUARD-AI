@@ -55,6 +55,7 @@ class DetectSecretsScanner(BaseScanner):
         metadata: dict[str, Any],
         commit_sha: str | None = None,
         timeout_seconds: int = 600,
+        **kwargs: Any,
     ) -> ScannerResult:
         start_time = time.time()
         available, version = self.is_available()
@@ -65,40 +66,16 @@ class DetectSecretsScanner(BaseScanner):
                 status="skipped_unavailable",
                 reason="detect-secrets is not installed in the server environment",
                 duration_seconds=0.0,
+                exit_code=None,
             )
 
         exe = find_scanner_executable("detect-secrets")
-        cmd = [exe or sys.executable]
-        if not exe:
-            cmd.extend(["-m", "detect_secrets"])
-        cmd.extend(["scan", "--all-files", "--exclude-files", r"(\.git|node_modules|\.venv|venv|build|dist|vendor|__pycache__|\.next|target|\.tox|coverage|\..*_cache|\.cache|scan_workspaces|\.scan_workspaces|\.idea|\.vscode|.*\.min\.js$|.*\.map$|.*lock.*)", str(workspace_path)])
 
-        try:
-            exit_code, stdout, stderr = await self.execute_cmd(
-                cmd=cmd,
-                cwd=workspace_path,
-                timeout_seconds=timeout_seconds,
-            )
-        except TimeoutError as exc:
-            return ScannerResult(
-                scanner=self.name,
-                scanner_version=version,
-                status="timed_out",
-                error=f"detect-secrets execution timed out after {timeout_seconds} seconds",
-                duration_seconds=round(time.time() - start_time, 2),
-            )
-        except Exception as exc:
-            return ScannerResult(
-                scanner=self.name,
-                scanner_version=version,
-                status="failed",
-                error=f"detect-secrets execution error: {exc}",
-                duration_seconds=round(time.time() - start_time, 2),
-            )
-
-        findings = []
-        raw = stdout.strip()
-        if raw:
+        def _parse_detect_secrets_results(raw_out: str) -> list[dict[str, Any]]:
+            parsed: list[dict[str, Any]] = []
+            raw = raw_out.strip()
+            if not raw:
+                return parsed
             try:
                 data = json.loads(raw)
                 results_map = data.get("results", {})
@@ -181,9 +158,89 @@ class DetectSecretsScanner(BaseScanner):
                             "commit_sha": commit_sha,
                         }
                         enrich_finding_with_classification(finding_item, workspace_path=workspace_path)
-                        findings.append(finding_item)
+                        parsed.append(finding_item)
             except json.JSONDecodeError as exc:
                 logger.warning("Scanner parser encountered invalid JSON output from detect-secrets utility: %s", exc)
+            return parsed
+
+        findings: list[dict[str, Any]] = []
+        exit_code: int | None = 0
+
+        # Tiered Scanning Loop: Small files first (<= 50 KB), Big files after (> 50 KB)
+        small_files = kwargs.get("small_files") or []
+        big_files = kwargs.get("big_files") or []
+
+        if small_files or big_files:
+            # Tier 1: Small files first loop
+            for i in range(0, len(small_files), 40):
+                chunk = small_files[i : i + 40]
+                chunk_cmd = [exe or sys.executable]
+                if not exe:
+                    chunk_cmd.extend(["-m", "detect_secrets"])
+                chunk_cmd.extend(["scan", *chunk])
+                try:
+                    ec, out, _ = await self.execute_cmd(chunk_cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
+                    exit_code = max(exit_code or 0, ec)
+                    findings.extend(_parse_detect_secrets_results(out))
+                except Exception as exc:
+                    logger.warning("detect-secrets tier 1 chunk execution error: %s", exc)
+
+            # Tier 2: Big files after loop
+            for i in range(0, len(big_files), 40):
+                chunk = big_files[i : i + 40]
+                chunk_cmd = [exe or sys.executable]
+                if not exe:
+                    chunk_cmd.extend(["-m", "detect_secrets"])
+                chunk_cmd.extend(["scan", *chunk])
+                try:
+                    ec, out, _ = await self.execute_cmd(chunk_cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
+                    exit_code = max(exit_code or 0, ec)
+                    findings.extend(_parse_detect_secrets_results(out))
+                except Exception as exc:
+                    logger.warning("detect-secrets tier 2 chunk execution error: %s", exc)
+        else:
+            # Fallback to recursive scan if no file lists provided
+            cmd = [exe or sys.executable]
+            if not exe:
+                cmd.extend(["-m", "detect_secrets"])
+            cmd.extend([
+                "scan",
+                "--all-files",
+                "--exclude-files",
+                r"(\.git|node_modules|\.venv|venv|build|dist|vendor|__pycache__|\.next|target|\.tox|coverage|\..*_cache|\.cache|scan_workspaces|\.scan_workspaces|\.idea|\.vscode|.*\.min\.js$|.*\.map$|.*lock.*|.*\.(mp4|webm|avi|mov|pptx|docx|xlsx|pdf|zip|tar|gz|parquet|bin|exe|dll)$)",
+                str(workspace_path),
+            ])
+            try:
+                exit_code, stdout, stderr = await self.execute_cmd(cmd=cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
+                findings = _parse_detect_secrets_results(stdout)
+            except TimeoutError:
+                return ScannerResult(
+                    scanner=self.name,
+                    scanner_version=version,
+                    status="timed_out",
+                    error=f"detect-secrets execution timed out after {timeout_seconds} seconds",
+                    duration_seconds=round(time.time() - start_time, 2),
+                    exit_code=None,
+                )
+            except Exception as exc:
+                return ScannerResult(
+                    scanner=self.name,
+                    scanner_version=version,
+                    status="failed",
+                    error=f"detect-secrets execution error: {exc}",
+                    duration_seconds=round(time.time() - start_time, 2),
+                    exit_code=None,
+                )
+
+        # Deduplicate findings by (rule_id, file_path, line_number)
+        seen_keys = set()
+        deduped = []
+        for f in findings:
+            k = f"{f.get('rule_id')}:{f.get('file_path')}:{f.get('line_number')}"
+            if k not in seen_keys:
+                seen_keys.add(k)
+                deduped.append(f)
+        findings = deduped
 
         if not findings and exit_code != 0 and (not raw or not raw.startswith("{")):
             clean_err = redact_sensitive_text(stderr.strip()[:300]) or f"detect-secrets returned exit code {exit_code}"
@@ -194,6 +251,7 @@ class DetectSecretsScanner(BaseScanner):
                 status="failed",
                 error=clean_err,
                 duration_seconds=round(time.time() - start_time, 2),
+                exit_code=exit_code,
             )
 
         return ScannerResult(
@@ -202,4 +260,5 @@ class DetectSecretsScanner(BaseScanner):
             status="completed",
             findings=findings,
             duration_seconds=round(time.time() - start_time, 2),
+            exit_code=exit_code,
         )

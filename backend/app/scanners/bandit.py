@@ -90,37 +90,12 @@ class BanditScanner(BaseScanner):
 
         # Prefer binary or python -m bandit
         exe = find_scanner_executable("bandit")
-        cmd = [exe or sys.executable]
-        if not exe:
-            cmd.extend(["-m", "bandit"])
-        cmd.extend(["-r", str(workspace_path), "-x", ".git,.venv,venv,node_modules,build,dist,__pycache__,vendor,.next,target,.tox,coverage,.pytest_cache,.ruff_cache,.turbo,.cache,scan_workspaces,.scan_workspaces,.idea,.vscode", "-f", "json", "-q"])
 
-        try:
-            exit_code, stdout, stderr = await self.execute_cmd(
-                cmd=cmd,
-                cwd=workspace_path,
-                timeout_seconds=timeout_seconds,
-            )
-        except TimeoutError as exc:
-            return ScannerResult(
-                scanner=self.name,
-                scanner_version=version,
-                status="timed_out",
-                error=f"Bandit execution timed out after {timeout_seconds} seconds",
-                duration_seconds=round(time.time() - start_time, 2),
-            )
-        except Exception as exc:
-            return ScannerResult(
-                scanner=self.name,
-                scanner_version=version,
-                status="failed",
-                error=f"Bandit execution error: {exc}",
-                duration_seconds=round(time.time() - start_time, 2),
-            )
-
-        findings = []
-        raw = stdout.strip()
-        if raw:
+        def _parse_bandit_results(raw_out: str) -> list[dict[str, Any]]:
+            parsed: list[dict[str, Any]] = []
+            raw = raw_out.strip()
+            if not raw:
+                return parsed
             try:
                 data = json.loads(raw)
                 for issue in data.get("results", []):
@@ -132,7 +107,7 @@ class BanditScanner(BaseScanner):
 
                     sev = (issue.get("issue_severity") or "medium").lower()
                     conf = (issue.get("issue_confidence") or "medium").lower()
-                    code = issue.get("code", "")
+                    code_val = issue.get("code", "")
                     issue_text = issue.get("issue_text", "Python Security Vulnerability")
                     test_id = issue.get("test_id", "B000")
                     test_name = issue.get("test_name", "")
@@ -175,17 +150,103 @@ class BanditScanner(BaseScanner):
                         "line_number": line_num,
                         "line_end": line_end_val,
                         "column_number": issue.get("col_offset") or 1,
-                        "code_snippet": redact_sensitive_text(code.strip()[:1500]),
-                        "sanitized_evidence": redact_sensitive_text(code.strip()[:300]),
+                        "code_snippet": redact_sensitive_text(code_val.strip()[:1500]),
+                        "sanitized_evidence": redact_sensitive_text(code_val.strip()[:300]),
                         "explanation": issue.get("issue_text", ""),
                         "remediation": f"Review Bandit {issue.get('test_id')} guidance: {issue.get('more_info', '')}",
                         "verification_status": "unverified",
                         "commit_sha": commit_sha,
                     }
                     enrich_finding_with_classification(finding_item, workspace_path=workspace_path)
-                    findings.append(finding_item)
+                    parsed.append(finding_item)
             except json.JSONDecodeError as exc:
-                logger.warning("Bandit output was not valid JSON: %s (stderr: %s)", exc, stderr[:200])
+                logger.warning("Bandit output was not valid JSON: %s", exc)
+            return parsed
+
+        findings: list[dict[str, Any]] = []
+        exit_code: int | None = 0
+
+        # Tiered Scanning: Small Python files first (<= 50 KB), Big Python files after (> 50 KB)
+        small_files = kwargs.get("small_files") or []
+        big_files = kwargs.get("big_files") or []
+        small_py = [f for f in small_files if f.lower().endswith(".py")]
+        big_py = [f for f in big_files if f.lower().endswith(".py")]
+
+        if small_py or big_py:
+            # Tier 1: Small files first loop
+            for i in range(0, len(small_py), 40):
+                chunk = small_py[i : i + 40]
+                chunk_cmd = [exe or sys.executable]
+                if not exe:
+                    chunk_cmd.extend(["-m", "bandit"])
+                chunk_cmd.extend(["-f", "json", "-q", "--exit-zero", *chunk])
+                try:
+                    ec, out, _ = await self.execute_cmd(chunk_cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
+                    exit_code = max(exit_code or 0, ec)
+                    findings.extend(_parse_bandit_results(out))
+                except Exception as exc:
+                    logger.warning("Bandit tier 1 chunk execution error: %s", exc)
+
+            # Tier 2: Big files after loop
+            for i in range(0, len(big_py), 40):
+                chunk = big_py[i : i + 40]
+                chunk_cmd = [exe or sys.executable]
+                if not exe:
+                    chunk_cmd.extend(["-m", "bandit"])
+                chunk_cmd.extend(["-f", "json", "-q", "--exit-zero", *chunk])
+                try:
+                    ec, out, _ = await self.execute_cmd(chunk_cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
+                    exit_code = max(exit_code or 0, ec)
+                    findings.extend(_parse_bandit_results(out))
+                except Exception as exc:
+                    logger.warning("Bandit tier 2 chunk execution error: %s", exc)
+        else:
+            # Fallback to recursive scan if no file lists provided
+            cmd = [exe or sys.executable]
+            if not exe:
+                cmd.extend(["-m", "bandit"])
+            cmd.extend([
+                "-r", str(workspace_path),
+                "-x", ".git,.venv,venv,node_modules,build,dist,__pycache__,vendor,.next,target,.tox,coverage,.pytest_cache,.ruff_cache,.turbo,.cache,scan_workspaces,.scan_workspaces,.idea,.vscode",
+                "-f", "json",
+                "-q",
+                "--exit-zero",
+            ])
+            try:
+                exit_code, stdout, stderr = await self.execute_cmd(
+                    cmd=cmd,
+                    cwd=workspace_path,
+                    timeout_seconds=timeout_seconds,
+                )
+                findings = _parse_bandit_results(stdout)
+            except TimeoutError:
+                return ScannerResult(
+                    scanner=self.name,
+                    scanner_version=version,
+                    status="timed_out",
+                    error=f"Bandit execution timed out after {timeout_seconds} seconds",
+                    duration_seconds=round(time.time() - start_time, 2),
+                    exit_code=None,
+                )
+            except Exception as exc:
+                return ScannerResult(
+                    scanner=self.name,
+                    scanner_version=version,
+                    status="failed",
+                    error=f"Bandit execution error: {exc}",
+                    duration_seconds=round(time.time() - start_time, 2),
+                    exit_code=None,
+                )
+
+        # Deduplicate findings by (rule_id, file_path, line_number)
+        seen_keys = set()
+        deduped = []
+        for f in findings:
+            k = f"{f.get('rule_id')}:{f.get('file_path')}:{f.get('line_number')}"
+            if k not in seen_keys:
+                seen_keys.add(k)
+                deduped.append(f)
+        findings = deduped
 
         if not findings and exit_code not in (0, 1) and (not raw or not raw.startswith("{")):
             clean_err = redact_sensitive_text(stderr.strip()[:300]) or f"Bandit returned exit code {exit_code}"

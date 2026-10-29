@@ -108,6 +108,7 @@ async def analyze_repository(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found.")
 
     # Idempotency check: if an active scan is already queued or running on this exact repo, return it
+    # Defense: Auto-reap any stuck scan (>5m queued or >15m running) so users are never blocked
     existing_stmt = (
         select(Scan)
         .where(
@@ -119,25 +120,44 @@ async def analyze_repository(
     existing_res = await db.execute(existing_stmt)
     existing_scan = existing_res.scalars().first()
     if existing_scan:
-        logger.info("Idempotent hit: Scan %d is already %s for repository %d", existing_scan.id, existing_scan.status, repository_id)
-        # If existing scan is still queued, attempt re-enqueue to ensure worker has not lost the job
-        if existing_scan.status == "queued":
-            try:
-                await queue_client.enqueue_scan(scan_id=existing_scan.id, repository_id=repository_id)
-            except Exception as exc:
-                logger.warning("Re-enqueue attempt for scan %d encountered error: %s", existing_scan.id, exc)
-                if settings.environment == "production":
-                    existing_scan.status = "failed"
-                    existing_scan.stage = "failed"
-                    existing_scan.error_message = f"Background queue dispatch failed during retry: {exc}"
-                    existing_scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
-                    await db.commit()
-                    raise HTTPException(
-                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                        detail="Scan queue dispatch failed. The pending scan has been marked as failed. Please retry when the worker queue is online.",
-                        headers={"Retry-After": "30"},
-                    ) from exc
-        return ScanResponse.from_orm_safe(existing_scan)
+        scan_time = existing_scan.started_at or existing_scan.created_at
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if scan_time and scan_time.tzinfo is None:
+            scan_time = scan_time.replace(tzinfo=datetime.timezone.utc)
+
+        is_stuck = False
+        age_seconds = (now - scan_time).total_seconds() if scan_time else 0
+        if existing_scan.status == "queued" and age_seconds > 300:
+            is_stuck = True
+        elif existing_scan.status == "running" and age_seconds > 900:
+            is_stuck = True
+
+        if is_stuck:
+            logger.warning("Active scan #%d on repo %d is stuck (age=%.1fs); auto-reaping before new scan", existing_scan.id, repository_id, age_seconds)
+            existing_scan.status = "timed_out_partial"
+            existing_scan.stage = "timed_out_partial"
+            existing_scan.error_message = "Scan timed out after exceeding background execution threshold."
+            existing_scan.completed_at = now
+            await db.commit()
+        else:
+            logger.info("Idempotent hit: Scan %d is already %s for repository %d", existing_scan.id, existing_scan.status, repository_id)
+            if existing_scan.status == "queued":
+                try:
+                    await queue_client.enqueue_scan(scan_id=existing_scan.id, repository_id=repository_id)
+                except Exception as exc:
+                    logger.warning("Re-enqueue attempt for scan %d encountered error: %s", existing_scan.id, exc)
+                    if settings.environment == "production":
+                        existing_scan.status = "failed"
+                        existing_scan.stage = "failed"
+                        existing_scan.error_message = f"Background queue dispatch failed during retry: {exc}"
+                        existing_scan.completed_at = datetime.datetime.now(datetime.timezone.utc)
+                        await db.commit()
+                        raise HTTPException(
+                            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Scan queue dispatch failed. The pending scan has been marked as failed. Please retry when the worker queue is online.",
+                            headers={"Retry-After": "30"},
+                        ) from exc
+            return ScanResponse.from_orm_safe(existing_scan)
 
     # ── Milestone B Defense 1: Global Queue Backpressure ───────────────────────
     queue_depth_stmt = select(func.count(Scan.id)).where(Scan.status == "queued")
@@ -192,6 +212,48 @@ async def analyze_repository(
 
     # Create Initial Scan Record in queued state
     target_branch = payload.branch or repo.default_branch or "main"
+
+    # Defense: Prevent duplicate active scans on the same repository and branch
+    existing_scan_stmt = (
+        select(Scan)
+        .where(
+            Scan.repository_id == repo.id,
+            Scan.status.in_(["queued", "running"]),
+        )
+        .order_by(Scan.created_at.desc())
+        .limit(1)
+    )
+    existing_res = await db.execute(existing_scan_stmt)
+    existing_scan = existing_res.scalar_one_or_none()
+    if existing_scan:
+        scan_time = existing_scan.started_at or existing_scan.created_at
+        now = datetime.datetime.now(datetime.timezone.utc)
+        if scan_time and scan_time.tzinfo is None:
+            scan_time = scan_time.replace(tzinfo=datetime.timezone.utc)
+
+        is_stuck = False
+        age_seconds = (now - scan_time).total_seconds() if scan_time else 0
+        if existing_scan.status == "queued" and age_seconds > 300:
+            is_stuck = True
+        elif existing_scan.status == "running" and age_seconds > 900:
+            is_stuck = True
+
+        if is_stuck:
+            logger.warning("Active scan #%d on repo %d is stuck (age=%.1fs); auto-reaping before new scan", existing_scan.id, repo.id, age_seconds)
+            existing_scan.status = "timed_out_partial"
+            existing_scan.stage = "timed_out_partial"
+            existing_scan.error_message = "Scan timed out after exceeding background execution threshold."
+            existing_scan.completed_at = now
+            await db.commit()
+        else:
+            logger.info(
+                "Scan #%d already active for repository %d (branch %s); returning existing scan.",
+                existing_scan.id,
+                repo.id,
+                target_branch,
+            )
+            return ScanResponse.from_orm_safe(existing_scan)
+
     scan = Scan(
         repository_id=repo.id,
         status="queued",
@@ -269,8 +331,8 @@ async def reap_stale_scans_for_user(db: AsyncSession, user_id: int) -> int:
     to prevent orphan jobs from permanently blocking the user's concurrency quota.
     """
     now = datetime.datetime.now(datetime.timezone.utc)
-    queued_cutoff = now - datetime.timedelta(minutes=15)
-    running_cutoff = now - datetime.timedelta(minutes=30)
+    queued_cutoff = now - datetime.timedelta(minutes=5)
+    running_cutoff = now - datetime.timedelta(minutes=15)
 
     stmt = (
         select(Scan)

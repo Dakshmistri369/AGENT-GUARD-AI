@@ -140,6 +140,14 @@ async def test_concurrent_three_scans_and_continuous_history_polling(
         "app.services.scan_execution_service.AIScannerReviewService.review_findings",
         new_callable=AsyncMock,
         return_value=[],
+    ), patch(
+        "app.services.scan_execution_service.GitHubService.get_commit_sha",
+        new_callable=AsyncMock,
+        return_value="1168b2d1234567890abcdef",
+    ), patch(
+        "app.services.scan_execution_service.GitHubService.get_git_tree",
+        new_callable=AsyncMock,
+        return_value=([{"path": "README.md", "type": "blob", "size": 150}], False),
     ):
         # 3. Trigger scans on all 3 repositories simultaneously
         async def trigger_scan(repo_id: int):
@@ -175,21 +183,15 @@ async def test_concurrent_three_scans_and_continuous_history_polling(
         assert len(history_results) == 18, "All 18 mid-execution history polls must succeed"
 
         # 5. Wait for all 3 scans to reach a terminal state
+        from app.queue.client import get_queue_client
+        await get_queue_client().wait_all_jobs(timeout=10.0)
+
         completed_scans = {}
-        for _ in range(100):
-            await asyncio.sleep(0.1)
-            all_done = True
-            for s_id in scan_ids:
-                if s_id not in completed_scans:
-                    poll_resp = await client.get(f"/api/scans/{s_id}")
-                    assert poll_resp.status_code == 200
-                    s_data = poll_resp.json()
-                    if s_data["status"] in ["completed", "failed", "timed_out_partial"]:
-                        completed_scans[s_id] = s_data
-                    else:
-                        all_done = False
-            if all_done:
-                break
+        for s_id in scan_ids:
+            poll_resp = await client.get(f"/api/scans/{s_id}")
+            assert poll_resp.status_code == 200
+            s_data = poll_resp.json()
+            completed_scans[s_id] = s_data
 
         assert len(completed_scans) == 3, f"Not all scans reached terminal state in time: {completed_scans}"
         for s_id, s_data in completed_scans.items():

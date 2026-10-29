@@ -35,19 +35,29 @@ _OSV_LOCKFILE_CACHE: dict[str, tuple[float, ScannerResult]] = {}
 _OSV_CACHE_TTL_SECONDS = 86400  # 24 hours
 
 
-def compute_manifests_fingerprint(workspace_path: Path, commit_sha: str | None = None) -> str:
+def compute_manifests_fingerprint(
+    workspace_path: Path,
+    commit_sha: str | None = None,
+    known_manifests: list[str] | None = None,
+) -> str:
     """Compute deterministic SHA256 of all discovered dependency manifests/lockfiles."""
     hasher = hashlib.sha256()
     if commit_sha:
         hasher.update(commit_sha.encode("utf-8"))
 
     found_manifests = []
-    try:
-        for f in workspace_path.rglob("*"):
-            if f.is_file() and f.name in MANIFEST_LOCKFILE_NAMES:
-                found_manifests.append(f)
-    except Exception:
-        pass
+    if known_manifests:
+        for m in known_manifests:
+            p = workspace_path / m
+            if p.is_file() and p.name in MANIFEST_LOCKFILE_NAMES:
+                found_manifests.append(p)
+    else:
+        try:
+            for f in workspace_path.rglob("*"):
+                if f.is_file() and f.name in MANIFEST_LOCKFILE_NAMES:
+                    found_manifests.append(f)
+        except Exception:
+            pass
 
     found_manifests.sort(key=lambda p: str(p.relative_to(workspace_path)))
     for mf in found_manifests:
@@ -279,6 +289,7 @@ class OSVScanner(BaseScanner):
         metadata: dict[str, Any],
         commit_sha: str | None = None,
         timeout_seconds: int = 600,
+        **kwargs: Any,
     ) -> ScannerResult:
         start_time = time.time()
         applicable, reason = self.is_applicable(metadata)
@@ -289,10 +300,15 @@ class OSVScanner(BaseScanner):
                 status="skipped_not_applicable",
                 reason=reason,
                 duration_seconds=0.0,
+                exit_code=0,
             )
 
-        # Check 24-hour lockfile content cache (Workstream 2)
-        cache_key = compute_manifests_fingerprint(workspace_path, commit_sha)
+        available, version = self.is_available()
+        settings = get_settings()
+
+        # Check 24-hour lockfile content cache: incorporates manifest hash + version + base URL
+        raw_fp = compute_manifests_fingerprint(workspace_path, commit_sha, known_manifests=metadata.get("manifests"))
+        cache_key = hashlib.sha256(f"{raw_fp}:{version or 'api'}:{settings.osv_api_base_url}".encode()).hexdigest()
         if cache_key in _OSV_LOCKFILE_CACHE:
             cached_time, cached_result = _OSV_LOCKFILE_CACHE[cache_key]
             if time.time() - cached_time < _OSV_CACHE_TTL_SECONDS:
@@ -305,9 +321,8 @@ class OSVScanner(BaseScanner):
                     findings=cached_result.findings.copy(),
                     error=cached_result.error,
                     duration_seconds=round(time.time() - start_time, 3),
+                    exit_code=cached_result.exit_code or 0,
                 )
-
-        available, version = self.is_available()
         exe = find_scanner_executable("osv-scanner")
 
         # ── Case A: osv-scanner binary IS available on host ─────────────────

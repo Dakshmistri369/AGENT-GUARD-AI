@@ -34,6 +34,7 @@ class ScannerResult:
     duration_seconds: float = 0.0
     applicable: bool = True
     reason: str | None = None
+    exit_code: int | None = None
 
 
 def _get_windows_registry_paths() -> list[str]:
@@ -166,6 +167,7 @@ class BaseScanner(ABC):
         metadata: dict[str, Any],
         commit_sha: str | None = None,
         timeout_seconds: int = 120,
+        **kwargs: Any,
     ) -> ScannerResult:
         """Execute scanner against isolated workspace and return normalized findings."""
         pass

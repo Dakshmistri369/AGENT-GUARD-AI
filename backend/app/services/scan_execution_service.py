@@ -55,16 +55,17 @@ class ScanExecutionService:
             if not scan:
                 raise ValueError(f"Scan with ID {scan_id} not found.")
 
-            # If scan was cancelled while queued, abort immediately
-            if scan.status == "cancelled":
-                logger.info("Scan %d was cancelled before execution started; skipping.", scan_id)
-                return {"scan_id": scan_id, "status": "cancelled"}
+            # If scan was cancelled or already in terminal state, abort immediately
+            if scan.status in ["cancelled", "completed", "failed", "timed_out_partial"]:
+                logger.info("Scan %d is already in terminal state '%s'; skipping execution.", scan_id, scan.status)
+                return {"scan_id": scan.id, "status": scan.status}
 
             # Transition to running
             now = datetime.datetime.now(datetime.timezone.utc)
             scan.status = "running"
             scan.stage = "validating"
             scan.started_at = now
+            scan.error_message = None  # Clear any prior timeout message from prior runs
             await db.commit()
             await db.refresh(scan)
 
@@ -176,7 +177,9 @@ class ScanExecutionService:
                             branch=target_branch,
                             depth=1,
                         )
-                        stage_timings["git_clone"] = round(time.time() - t_clone, 3)
+                        clone_dur = round(time.time() - t_clone, 3)
+                        stage_timings["repository_acquisition"] = clone_dur
+                        stage_timings["git_clone"] = clone_dur
 
                         t_scanners = time.time()
                         raw_findings, scanners_run, coverage_summary, scanner_matrix = await orchestrator.run_scans(
@@ -187,11 +190,23 @@ class ScanExecutionService:
                             job_max_runtime_seconds=self.settings.scanner_job_max_runtime_seconds,
                         )
                         stage_timings["running_scanners"] = round(time.time() - t_scanners, 3)
+
+                        # Extract per-scanner durations from orchestrator telemetry
+                        per_sc = coverage_summary.get("per_scanner_durations", {})
+                        stage_timings["semgrep"] = per_sc.get("semgrep", 0.0)
+                        stage_timings["bandit"] = per_sc.get("bandit", 0.0)
+                        stage_timings["dependency_manifest_detection_and_osv"] = per_sc.get("osv_scanner", 0.0)
+                        stage_timings["secret_scanning"] = per_sc.get("detect_secrets", 0.0)
+                        stage_timings["file_discovery_and_filtering"] = round(stage_timings.get("inspecting_file_tree", 0.0), 3)
+                        stage_timings["repository_bytes"] = coverage_summary.get("repository_bytes", 0)
+
                         scan_timed_out = coverage_summary.get("job_timed_out", False)
                     except GitExecutionError as git_err:
                         logger.error("Git clone failed (repository acquisition failure): %s", git_err)
-                        stage_timings["git_clone"] = round(time.time() - t_clone, 3) if 't_clone' in locals() else 0.0
-                        stage_timings["total_duration"] = round(time.time() - scan_start_time, 3)
+                        stage_timings["repository_acquisition"] = round(time.time() - t_clone, 3) if 't_clone' in locals() else 0.0
+                        stage_timings["git_clone"] = stage_timings["repository_acquisition"]
+                        stage_timings["total_wall_clock"] = round(time.time() - scan_start_time, 3)
+                        stage_timings["total_duration"] = stage_timings["total_wall_clock"]
                         scan.status = "failed"
                         scan.stage = "validating"
                         scan.error_message = f"Repository acquisition failed: {git_err}. Security scanning could not start."
@@ -242,18 +257,40 @@ class ScanExecutionService:
                     logger.info("Scan %d was cancelled mid-flight; terminating before persistence.", scan_id)
                     return {"scan_id": scan_id, "status": "cancelled"}
 
-                # ── Stage 5: Reviewing evidence ─────────────────────────────
+                # ── Stage 5: Reviewing evidence (Protected with non-blocking timeout) ──
                 t_ai = time.time()
                 scan.stage = "reviewing_evidence"
                 await db.commit()
 
                 ai_review_svc = AIScannerReviewService(settings=self.settings)
-                ai_analysis = await ai_review_svc.review_findings(
-                    findings=raw_findings,
-                    repo_metadata=repo.metadata_json or {},
-                    coverage_summary=coverage_summary,
-                )
-                stage_timings["reviewing_evidence"] = round(time.time() - t_ai, 3)
+                try:
+                    ai_analysis = await asyncio.wait_for(
+                        ai_review_svc.review_findings(
+                            findings=raw_findings,
+                            repo_metadata=repo.metadata_json or {},
+                            coverage_summary=coverage_summary,
+                        ),
+                        timeout=float(min(self.settings.ai_timeout_seconds, 30)),
+                    )
+                except (asyncio.TimeoutError, TimeoutError):
+                    logger.warning("AI evidence review timed out after %ds; continuing report generation.", min(self.settings.ai_timeout_seconds, 30))
+                    ai_analysis = {
+                        "status": "timed_out",
+                        "message": f"AI evidence review timed out after {min(self.settings.ai_timeout_seconds, 30)}s. All security findings were preserved.",
+                        "top_priorities": [],
+                        "recommended_tests": [],
+                    }
+                except Exception as ai_err:
+                    logger.warning("AI review encountered error: %s; continuing report generation.", ai_err)
+                    ai_analysis = {
+                        "status": "error",
+                        "message": f"AI evidence review encountered an error: {ai_err}. All security findings were preserved.",
+                        "top_priorities": [],
+                        "recommended_tests": [],
+                    }
+                ai_dur = round(time.time() - t_ai, 3)
+                stage_timings["ai_explanations"] = ai_dur
+                stage_timings["reviewing_evidence"] = ai_dur
 
                 # ── Stage 6: Generating report & persisting findings ────────
                 t_rep = time.time()
@@ -313,11 +350,13 @@ class ScanExecutionService:
                     })
 
                 # SQLAlchemy 2.0 Core bulk insert without ORM object hydration overhead (< 100 ms)
+                t_db = time.time()
                 if findings_to_persist:
                     CHUNK_SIZE = 1000
                     for i in range(0, len(findings_to_persist), CHUNK_SIZE):
                         chunk = findings_to_persist[i : i + CHUNK_SIZE]
                         await db.execute(insert(Finding), chunk)
+                stage_timings["database_writes"] = round(time.time() - t_db, 3)
 
                 summary_dict = {
                     "total_findings": len(raw_findings),
@@ -335,7 +374,9 @@ class ScanExecutionService:
                 missing_scanners = coverage_summary.get("missing_scanners") or []
 
                 stage_timings["generating_report"] = round(time.time() - t_rep, 3)
-                stage_timings["total_duration"] = round(time.time() - scan_start_time, 3)
+                wall_clock = round(time.time() - scan_start_time, 3)
+                stage_timings["total_wall_clock"] = wall_clock
+                stage_timings["total_duration"] = wall_clock
 
                 if scan_timed_out:
                     scan.status = "timed_out_partial"
