@@ -4,6 +4,7 @@ import {
   AlertCircle, RefreshCw, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { PageContainer } from '../components/ui/PageContainer';
 import type { Project, ProjectListResponse } from '../types';
 
 // ── Create Project Modal ──────────────────────────────────────────────────────
@@ -209,19 +210,19 @@ export const ProjectsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl w-full pb-safe mx-auto">
+    <PageContainer>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>Projects</h1>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Projects</h1>
+          <p className="text-sm text-slate-500 mt-1">
             {loading ? 'Loading…' : data ? `${data.total} project${data.total !== 1 ? 's' : ''}` : ''}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="flex items-center gap-2">
           <button
             id="refresh-projects-btn"
-            className="btn btn-secondary"
+            className="btn btn-secondary h-9 w-9 p-0 flex items-center justify-center"
             onClick={() => load(page)}
             disabled={loading}
             aria-label="Refresh projects"
@@ -230,11 +231,11 @@ export const ProjectsPage: React.FC = () => {
           </button>
           <button
             id="create-project-btn"
-            className="btn btn-primary"
+            className="btn btn-primary text-xs h-9 px-3.5 gap-1.5 shadow-xs"
             onClick={() => setShowCreate(true)}
           >
             <Plus size={14} />
-            New Project
+            <span>New Project</span>
           </button>
         </div>
       </div>
@@ -304,6 +305,6 @@ export const ProjectsPage: React.FC = () => {
       {showCreate && (
         <CreateModal onClose={() => setShowCreate(false)} onCreated={() => load(page)} />
       )}
-    </div>
+    </PageContainer>
   );
 };

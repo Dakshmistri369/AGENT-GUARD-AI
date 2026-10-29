@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Sparkles,
@@ -10,8 +10,8 @@ import {
   Play,
   LogOut,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
+  MoreHorizontal,
+  BookOpen,
 } from 'lucide-react';
 import type { Repository } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -38,11 +38,24 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   activeScanRepoName,
   onOpenAiAssistant,
   onToggleMobileNav,
-  isSidebarCollapsed = false,
-  onToggleSidebar,
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close more menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    if (isMoreMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMoreMenuOpen]);
 
   // Determine page title for breadcrumb
   const getPageTitle = () => {
@@ -59,128 +72,58 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     return 'Dashboard';
   };
 
+  const selectedRepo = repositories.find((r) => r.id === selectedRepoId);
+
   return (
-    <header
-      className="pt-safe"
-      style={{
-        height: '56px',
-        background: '#ffffff',
-        borderBottom: '1px solid #e2e8f0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 16px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 30,
-      }}
-    >
-      {/* Left: Breadcrumbs, Hamburger & Active Repository context */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', minWidth: 0 }}>
+    <header className="h-14 min-h-[56px] bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-4 lg:px-6 sticky top-0 z-30 pt-safe">
+      {/* Left: Mobile hamburger, Breadcrumbs & Repo selector */}
+      <div className="flex items-center gap-2 text-sm min-w-0">
         {onToggleMobileNav && (
           <button
             onClick={onToggleMobileNav}
-            aria-label="Open navigation"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'transparent',
-              color: '#334155',
-              cursor: 'pointer',
-              marginLeft: '-4px',
-              flexShrink: 0,
-            }}
-            className="lg:hidden"
+            aria-label="Open mobile navigation"
+            className="lg:hidden w-9 h-9 rounded-md flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors shrink-0"
           >
-            <Menu size={22} />
-          </button>
-        )}
-
-        {/* Desktop Sidebar Toggle Button (expand / collapse sidebar anytime) */}
-        {onToggleSidebar && (
-          <button
-            onClick={onToggleSidebar}
-            aria-label={isSidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
-            title={isSidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
-            className="hidden lg:flex"
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '32px',
-              height: '32px',
-              borderRadius: '6px',
-              border: '1px solid #e2e8f0',
-              background: isSidebarCollapsed ? '#eff6ff' : '#ffffff',
-              color: isSidebarCollapsed ? '#2563eb' : '#475569',
-              cursor: 'pointer',
-              marginRight: '6px',
-              transition: 'all 0.15s ease',
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = isSidebarCollapsed ? '#dbeafe' : '#f1f5f9';
-              e.currentTarget.style.borderColor = '#cbd5e1';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = isSidebarCollapsed ? '#eff6ff' : '#ffffff';
-              e.currentTarget.style.borderColor = '#e2e8f0';
-            }}
-          >
-            {isSidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+            <Menu size={20} />
           </button>
         )}
 
         {/* Breadcrumbs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span className="hidden sm:inline" style={{ color: '#64748b', fontWeight: 500 }}>demo</span>
-          <ChevronRight size={14} color="#94a3b8" className="hidden sm:inline" />
-          <span
-            style={{
-              color: '#0f172a',
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '120px',
-            }}
-            className="sm:max-w-none"
-          >
+        <div className="flex items-center gap-1.5 min-w-0 text-sm">
+          <span className="hidden sm:inline text-slate-400 font-medium text-xs">demo</span>
+          <ChevronRight size={14} className="hidden sm:inline text-slate-300 shrink-0" />
+          <span className="font-semibold text-slate-900 truncate max-w-[8rem] sm:max-w-[12rem]">
             {getPageTitle()}
           </span>
+
+          {selectedRepo && (
+            <>
+              <ChevronRight size={14} className="text-slate-300 shrink-0" />
+              <span
+                className="font-medium text-slate-600 truncate max-w-[10rem] sm:max-w-[16rem]"
+                title={selectedRepo.full_name}
+              >
+                {selectedRepo.full_name}
+              </span>
+            </>
+          )}
         </div>
 
-        {/* Repository context selector pill */}
+        {/* Repository context selector dropdown */}
         {repositories.length > 0 && onSelectRepo && (
-          <div className="hidden md:flex" style={{ marginLeft: '12px', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: '#cbd5e1', fontSize: '12px' }}>|</span>
-            <GitBranch size={13} color="#0d9488" />
+          <div className="hidden md:flex items-center gap-1.5 ml-2 pl-2 border-l border-slate-200">
+            <GitBranch size={13} className="text-teal-600 shrink-0" />
             <select
               value={selectedRepoId || ''}
               onChange={(e) => onSelectRepo(Number(e.target.value))}
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #cbd5e1',
-                borderRadius: '6px',
-                color: '#0f172a',
-                fontSize: '12px',
-                fontWeight: 600,
-                padding: '4px 8px',
-                cursor: 'pointer',
-                outline: 'none',
-                maxWidth: '180px',
-              }}
+              className="bg-slate-50 border border-slate-300 text-slate-800 text-xs font-medium rounded-md px-2 py-1 cursor-pointer outline-none max-w-[160px] truncate"
               aria-label="Filter context by connected repository"
             >
-              <option value="" style={{ background: '#ffffff', color: '#64748b' }}>
+              <option value="" className="text-slate-500">
                 All Repositories ({repositories.length})
               </option>
               {repositories.map((repo) => (
-                <option key={repo.id} value={repo.id} style={{ background: '#ffffff', color: '#0f172a' }}>
+                <option key={repo.id} value={repo.id} className="text-slate-900">
                   {repo.full_name}
                 </option>
               ))}
@@ -188,226 +131,115 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           </div>
         )}
 
-        {/* Live scanning pill */}
+        {/* Live scanning indicator */}
         {isScanning && (
-          <div
-            style={{
-              marginLeft: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: '#0f766e',
-              background: '#f0fdf4',
-              border: '1px solid #a7f3d0',
-              padding: '2px 8px',
-              borderRadius: '9999px',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <RefreshCw size={11} className="animate-spin" />
-            <span className="hidden sm:inline">Auditing {activeScanRepoName || 'Repository'}…</span>
-            <span className="sm:hidden">Scanning…</span>
+          <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full shrink-0">
+            <RefreshCw size={11} className="animate-spin text-teal-600" />
+            <span className="truncate max-w-[12rem]">
+              Auditing {activeScanRepoName || 'Repository'}…
+            </span>
           </div>
         )}
       </div>
 
-      {/* Right: Quick actions, AI assistant, user pill */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-        {/* Background Scan Activity Indicator (always visible across all pages) */}
+      {/* Right: Quick actions, Active Scans indicator, AI Assistant, User chip */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Background Scan Activity Indicator */}
         <BackgroundScanIndicator />
-
-        {/* Cinematic Animated Logo Intro Button (desktop/tablet only) */}
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('agentguard:replay-intro'))}
-          className="hidden md:flex"
-          style={{
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: '#7c3aed',
-            background: '#faf5ff',
-            border: '1px solid #e9d5ff',
-            borderRadius: '6px',
-            padding: '5px 11px',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          title="Play Cinematic Logo & Cybersecurity Animation"
-        >
-          <Play size={12} color="#7c3aed" fill="#7c3aed" />
-          <span>Play Intro</span>
-        </button>
 
         {/* AI Assistant shortcut */}
         {onOpenAiAssistant && (
           <button
             onClick={onOpenAiAssistant}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#1d4ed8',
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              minHeight: '36px',
-              transition: 'all 0.15s ease',
-            }}
+            className="h-9 px-2.5 sm:px-3 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md flex items-center gap-1.5 transition-colors"
             title="Open AI Security Assistant"
           >
-            <Sparkles size={13} color="#2563eb" />
+            <Sparkles size={14} className="text-blue-600" />
             <span className="hidden sm:inline">AI Assistant</span>
           </button>
         )}
 
-        {/* External Docs (desktop only) */}
-        <a
-          href="/api/docs"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden md:flex"
-          style={{
-            color: '#475569',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '36px',
-            height: '36px',
-            borderRadius: '6px',
-            textDecoration: 'none',
-          }}
-          title="Open FastAPI Swagger Documentation"
-        >
-          <ExternalLink size={15} />
-        </a>
-
-        {/* Settings link */}
+        {/* Settings shortcut */}
         <Link
           to="/settings"
-          style={{
-            color: '#475569',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '36px',
-            height: '36px',
-            borderRadius: '6px',
-            textDecoration: 'none',
-          }}
+          className="w-9 h-9 rounded-md flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
           title="Settings & Configurations"
         >
-          <Settings size={16} />
+          <Settings size={17} />
         </Link>
 
-        {/* User Pill dynamic */}
-        {user ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 8px',
-              borderRadius: '8px',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-            }}
+        {/* Overflow Menu: Play Intro & External Documentation */}
+        <div className="relative" ref={moreMenuRef}>
+          <button
+            onClick={() => setIsMoreMenuOpen((prev) => !prev)}
+            aria-label="More actions"
+            aria-expanded={isMoreMenuOpen}
+            className="w-9 h-9 rounded-md flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            title="More Options"
           >
-            <div
-              style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '6px',
-                background: 'linear-gradient(135deg, #2563eb 0%, #0d9488 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                fontSize: '11px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-              }}
-            >
+            <MoreHorizontal size={18} />
+          </button>
+
+          {isMoreMenuOpen && (
+            <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50 animate-slide-in">
+              <button
+                onClick={() => {
+                  setIsMoreMenuOpen(false);
+                  window.dispatchEvent(new CustomEvent('agentguard:replay-intro'));
+                }}
+                className="w-full text-left px-3 py-2 text-xs text-purple-700 hover:bg-purple-50 flex items-center gap-2 font-medium"
+              >
+                <Play size={13} className="text-purple-600 fill-purple-600" />
+                Play Intro Animation
+              </button>
+              <a
+                href="/api/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMoreMenuOpen(false)}
+                className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-medium no-underline"
+              >
+                <BookOpen size={13} className="text-slate-500" />
+                Swagger API Docs
+                <ExternalLink size={11} className="ml-auto text-slate-400" />
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* User Chip */}
+        {user ? (
+          <div className="flex items-center gap-1.5 p-1 pr-2 rounded-lg bg-slate-50 border border-slate-200">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-blue-600 to-teal-600 flex items-center justify-center text-white text-[11px] font-bold uppercase">
               {user.email ? user.email[0] : 'U'}
             </div>
-            <div className="hidden sm:block" style={{ lineHeight: 1.1 }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>
+            <div className="hidden md:block leading-tight">
+              <div className="text-xs font-semibold text-slate-900 truncate max-w-[6rem]">
                 {user.email ? user.email.split('@')[0] : 'User'}
               </div>
-              <div style={{ fontSize: '10px', color: '#64748b' }}>Security Auditor</div>
             </div>
             <button
               onClick={() => signOut()}
               title="Sign Out"
               aria-label="Sign Out"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#94a3b8',
-                padding: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+              className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
             >
-              <LogOut size={14} />
+              <LogOut size={13} />
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="flex items-center gap-1.5">
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '4px 8px',
-                borderRadius: '6px',
-                background: 'rgba(37, 99, 235, 0.08)',
-                border: '1px solid rgba(37, 99, 235, 0.25)',
-                color: '#1d4ed8',
-                fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '0.2px',
-                whiteSpace: 'nowrap',
-              }}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold"
               title="AgentGuard AI is running in Demo Mode"
             >
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: '#2563eb',
-                  boxShadow: '0 0 6px rgba(37, 99, 235, 0.6)',
-                }}
-              />
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
               Demo
             </div>
             {SHOW_SIGN_IN_BUTTON && (
               <Link
                 to="/login"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '5px 10px',
-                  borderRadius: '6px',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                  color: '#ffffff',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
-                  whiteSpace: 'nowrap',
-                }}
+                className="h-8 px-2.5 rounded-md bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs font-medium flex items-center shadow-xs no-underline"
               >
                 Sign In
               </Link>
@@ -418,3 +250,4 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     </header>
   );
 };
+export default TopNavigation;

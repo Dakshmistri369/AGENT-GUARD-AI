@@ -129,18 +129,18 @@ html, body, #root {
 .animate-spin { animation: spin 1s linear infinite; }
 .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
 
-/* Button base */
+/* Button base - standardized tokens (h-9 px-3 text-sm) */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 40px;
-  height: 40px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
   border: none;
@@ -151,29 +151,53 @@ html, body, #root {
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-sm {
-  min-height: 32px;
-  height: 32px;
-  padding: 4px 12px;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 10px;
   font-size: 12px;
+  border-radius: 5px;
+}
+
+.btn-lg {
+  min-height: 40px;
+  height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
   border-radius: 6px;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.btn-icon-sm {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  min-height: 30px;
+  flex-shrink: 0;
 }
 
 .btn-primary {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
 }
 .btn-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #1d4ed8, #1e40af);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+  transform: translateY(-0.5px);
 }
 
 .btn-secondary {
   background: #ffffff;
   color: var(--text-primary);
   border: 1px solid #cbd5e1;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .btn-secondary:hover:not(:disabled) {
   background: #f8fafc;
@@ -190,16 +214,16 @@ html, body, #root {
   border-color: #f87171;
 }
 
-/* Input base */
+/* Input base - standardized tokens (h-10 text-sm) */
 .input {
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 13.5px;
   min-height: 40px;
   height: 40px;
-  padding: 8px 12px;
+  padding: 0 12px;
   width: 100%;
   transition: border-color 0.15s, box-shadow 0.15s;
   font-family: inherit;
@@ -215,8 +239,9 @@ html, body, #root {
 .input-sm {
   min-height: 32px;
   height: 32px;
-  padding: 4px 10px;
+  padding: 0 8px;
   font-size: 12px;
+  border-radius: 5px;
 }
 
 /* Stat card */

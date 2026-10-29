@@ -54,8 +54,12 @@ export const BackgroundScanIndicator: React.FC = () => {
     refetchOnWindowFocus: true,
   });
 
-  const activeScans = activeData?.scans ?? [];
-  const activeCount = activeData?.active_count ?? 0;
+  // Strictly count only active scans with status 'queued' or 'running'
+  // Excludes any terminal or watchdog-timed-out scans
+  const activeScans = (activeData?.scans ?? []).filter(
+    (s) => s.status === 'queued' || s.status === 'running'
+  );
+  const activeCount = activeScans.length;
 
   // Detect when an active scan finishes or fails
   useEffect(() => {

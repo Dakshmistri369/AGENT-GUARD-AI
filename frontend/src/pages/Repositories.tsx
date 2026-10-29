@@ -35,7 +35,9 @@ import {
   FileText,
   Layers,
   Info,
+  MoreVertical,
 } from 'lucide-react';
+import { PageContainer } from '../components/ui/PageContainer';
 import { api, API_BASE_URL } from '../lib/api';
 import type {
   Repository,
@@ -102,6 +104,25 @@ export const RepositoriesPage: React.FC = () => {
   // Past scans history
   const [pastScans, setPastScans] = useState<Scan[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // UI & dialog state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRepoMoreMenu, setShowRepoMoreMenu] = useState(false);
+  const [dismissedScanWarning, setDismissedScanWarning] = useState(false);
+
+  // Background active scans to power real-time status dots on connected repository chips
+  const { data: activeScansData } = useQuery({
+    queryKey: ['activeScans'],
+    queryFn: ({ signal }) => api.scans.getActive(signal),
+    refetchInterval: isScanning ? 2000 : 6000,
+  });
+  const activeScansList = activeScansData?.scans ?? [];
+
+  // Derived scan execution states for clean, non-contradictory UI
+  const isScanActive = isScanning || currentScan?.status === 'running' || currentScan?.status === 'queued' || currentScan?.status === 'pending';
+  const isScanTerminal = Boolean(currentScan && (currentScan.status === 'completed' || currentScan.status === 'failed' || currentScan.status === 'timed_out_partial' || currentScan.status === 'cancelled'));
+  const isScanSuccessful = currentScan?.status === 'completed' || currentScan?.status === 'timed_out_partial';
+  const isScanFailed = currentScan?.status === 'failed';
 
   // UI state
   const [activeTab, setActiveTab] = useState<TabType>('findings');
@@ -998,49 +1019,37 @@ export const RepositoriesPage: React.FC = () => {
   const meta = activeRepo?.metadata_json;
 
   return (
-    <div className="max-w-7xl xl:max-w-screen-2xl mx-auto flex flex-col gap-6 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-safe">
+    <PageContainer>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', paddingLeft: '2px' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px', margin: 0, lineHeight: 1.25 }}>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               GitHub Security Auditor
             </h1>
-            <span
-              style={{
-                fontSize: '11px',
-                padding: '3px 9px',
-                borderRadius: '6px',
-                background: 'rgba(20, 184, 166, 0.15)',
-                color: 'var(--teal-bright)',
-                border: '1px solid rgba(45, 212, 191, 0.3)',
-                fontWeight: 700,
-              }}
-            >
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200">
               Public & Private Ready
             </span>
           </div>
-          <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', margin: '6px 0 0 0', lineHeight: 1.5 }}>
+          <p className="text-sm text-slate-500 max-w-2xl line-clamp-2 mt-1">
             Connect repositories, inspect project structure, pin commit SHAs, and run isolated static analyzers with verifiable evidence.
           </p>
         </div>
 
         {activeRepo && scanReport && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             <button
               onClick={copyReportJson}
-              className="btn btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+              className="btn btn-secondary text-xs h-9 px-3 gap-1.5"
               title="Copy complete JSON report to clipboard"
               aria-label="Copy JSON report"
             >
-              {copiedReportJson ? <Check size={14} color="var(--accent-green)" /> : <Copy size={14} />}
+              {copiedReportJson ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
               {copiedReportJson ? 'Report Copied!' : 'Copy JSON'}
             </button>
             <button
               onClick={downloadReportJson}
-              className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}
+              className="btn btn-primary text-xs h-9 px-3.5 gap-2 font-medium"
               aria-label="Download JSON Report"
             >
               <Download size={14} />
@@ -1051,29 +1060,19 @@ export const RepositoriesPage: React.FC = () => {
       </div>
 
       {/* URL Connect Bar */}
-      <div className="glass-card p-4 sm:p-6">
-        <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} aria-label="Connect GitHub Repository">
-          <label htmlFor="github-url-input" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+      <div className="glass-card p-4 sm:p-5">
+        <form onSubmit={handleConnect} className="flex flex-col gap-3" aria-label="Connect GitHub Repository">
+          <label htmlFor="github-url-input" className="text-xs font-semibold text-slate-700">
             Connect Public or Private GitHub Repository
           </label>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div className="w-full sm:flex-1 relative min-w-0">
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                }}
-                aria-hidden="true"
-              >
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center max-w-3xl">
+            <div className="relative flex-1 min-w-0">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">
                 <FolderGit2 size={16} />
               </div>
               <input
                 id="github-url-input"
-                className="input"
-                style={{ paddingLeft: '38px', width: '100%' }}
+                className="input pl-9 w-full h-10 text-sm"
                 placeholder="https://github.com/owner/repository"
                 value={repoUrl}
                 onChange={(e) => handleUrlChange(e.target.value)}
@@ -1082,17 +1081,7 @@ export const RepositoriesPage: React.FC = () => {
                 aria-invalid={urlValidation.valid === false}
               />
               {isValidatingUrl && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '11px',
-                    color: 'var(--text-muted)',
-                  }}
-                  role="status"
-                >
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 font-medium" role="status">
                   Checking...
                 </div>
               )}
@@ -1101,9 +1090,8 @@ export const RepositoriesPage: React.FC = () => {
             <button
               id="connect-repo-btn"
               type="submit"
-              className="btn btn-primary w-full sm:w-auto"
+              className="btn btn-primary h-10 px-4 text-sm font-medium w-full sm:w-auto shrink-0 justify-center gap-2"
               disabled={!urlValidation.valid || isConnecting}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '160px', minHeight: '40px', justifyContent: 'center' }}
               aria-label="Connect repository"
             >
               {isConnecting ? (
@@ -1122,139 +1110,91 @@ export const RepositoriesPage: React.FC = () => {
 
           {/* Validation Feedback */}
           {urlValidation.valid && (
-            <div style={{ fontSize: '12px', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '6px' }} role="status">
-              <CheckCircle2 size={13} />
-              Validated GitHub repository: <strong style={{ color: 'var(--text-primary)' }}>{urlValidation.owner}/{urlValidation.name}</strong> (Public access requires zero tokens)
+            <div className="text-xs text-emerald-700 flex items-center gap-1.5 font-medium" role="status">
+              <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+              Validated repository: <strong className="text-slate-900">{urlValidation.owner}/{urlValidation.name}</strong> (Public access requires zero tokens)
             </div>
           )}
 
           {urlValidation.error && (
-            <div
-              style={{
-                fontSize: '12px',
-                color: '#b91c1c',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: '#fef2f2',
-                padding: '6px 10px',
-                borderRadius: '6px',
-                border: '1px solid #fecaca',
-              }}
-              role="alert"
-            >
-              <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+            <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-md p-2 flex items-center gap-2" role="alert">
+              <AlertTriangle size={14} className="text-rose-600 shrink-0" />
               <span>{urlValidation.error}</span>
             </div>
           )}
 
           {connectError && (
-            <div
-              style={{
-                fontSize: '12px',
-                color: '#991b1b',
-                padding: '12px 14px',
-                borderRadius: '8px',
-                background: '#fef2f2',
-                border: '1px solid #f87171',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}
-              role="alert"
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600 }}>{connectError}</div>
-                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}>
-                    💡 <strong>Tip for Render Free Tier:</strong> Render automatically hibernates free services after 15 minutes of inactivity. When asleep, incoming requests take ~50 seconds to wake up the server. Once awake, all requests respond instantly.
+            <div className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-lg p-3 flex flex-col gap-2" role="alert">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={15} className="text-rose-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-semibold">{connectError}</div>
+                  <div className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                    Render free services sleep after 15 minutes of inactivity; waking up may take ~50 seconds.
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginLeft: '24px', flexWrap: 'wrap', marginTop: '2px' }}>
+              <div className="flex items-center gap-2 flex-wrap ml-6 pt-1">
                 <a
                   href={`${API_BASE_URL || 'https://agent-guard-ai.onrender.com'}/health`}
                   target="_blank"
                   rel="noreferrer"
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    color: '#2563eb',
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    textDecoration: 'none',
-                  }}
+                  className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-2.5 py-1 inline-flex items-center gap-1 hover:bg-blue-100 no-underline"
                 >
-                  <ExternalLink size={12} />
-                  Ping Backend Service ({API_BASE_URL || 'https://agent-guard-ai.onrender.com'}) ↗
+                  <ExternalLink size={11} />
+                  Ping Backend Service ↗
                 </a>
 
                 <button
                   type="button"
                   onClick={handleWakeUpBackend}
                   disabled={isWakingBackend}
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    color: '#334155',
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    cursor: 'pointer',
-                  }}
+                  className="text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded px-2.5 py-1 inline-flex items-center gap-1"
                 >
-                  <RotateCw size={12} className={isWakingBackend ? 'animate-spin' : ''} />
-                  {isWakingBackend ? 'Waking up backend...' : 'Retry Connection'}
+                  <RotateCw size={11} className={isWakingBackend ? 'animate-spin' : ''} />
+                  {isWakingBackend ? 'Waking backend...' : 'Retry Connection'}
                 </button>
               </div>
             </div>
           )}
         </form>
 
-        {/* Existing connected repository switcher pills */}
+        {/* Existing connected repository switcher: single horizontally scrollable row */}
         {repositories.length > 0 && (
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Connected Repositories:</span>
-            {repositories.map((repo) => {
-              const isSelected = activeRepo?.id === repo.id;
-              return (
-                <button
-                  key={repo.id}
-                  onClick={() => selectRepository(repo)}
-                  onMouseEnter={() => prefetchRepoScans(repo.id)}
-                  style={{
-                    fontSize: '12px',
-                    padding: '5px 12px',
-                    borderRadius: '6px',
-                    background: isSelected ? '#eff6ff' : '#f8fafc',
-                    color: isSelected ? '#1d4ed8' : '#0f172a',
-                    border: isSelected ? '1px solid #93c5fd' : '1px solid #cbd5e1',
-                    fontWeight: isSelected ? 600 : 500,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                  }}
-                  aria-pressed={isSelected}
-                  aria-label={`Select repository ${repo.full_name}`}
-                >
-                  <GitBranch size={12} color={isSelected ? '#1d4ed8' : '#64748b'} />
-                  <span>{repo.full_name}</span>
-                </button>
-              );
-            })}
+          <div className="mt-3.5 pt-3 border-t border-slate-200 flex items-center gap-2.5 overflow-hidden">
+            <span className="text-xs text-slate-400 font-medium shrink-0">Connected:</span>
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth flex-nowrap py-0.5 flex-1 min-w-0">
+              {repositories.map((repo) => {
+                const isSelected = activeRepo?.id === repo.id;
+                const hasActiveScan = activeScansList.some(
+                  (s) => s.repository_id === repo.id && (s.status === 'queued' || s.status === 'running')
+                );
+
+                return (
+                  <button
+                    key={repo.id}
+                    onClick={() => selectRepository(repo)}
+                    onMouseEnter={() => prefetchRepoScans(repo.id)}
+                    className={`max-w-[14rem] h-8 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors border ${
+                      isSelected
+                        ? 'bg-blue-50 border-blue-400 text-blue-700 font-semibold shadow-xs'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-300 text-slate-700'
+                    }`}
+                    title={repo.full_name}
+                    aria-pressed={isSelected}
+                    aria-label={`Select repository ${repo.full_name}`}
+                  >
+                    {hasActiveScan ? (
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Scan in progress" />
+                    ) : (
+                      <GitBranch size={12} className={isSelected ? 'text-blue-600 shrink-0' : 'text-slate-400 shrink-0'} />
+                    )}
+                    <span className="truncate">{repo.full_name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -1383,255 +1323,279 @@ export const RepositoriesPage: React.FC = () => {
           Loading repositories and security reports...
         </div>
       ) : activeRepo ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Repository Overview Card */}
-          <div className="glass-card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    {activeRepo.full_name}
-                  </h2>
-                  <a
-                    href={activeRepo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center' }}
-                    title="Open on GitHub"
-                    aria-label="Open repository on GitHub"
-                  >
-                    <ExternalLink size={15} />
-                  </a>
-                </div>
-                <div style={{ display: 'flex', gap: '14px', marginTop: '8px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  <span>
-                    Default Branch: <strong style={{ color: '#0f766e', fontWeight: 700 }}>{activeRepo.default_branch}</strong>
-                  </span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    Commit SHA:{' '}
-                    <code
-                      style={{
-                        background: '#f1f5f9',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {activeRepo.pinned_sha ? activeRepo.pinned_sha.slice(0, 7) : 'Unpinned'}
-                    </code>
-                    {activeRepo.pinned_sha && (
-                      <button
-                        onClick={() =>
-                          copyToClipboard(activeRepo.pinned_sha || '', () => {
-                            setCopiedSha(true);
-                            setTimeout(() => setCopiedSha(false), 1500);
-                          })
-                        }
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
-                        title="Copy full commit SHA"
-                        aria-label="Copy commit SHA"
-                      >
-                        {copiedSha ? <Check size={12} color="var(--accent-green)" /> : <Copy size={12} />}
-                      </button>
-                    )}
-                  </span>
-                  <span>
-                    Files: <strong style={{ color: 'var(--text-primary)' }}>{meta?.file_count ?? 0}</strong>
-                  </span>
-                  <span>
-                    Directories: <strong style={{ color: 'var(--text-primary)' }}>{meta?.directory_count ?? 0}</strong>
-                  </span>
-                  <span>
-                    Size: <strong style={{ color: 'var(--text-primary)' }}>{meta?.size_kb ?? 0} KB</strong>
-                  </span>
-                </div>
+        <div className="flex flex-col gap-5">
+          {/* Repository Overview Card - Standard Two-Row Layout */}
+          <div className="glass-card p-4 sm:p-5 space-y-3.5">
+            {/* Row 1: Name + External link on left; Branch, Metadata toggle, Start/Cancel, More menu on right */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              {/* Left: Name and link */}
+              <div className="flex items-center gap-2 min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 truncate max-w-sm sm:max-w-md" title={activeRepo.full_name}>
+                  {activeRepo.full_name}
+                </h2>
+                <a
+                  href={activeRepo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-slate-700 inline-flex items-center p-1 rounded hover:bg-slate-100 transition-colors"
+                  title="Open on GitHub"
+                  aria-label="Open repository on GitHub"
+                >
+                  <ExternalLink size={15} />
+                </a>
               </div>
 
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {/* Right: Actions Group */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {/* Branch selector */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <label htmlFor="branch-select" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Branch:
-                  </label>
+                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <label htmlFor="branch-select" className="text-slate-500 font-medium">Branch:</label>
                   <input
                     id="branch-select"
-                    className="input"
-                    style={{ width: '110px', height: '32px', fontSize: '12px', padding: '4px 8px' }}
+                    className="input-sm w-24 sm:w-28 bg-slate-50"
                     value={targetBranch}
                     onChange={(e) => setTargetBranch(e.target.value)}
                     placeholder={activeRepo.default_branch}
-                    disabled={isScanning}
+                    disabled={isScanActive}
                   />
                 </div>
 
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }} title="Scan repository structure and manifest dependencies via API in ~2 seconds without full git clone">
+                {/* Metadata-only toggle */}
+                <label className="text-xs text-slate-600 flex items-center gap-1.5 cursor-pointer select-none" title="Scan repository structure and manifest dependencies via API in ~2 seconds">
                   <input
                     type="checkbox"
                     checked={metadataOnly}
                     onChange={(e) => setMetadataOnly(e.target.checked)}
-                    disabled={isScanning}
+                    disabled={isScanActive}
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span>Metadata-only</span>
-                  <span style={{ fontSize: '10px', color: 'var(--accent-cyan)', background: 'rgba(6, 182, 212, 0.1)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Fast (2s)</span>
+                  <span className="text-[10px] font-semibold text-cyan-700 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded">
+                    Fast (2s)
+                  </span>
                 </label>
 
-                {isScanning ? (
-                  <button onClick={handleCancelScan} disabled={isCancelling} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <XCircle size={14} color="var(--accent-rose)" />
+                {/* Start or Cancel action */}
+                {isScanActive ? (
+                  <button
+                    onClick={handleCancelScan}
+                    disabled={isCancelling}
+                    className="btn btn-secondary text-xs h-9 px-3 gap-1.5 text-rose-600 hover:bg-rose-50 border-rose-200 font-medium shrink-0"
+                  >
+                    <XCircle size={14} className="text-rose-600" />
                     {isCancelling ? 'Cancelling...' : 'Cancel Scan'}
                   </button>
                 ) : (
                   <button
                     id="analyze-repo-btn"
                     onClick={handleStartAnalysis}
-                    className="btn btn-primary"
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                    className="btn btn-primary text-xs h-9 px-3.5 gap-1.5 font-medium shrink-0 shadow-xs"
                   >
                     <Shield size={14} />
-                    Analyze Repository
+                    {isScanFailed || currentScan?.status === 'timed_out_partial' ? 'Retry Security Analysis' : 'Analyze Repository'}
                   </button>
                 )}
 
-                <button
-                  onClick={handleDeleteRepository}
-                  disabled={isDeletingRepo || isScanning}
-                  className="btn btn-danger"
-                  style={{ padding: '8px 12px' }}
-                  title="Disconnect and remove repository"
-                  aria-label="Disconnect repository"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {/* More Menu (Dropdown holding Disconnect with Confirmation Dialog) */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowRepoMoreMenu((p) => !p)}
+                    aria-label="Repository options"
+                    className="w-9 h-9 rounded-md flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                  {showRepoMoreMenu && (
+                    <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-30 animate-slide-in">
+                      <button
+                        onClick={() => {
+                          setShowRepoMoreMenu(false);
+                          setShowDeleteConfirm(true);
+                        }}
+                        disabled={isDeletingRepo || isScanning || currentScan?.status === 'running' || currentScan?.status === 'queued'}
+                        className="w-full text-left px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-medium"
+                      >
+                        <Trash2 size={13} />
+                        Disconnect Repository
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Inspection Pills */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginTop: '20px' }}>
+            {/* Row 2: Compact wrapped text-xs stat list */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 border-t border-slate-100 text-xs text-slate-600">
+              <div>
+                Default Branch: <span className="font-semibold text-slate-900">{activeRepo.default_branch}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                Commit SHA:
+                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-mono text-slate-800 border border-slate-200">
+                  {activeRepo.pinned_sha ? activeRepo.pinned_sha.slice(0, 7) : 'Unpinned'}
+                </code>
+                {activeRepo.pinned_sha && (
+                  <button
+                    onClick={() =>
+                      copyToClipboard(activeRepo.pinned_sha || '', () => {
+                        setCopiedSha(true);
+                        setTimeout(() => setCopiedSha(false), 1500);
+                      })
+                    }
+                    className="text-slate-400 hover:text-slate-700 p-0.5"
+                    title="Copy full commit SHA"
+                    aria-label="Copy commit SHA"
+                  >
+                    {copiedSha ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                  </button>
+                )}
+              </div>
+              <div>
+                Files: <span className="font-semibold text-slate-900">{meta?.file_count ?? 0}</span>
+              </div>
+              <div>
+                Directories: <span className="font-semibold text-slate-900">{meta?.directory_count ?? 0}</span>
+              </div>
+              <div>
+                Size: <span className="font-semibold text-slate-900">{meta?.size_kb ?? 0} KB</span>
+              </div>
+            </div>
+
+            {/* Three Info Cards (Languages, Manifests, Test & CI) - grid-cols-1 md:grid-cols-3 equal height */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1">
               {/* Languages */}
-              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                <div style={{ fontSize: '11px', color: '#0f172a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+              <div className="bg-slate-50/70 border border-slate-200 rounded-lg p-3 flex flex-col justify-between h-full">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                   Detected Languages
                 </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <div className="flex flex-wrap gap-1.5">
                   {meta?.languages && meta.languages.length > 0 ? (
                     meta.languages.map((lang) => (
-                      <span
-                        key={lang}
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          padding: '3px 9px',
-                          borderRadius: '6px',
-                          background: '#eff6ff',
-                          color: '#1d4ed8',
-                          border: '1px solid #bfdbfe',
-                        }}
-                      >
+                      <span key={lang} className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                         {lang}
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>None detected</span>
+                    <span className="text-xs text-slate-400 italic">None detected</span>
                   )}
                 </div>
               </div>
 
               {/* Manifests */}
-              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                <div style={{ fontSize: '11px', color: '#0f172a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+              <div className="bg-slate-50/70 border border-slate-200 rounded-lg p-3 flex flex-col justify-between h-full">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                   Detected Manifests
                 </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <div className="flex flex-wrap gap-1.5">
                   {meta?.manifests && meta.manifests.length > 0 ? (
                     meta.manifests.map((m) => (
                       <span
                         key={m}
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          padding: '3px 9px',
-                          borderRadius: '6px',
-                          background: '#f0fdf4',
-                          color: '#15803d',
-                          border: '1px solid #bbf7d0',
-                        }}
+                        className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 truncate max-w-[180px] sm:max-w-[220px]"
+                        title={m}
                       >
                         {m}
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>No manifests detected</span>
+                    <span className="text-xs text-slate-400 italic">No manifests detected</span>
                   )}
                 </div>
               </div>
 
-              {/* Test & Config */}
-              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                <div style={{ fontSize: '11px', color: '#0f172a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+              {/* Test & CI Detection */}
+              <div className="bg-slate-50/70 border border-slate-200 rounded-lg p-3 flex flex-col justify-between h-full">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
                   Test & CI Detection
                 </div>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <div className="flex flex-wrap gap-1.5">
                   {meta?.test_directories && meta.test_directories.length > 0 ? (
                     meta.test_directories.map((t) => (
-                      <span
-                        key={t}
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          padding: '3px 9px',
-                          borderRadius: '6px',
-                          background: '#faf5ff',
-                          color: '#7e22ce',
-                          border: '1px solid #e9d5ff',
-                        }}
-                      >
+                      <span key={t} className="text-[11px] font-semibold px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
                         📁 {t}
                       </span>
                     ))
-                  ) : (
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>No test directories</span>
-                  )}
-                  {meta?.workflow_files && meta.workflow_files.length > 0 && (
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        padding: '3px 9px',
-                        borderRadius: '6px',
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
-                        border: '1px solid #bfdbfe',
-                      }}
-                    >
+                  ) : null}
+                  {meta?.workflow_files && meta.workflow_files.length > 0 ? (
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                       ⚡ Workflows ({meta.workflow_files.length})
                     </span>
+                  ) : null}
+                  {(!meta?.test_directories || meta.test_directories.length === 0) &&
+                   (!meta?.workflow_files || meta.workflow_files.length === 0) && (
+                    <span className="text-xs text-slate-400 italic">No test directories</span>
                   )}
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Delete Repository Confirmation Modal */}
+          {showDeleteConfirm && activeRepo && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-slide-in"
+            >
+              <div className="bg-white border border-slate-200 rounded-xl max-w-md w-full p-5 space-y-4 shadow-xl">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 shrink-0">
+                    <Trash2 size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base font-semibold text-slate-900">
+                      Disconnect Repository?
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Are you sure you want to disconnect <strong className="text-slate-800">{activeRepo.full_name}</strong>?
+                      All associated scan history, AI remediation plans, and findings will be permanently removed.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="btn btn-secondary text-xs h-9 px-3"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      handleDeleteRepository();
+                    }}
+                    disabled={isDeletingRepo}
+                    className="btn btn-danger text-xs h-9 px-3.5 gap-1.5 font-medium"
+                  >
+                    <Trash2 size={13} />
+                    {isDeletingRepo ? 'Disconnecting...' : 'Confirm Disconnect'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 6-Stage Security Verification Stepper */}
-          {(isScanning || currentScan) && (
-            <div className="glass-card p-3.5 sm:p-5">
-              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                  {isScanning ? (
-                    <RotateCw size={15} className="animate-spin flex-shrink-0" color="var(--electric-blue-bright)" />
+          {(isScanActive || currentScan) && (
+            <div className="glass-card p-4 sm:p-5">
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-3 text-xs sm:text-sm font-semibold text-slate-800">
+                <div className="flex items-center gap-2 min-w-0">
+                  {isScanActive ? (
+                    <RotateCw size={15} className="animate-spin text-blue-600 shrink-0" />
                   ) : currentScan?.status === 'completed' ? (
-                    <CheckCircle2 size={16} className="flex-shrink-0" color="var(--accent-green)" />
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                   ) : currentScan?.status === 'failed' ? (
-                    <XCircle size={16} className="flex-shrink-0" color="var(--accent-rose)" />
+                    <XCircle size={16} className="text-rose-600 shrink-0" />
                   ) : (
-                    <Clock size={16} className="flex-shrink-0" color="var(--text-muted)" />
+                    <Clock size={16} className="text-slate-400 shrink-0" />
                   )}
-                  <span style={{ wordBreak: 'break-word' }}>
-                    {isScanning
+                  <span className="truncate">
+                    {isScanActive
                       ? currentScan?.status === 'queued'
-                        ? `Scan #${currentScan?.id} Queued — Preparing Scanner Slot...`
+                        ? `Scan #${currentScan?.id || ''} Queued — Waiting for Worker Slot`
                         : `Security Verification in Progress — ${
                             currentScan?.stage
                               ? currentScan.stage.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
@@ -1646,54 +1610,48 @@ export const RepositoriesPage: React.FC = () => {
                             : `Scan #${currentScan?.id} Status: ${currentScan?.status}`}
                   </span>
                 </div>
-                {currentScan?.completed_at && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                {!isScanActive && isScanTerminal && currentScan?.completed_at && (
+                  <span className="text-[11px] sm:text-xs text-slate-500 font-normal">
                     Finished: {new Date(currentScan.completed_at).toLocaleTimeString()}
                   </span>
                 )}
               </div>
 
               {/* Real-time Progress Bar */}
-              {(isScanning || (currentScan && currentScan.status === 'running')) && (
-                <div style={{ width: '100%', height: '5px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', overflow: 'hidden', marginBottom: '14px' }}>
+              {isScanActive && (
+                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-3.5">
                   <div
+                    className="h-full bg-linear-to-r from-blue-500 to-indigo-600 transition-all duration-300 rounded-full"
                     style={{
                       width: `${
-                        currentScan?.status === 'completed'
-                          ? 100
-                          : currentScan?.status === 'queued'
-                          ? 5
+                        currentScan?.status === 'queued'
+                          ? 8
                           : currentScan?.configuration?.progress_percent || (
-                              currentScan?.stage === 'validating' ? 10 :
-                              currentScan?.stage === 'fetching_metadata' ? 25 :
-                              currentScan?.stage === 'inspecting_file_tree' ? 40 :
-                              currentScan?.stage === 'running_scanners' ? 65 :
+                              currentScan?.stage === 'validating' ? 15 :
+                              currentScan?.stage === 'fetching_metadata' ? 30 :
+                              currentScan?.stage === 'inspecting_file_tree' ? 45 :
+                              currentScan?.stage === 'running_scanners' ? 70 :
                               currentScan?.stage === 'reviewing_evidence' ? 85 :
-                              currentScan?.stage === 'generating_report' ? 95 : 10
+                              currentScan?.stage === 'generating_report' ? 95 : 15
                             )
                       }%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #38bdf8, #2563eb)',
-                      transition: 'width 0.4s ease-in-out',
-                      borderRadius: '3px',
                     }}
                   />
                 </div>
               )}
 
-              {/* 6 Stages Grid - Responsive 1 col on phone, 2 on small tablet, 3 on tablet, 6 on desktop */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
+              {/* 6 Stages Grid - Responsive 2 col on mobile, 3 on tablet, 6 on desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 {SCAN_STAGES.map((stg, idx) => {
-                  const isScanRunning = isScanning || currentScan?.status === 'running' || currentScan?.status === 'queued' || currentScan?.status === 'pending';
-                  const isCompletedScan = currentScan?.status === 'completed' || currentScan?.status === 'timed_out_partial';
-                  const isFailedScan = currentScan?.status === 'failed';
+                  const isCompletedScan = isScanSuccessful;
+                  const isFailedScan = isScanFailed;
 
                   // Stage states
                   let isStageDone = isCompletedScan;
                   let isStageCurrent = false;
                   let isStageFailed = false;
 
-                  if (isScanRunning) {
+                  if (isScanActive) {
                     if (currentScan?.stage === 'queued' || currentScan?.status === 'queued') {
                       isStageDone = false;
                       isStageCurrent = false;
@@ -1716,46 +1674,26 @@ export const RepositoriesPage: React.FC = () => {
                   return (
                     <div
                       key={stg.id}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        background: isStageFailed
-                          ? 'rgba(244, 63, 94, 0.08)'
+                      className={`px-2.5 py-2 rounded-lg text-xs flex items-center gap-2 border transition-colors ${
+                        isStageFailed
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
                           : isStageDone
-                          ? '#f0fdf4'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                           : isStageCurrent
-                          ? '#eff6ff'
-                          : '#f8fafc',
-                        border: isStageFailed
-                          ? '1px solid rgba(244, 63, 94, 0.4)'
-                          : isStageDone
-                          ? '1px solid #86efac'
-                          : isStageCurrent
-                          ? '1px solid #3b82f6'
-                          : '1px solid #e2e8f0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '12px',
-                        color: isStageFailed
-                          ? 'var(--accent-rose)'
-                          : isStageDone
-                          ? '#15803d'
-                          : isStageCurrent
-                          ? '#1d4ed8'
-                          : '#475569',
-                      }}
+                          ? 'bg-blue-50 text-blue-800 border-blue-300 font-medium'
+                          : 'bg-slate-50 text-slate-500 border-slate-200'
+                      }`}
                     >
                       {isStageFailed ? (
-                        <XCircle size={13} color="var(--accent-rose)" />
+                        <XCircle size={13} className="text-rose-600 shrink-0" />
                       ) : isStageDone ? (
-                        <CheckCircle2 size={13} color="var(--accent-green)" />
+                        <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
                       ) : isStageCurrent ? (
-                        <RotateCw size={13} className="animate-spin" color="var(--electric-blue-bright)" />
+                        <RotateCw size={13} className="animate-spin text-blue-600 shrink-0" />
                       ) : (
-                        <Clock size={13} color="var(--text-muted)" />
+                        <Clock size={13} className="text-slate-400 shrink-0" />
                       )}
-                      <span style={{ fontWeight: isStageFailed || isStageCurrent ? 600 : 400 }}>
+                      <span className="truncate">
                         {stg.label}{isStageFailed ? ' (Failed)' : ''}
                       </span>
                     </div>
@@ -1763,24 +1701,22 @@ export const RepositoriesPage: React.FC = () => {
                 })}
               </div>
 
-              {currentScan?.error_message && (
-                <div style={{
-                  marginTop: '12px',
-                  padding: '12px 14px',
-                  borderRadius: '6px',
-                  background: 'rgba(244, 63, 94, 0.1)',
-                  border: '1px solid rgba(244, 63, 94, 0.3)',
-                  color: 'var(--accent-rose)',
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '8px',
-                }}>
-                  <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong>{currentScan.status === 'failed' ? 'Scan Failure: ' : 'Scan Warning: '}</strong>
-                    {currentScan.error_message}
+              {currentScan?.error_message && !dismissedScanWarning && (
+                <div className="mt-3 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle size={15} className="text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-semibold">{currentScan.status === 'failed' ? 'Scan Failure: ' : 'Scan Warning: '}</span>
+                      <span>{currentScan.error_message}</span>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => setDismissedScanWarning(true)}
+                    className="text-rose-400 hover:text-rose-600 p-0.5 rounded transition-colors"
+                    title="Dismiss notification"
+                  >
+                    <X size={14} />
+                  </button>
                 </div>
               )}
             </div>
@@ -3118,18 +3054,80 @@ export const RepositoriesPage: React.FC = () => {
                 })()}
                   </div>
                 </>
+              ) : isScanActive ? (
+                /* In-Progress Scan State */
+                <div className="glass-card p-8 sm:p-12 text-center space-y-4">
+                  <div className="relative inline-flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <RotateCw className="w-14 h-14 text-blue-500 animate-spin absolute -top-1 -left-1 opacity-70" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      Security Analysis in Progress
+                    </h3>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                      {currentScan?.status === 'queued'
+                        ? 'Scan is queued and waiting for an available worker slot. Execution will begin automatically.'
+                        : `Running security analyzers (Semgrep, Bandit, OSV-Scanner, Secrets) on stage: ${
+                            currentScan?.stage ? currentScan.stage.replace(/_/g, ' ') : 'in progress'
+                          }. Findings will appear here automatically.`}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
+                      Scan #{currentScan?.id || ''} Active
+                    </span>
+                    <button
+                      onClick={handleCancelScan}
+                      disabled={isCancelling}
+                      className="btn btn-secondary text-xs h-7 px-2.5 text-rose-600 hover:bg-rose-50 border-rose-200"
+                    >
+                      <XCircle size={13} className="text-rose-600 mr-1" />
+                      {isCancelling ? 'Cancelling...' : 'Cancel Scan'}
+                    </button>
+                  </div>
+                </div>
+              ) : isScanFailed ? (
+                /* Failed Scan State */
+                <div className="glass-card p-8 sm:p-12 text-center space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto text-rose-600">
+                    <XCircle size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      Security Audit Failed
+                    </h3>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                      {currentScan?.error_message || 'The security scan encountered an error during execution.'}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-3 pt-2">
+                    <button
+                      onClick={handleStartAnalysis}
+                      className="btn btn-primary text-xs h-9 px-4 gap-1.5 shadow-xs"
+                    >
+                      <RotateCw size={14} />
+                      Retry Security Analysis
+                    </button>
+                  </div>
+                </div>
               ) : (
                 /* Ready to Scan State */
-                <div className="glass-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
-                  <ShieldAlert size={40} color="var(--electric-blue)" style={{ margin: '0 auto 12px' }} />
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    Repository Ready for Security Audit
-                  </h3>
-                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '520px', margin: '8px auto 20px' }}>
-                    Click <strong>Analyze Repository</strong> above to clone into an isolated ephemeral workspace, execute static analyzers (Semgrep, Bandit, OSV-Scanner, detect-secrets), and review evidence.
-                  </p>
-                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button onClick={handleStartAnalysis} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <div className="glass-card p-8 sm:p-12 text-center space-y-4">
+                  <ShieldAlert size={36} className="text-blue-600 mx-auto" />
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      Repository Ready for Security Audit
+                    </h3>
+                    <p className="text-xs text-slate-500 max-w-lg mx-auto mt-1">
+                      Click <strong>Analyze Repository</strong> to clone into an isolated ephemeral workspace, execute static analyzers (Semgrep, Bandit, OSV-Scanner, detect-secrets), and review evidence.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2.5 flex-wrap pt-2">
+                    <button onClick={handleStartAnalysis} className="btn btn-primary text-xs h-9 px-4 gap-1.5 shadow-xs">
                       <Shield size={14} />
                       Start Security Analysis Now
                     </button>
@@ -3140,8 +3138,7 @@ export const RepositoriesPage: React.FC = () => {
                           setFindingsScope('all');
                           loadAllRepositoryFindings();
                         }}
-                        className="btn btn-secondary"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        className="btn btn-secondary text-xs h-9 px-3.5 gap-1.5"
                       >
                         <Layers size={14} />
                         View All Issues Across Repositories ({allRepoFindings.length})
@@ -3547,17 +3544,31 @@ export const RepositoriesPage: React.FC = () => {
                     </div>
                   )}
                 </>
+              ) : isScanActive ? (
+                <div className="glass-card p-8 sm:p-12 text-center space-y-4">
+                  <RotateCw size={32} className="animate-spin text-blue-600 mx-auto" />
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      Security Analysis in Progress
+                    </h3>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                      Automated remediation solutions and code diffs will be generated once scanners complete.
+                    </p>
+                  </div>
+                </div>
               ) : (
-                <div className="glass-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
-                  <ShieldAlert size={40} color="var(--electric-blue)" style={{ margin: '0 auto 12px' }} />
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    No Active Scan Report
-                  </h3>
-                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '520px', margin: '8px auto 20px' }}>
-                    Click <strong>Analyze Repository</strong> above to run security analysis and generate automated exact solutions.
-                  </p>
-                  <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button onClick={handleStartAnalysis} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <div className="glass-card p-8 sm:p-12 text-center space-y-4">
+                  <ShieldAlert size={36} className="text-blue-600 mx-auto" />
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      No Active Scan Report
+                    </h3>
+                    <p className="text-xs text-slate-500 max-w-lg mx-auto mt-1">
+                      Click <strong>Analyze Repository</strong> to run security analysis and generate automated exact solutions.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2.5 flex-wrap pt-2">
+                    <button onClick={handleStartAnalysis} className="btn btn-primary text-xs h-9 px-4 gap-1.5 shadow-xs">
                       <Shield size={14} />
                       Start Security Analysis Now
                     </button>
@@ -3568,8 +3579,7 @@ export const RepositoriesPage: React.FC = () => {
                           setFindingsScope('all');
                           loadAllRepositoryFindings();
                         }}
-                        className="btn btn-secondary"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        className="btn btn-secondary text-xs h-9 px-3.5 gap-1.5"
                       >
                         <Layers size={14} />
                         View All Issues Across Repositories ({allRepoFindings.length})
@@ -3902,7 +3912,7 @@ export const RepositoriesPage: React.FC = () => {
                     No Previous Scans Found
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    Click Analyze Repository to run your first security audit for {activeRepo.full_name}.
+                    {isScanActive ? 'A scan is currently running. History will update upon completion.' : `Click Analyze Repository to run your first security audit for ${activeRepo.full_name}.`}
                   </p>
                 </div>
               ) : (
@@ -4078,6 +4088,6 @@ export const RepositoriesPage: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };

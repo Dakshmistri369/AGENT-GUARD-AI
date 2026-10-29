@@ -6,7 +6,6 @@ import {
   GitBranch,
   History,
   FileText,
-  Plus,
   Play,
   Settings,
   Scale,
@@ -16,6 +15,7 @@ import {
   ChevronRight,
   FolderOpen,
   X,
+  Plus,
 } from 'lucide-react';
 import { AnimatedBrandLogo, type LogoScanState } from '../brand/AnimatedBrandLogo';
 
@@ -84,43 +84,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const toggleCollapse = externalToggleCollapse || (() => setInternalCollapsed((c) => !c));
   const isEffectiveCollapsed = !isMobileDrawer && isCollapsed;
 
+  // Sidebar width: 240px expanded / 64px collapsed
+  const sidebarWidthClass = isMobileDrawer
+    ? 'w-full'
+    : isEffectiveCollapsed
+    ? 'w-[64px] min-w-[64px]'
+    : 'w-[240px] min-w-[240px]';
+
   return (
     <aside
       aria-label="Main Navigation"
-      style={{
-        width: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '256px',
-        minWidth: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '256px',
-        maxWidth: isMobileDrawer ? '100%' : undefined,
-        background: '#f8fafc',
-        borderRight: isMobileDrawer ? 'none' : '1px solid #e2e8f0',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'width 0.2s ease, min-width 0.2s ease',
-        position: 'relative',
-        zIndex: 20,
-        height: '100%',
-      }}
+      className={`${sidebarWidthClass} bg-slate-50 border-r border-slate-200 flex flex-col h-full relative z-20 transition-all duration-200 select-none`}
     >
-      {/* Brand Header with Animated Logo */}
-      <div
-        style={{
-          padding: isEffectiveCollapsed ? '10px 8px' : '10px 16px',
-          borderBottom: '1px solid #e2e8f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: isEffectiveCollapsed ? 'center' : 'space-between',
-          minHeight: '56px',
-          height: '56px',
-          background: '#ffffff',
-          position: 'relative',
-        }}
-      >
+      {/* Brand Header */}
+      <div className={`h-14 min-h-[56px] border-b border-slate-200 bg-white flex items-center ${isEffectiveCollapsed ? 'justify-center px-2' : 'justify-between px-4'}`}>
         {!isEffectiveCollapsed ? (
           <>
             <Link
               to="/"
               onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', minWidth: 0, overflow: 'hidden' }}
+              className="flex items-center min-w-0 overflow-hidden no-underline text-inherit"
               title="AgentGuard AI Security Command Center"
             >
               <AnimatedBrandLogo
@@ -131,170 +114,68 @@ export const Sidebar: React.FC<SidebarProps> = ({
               />
             </Link>
 
-            {/* Collapse toggle (desktop expanded) */}
-            {!isMobileDrawer && (
+            {isMobileDrawer && (
               <button
-                onClick={toggleCollapse}
-                title="Collapse sidebar (Ctrl+B)"
-                aria-label="Collapse sidebar"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '6px',
-                  border: '1px solid #e2e8f0',
-                  background: '#f8fafc',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#64748b',
-                  transition: 'all 0.15s ease',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#e2e8f0';
-                  e.currentTarget.style.color = '#0f172a';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#f8fafc';
-                  e.currentTarget.style.color = '#64748b';
-                }}
+                onClick={onCloseMobileDrawer}
+                aria-label="Close navigation"
+                className="w-8 h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
               >
-                <ChevronLeft size={16} />
+                <X size={18} />
               </button>
             )}
           </>
         ) : (
-          /* Collapsed state header: icon + bright expand button */
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              gap: '4px',
+          <Link
+            to="/"
+            onClick={(e) => {
+              if (isMobileDrawer) {
+                onCloseMobileDrawer?.();
+              } else {
+                e.preventDefault();
+                toggleCollapse();
+              }
             }}
+            className="flex items-center justify-center no-underline"
+            title="Expand sidebar (Ctrl+B)"
           >
-            <Link
-              to="/"
-              onClick={(e) => {
-                if (isMobileDrawer) {
-                  onCloseMobileDrawer?.();
-                } else {
-                  e.preventDefault();
-                  toggleCollapse();
-                }
-              }}
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}
-              title="Click to expand navigation (Ctrl+B)"
-            >
-              <AnimatedBrandLogo
-                variant="icon"
-                size="md"
-                scanState={scanState}
-                findingsCount={findingsCount}
-              />
-            </Link>
-
-            {!isMobileDrawer && (
-              <button
-                onClick={toggleCollapse}
-                title="Expand sidebar (Ctrl+B)"
-                aria-label="Expand sidebar"
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  background: '#eff6ff',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#2563eb',
-                  transition: 'all 0.15s ease',
-                  flexShrink: 0,
-                  boxShadow: '0 1px 2px rgba(37,99,235,0.12)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#2563eb';
-                  e.currentTarget.style.color = '#ffffff';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#eff6ff';
-                  e.currentTarget.style.color = '#2563eb';
-                }}
-              >
-                <ChevronRight size={14} />
-              </button>
-            )}
-          </div>
-        )}
-
-        {isMobileDrawer && (
-          <button
-            onClick={onCloseMobileDrawer}
-            aria-label="Close navigation"
-            style={{
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: 'none',
-              background: '#f1f5f9',
-              borderRadius: '8px',
-              color: '#334155',
-              cursor: 'pointer',
-              marginLeft: '8px',
-            }}
-          >
-            <X size={20} />
-          </button>
+            <AnimatedBrandLogo
+              variant="icon"
+              size="md"
+              scanState={scanState}
+              findingsCount={findingsCount}
+            />
+          </Link>
         )}
       </div>
 
       {/* Navigation Sections */}
-      <nav
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          padding: '16px 8px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px',
-        }}
-      >
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4 no-scrollbar">
         {NAV_SECTIONS.map((section) => (
-          <div key={section.title}>
-            {/* Section Header (hidden when collapsed) */}
-            {!isEffectiveCollapsed && (
-              <div
-                style={{
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  color: '#64748b',
-                  letterSpacing: '0.8px',
-                  padding: '4px 12px',
-                  textTransform: 'uppercase',
-                  marginBottom: '4px',
-                }}
-              >
+          <div key={section.title} className="space-y-1">
+            {!isEffectiveCollapsed ? (
+              <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 {section.title}
               </div>
+            ) : (
+              <div className="h-2" />
             )}
 
-            {/* Items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = item.icon;
                 const fullCurrent = location.pathname + location.search;
 
-                // Check active state
                 const isActive = item.path.includes('?')
                   ? fullCurrent === item.path
                   : location.pathname === item.path && !location.search.includes('tab=') && !location.search.includes('action=');
+
+                const itemClasses = `h-9 text-sm font-medium rounded-lg flex items-center gap-2.5 transition-colors ${
+                  isEffectiveCollapsed ? 'justify-center px-0 w-full' : 'px-2.5'
+                } ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700 font-semibold border-l-[3px] border-blue-600 rounded-l-none'
+                    : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900'
+                }`;
 
                 if (item.isExternal) {
                   return (
@@ -305,32 +186,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       rel="noopener noreferrer"
                       title={isEffectiveCollapsed ? item.label : undefined}
                       onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: isEffectiveCollapsed ? 'center' : 'flex-start',
-                        gap: isEffectiveCollapsed ? '0' : '12px',
-                        padding: isEffectiveCollapsed ? '10px 0' : '10px 14px',
-                        minHeight: '40px',
-                        height: '40px',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: '#334155',
-                        textDecoration: 'none',
-                        transition: 'all 0.15s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#f1f5f9';
-                        e.currentTarget.style.color = '#0f172a';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#334155';
-                      }}
+                      className={itemClasses}
                     >
-                      <Icon size={16} color="#64748b" className="shrink-0" />
-                      {!isEffectiveCollapsed && <span style={{ lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
+                      <Icon size={18} className="shrink-0 text-slate-500" />
+                      {!isEffectiveCollapsed && (
+                        <span className="truncate">{item.label}</span>
+                      )}
                     </a>
                   );
                 }
@@ -341,52 +202,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     to={item.path}
                     title={isEffectiveCollapsed ? item.label : undefined}
                     onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: isEffectiveCollapsed ? 'center' : 'flex-start',
-                      gap: isEffectiveCollapsed ? '0' : '12px',
-                      padding: isEffectiveCollapsed ? '10px 0' : '10px 14px',
-                      minHeight: '40px',
-                      height: '40px',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: isActive ? 700 : 500,
-                      textDecoration: 'none',
-                      color: isActive ? '#1d4ed8' : '#0f172a',
-                      background: isActive ? '#eff6ff' : 'transparent',
-                      borderLeft: isEffectiveCollapsed ? 'none' : (isActive ? '3px solid #2563eb' : '3px solid transparent'),
-                      transition: 'all 0.15s ease',
-                      position: 'relative',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = '#f1f5f9';
-                        e.currentTarget.style.color = '#000000';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#0f172a';
-                      }
-                    }}
+                    className={itemClasses}
                   >
-                    <Icon size={16} color={isActive ? '#2563eb' : '#64748b'} className="shrink-0" />
-                    {!isEffectiveCollapsed && <span style={{ lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
+                    <Icon
+                      size={18}
+                      className={`shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-500'}`}
+                    />
+                    {!isEffectiveCollapsed && (
+                      <span className="truncate flex-1">{item.label}</span>
+                    )}
                     {item.badge && !isEffectiveCollapsed && (
-                      <span
-                        style={{
-                          marginLeft: 'auto',
-                          fontSize: '10px',
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          background: '#f0fdf4',
-                          color: '#059669',
-                          fontWeight: 600,
-                          border: '1px solid #bbf7d0',
-                        }}
-                      >
+                      <span className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {item.badge}
                       </span>
                     )}
@@ -398,109 +224,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ))}
       </nav>
 
-      {/* Footer Info Pill & Collapse / Expand Controls */}
-      {!isEffectiveCollapsed ? (
-        <div
-          style={{
-            padding: '12px 14px',
-            borderTop: '1px solid #e2e8f0',
-            fontSize: '11px',
-            color: '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: '#ffffff',
-            marginTop: 'auto',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span
-              style={{
-                display: 'inline-block',
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                background: '#059669',
-              }}
-            />
-            <span style={{ color: '#0f172a', fontWeight: 600 }}>Engines Active</span>
-            <span style={{ color: '#94a3b8', fontSize: '10px', marginLeft: '2px' }}>v1.0.0</span>
-          </div>
-          {!isMobileDrawer && (
-            <button
-              onClick={toggleCollapse}
-              title="Collapse sidebar (Ctrl+B)"
-              aria-label="Collapse sidebar"
-              style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '4px',
-                border: 'none',
-                background: 'transparent',
-                color: '#94a3b8',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#0f172a';
-                e.currentTarget.style.background = '#f1f5f9';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#94a3b8';
-                e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              <ChevronLeft size={14} />
-            </button>
-          )}
-        </div>
-      ) : (
-        !isMobileDrawer && (
-          <div
-            style={{
-              padding: '10px 8px',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex',
-              justifyContent: 'center',
-              background: '#ffffff',
-              marginTop: 'auto',
-            }}
-          >
+      {/* Sidebar Footer with Single Desktop Collapse Toggle */}
+      {!isMobileDrawer && (
+        <div className={`p-2.5 border-t border-slate-200 bg-white mt-auto ${isEffectiveCollapsed ? 'flex justify-center' : ''}`}>
+          {!isEffectiveCollapsed ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 px-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                <span className="font-semibold text-slate-800 text-[11px]">Engines Active</span>
+                <span className="text-[10px] text-slate-400">v1.0</span>
+              </div>
+              <button
+                onClick={toggleCollapse}
+                title="Collapse sidebar (Ctrl+B)"
+                aria-label="Collapse sidebar"
+                className="h-8 w-8 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </div>
+          ) : (
             <button
               onClick={toggleCollapse}
               title="Expand sidebar (Ctrl+B)"
               aria-label="Expand sidebar"
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#475569',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#e2e8f0';
-                e.currentTarget.style.color = '#0f172a';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#f8fafc';
-                e.currentTarget.style.color = '#475569';
-              }}
+              className="h-9 w-9 rounded-md flex items-center justify-center text-slate-500 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 transition-colors"
             >
               <ChevronRight size={18} />
             </button>
-          </div>
-        )
+          )}
+        </div>
       )}
     </aside>
   );
 };
+export default Sidebar;

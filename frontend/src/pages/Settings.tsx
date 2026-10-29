@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Settings as SettingsIcon, AlertCircle, Shield, Cpu, Database, Package, Sparkles, LogOut, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { PageContainer } from '../components/ui/PageContainer';
 import { AnimatedBrandLogo } from '../components/brand/AnimatedBrandLogo';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
@@ -42,10 +43,10 @@ export const SettingsPage: React.FC = () => {
   }, [user]);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-3xl w-full pb-safe mx-auto">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-        <SettingsIcon size={20} color="var(--electric-blue)" />
-        <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>Settings</h1>
+    <PageContainer>
+      <div className="flex items-center gap-2.5">
+        <SettingsIcon size={22} className="text-blue-600" />
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
       </div>
 
       {/* Auth mode */}
@@ -198,7 +199,7 @@ export const SettingsPage: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

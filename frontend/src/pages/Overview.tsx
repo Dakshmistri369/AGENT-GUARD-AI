@@ -17,6 +17,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { PageContainer } from '../components/ui/PageContainer';
 import { api, API_BASE_URL } from '../lib/api';
 import { SummaryCard } from '../components/dashboard/SummaryCard';
 import { ChartPanel } from '../components/dashboard/ChartPanel';
@@ -114,44 +115,24 @@ export const OverviewPage: React.FC = () => {
   };
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl xl:max-w-screen-2xl mx-auto bg-white min-h-full pb-safe">
-      {/* ── Page Header with Black Fonts ────────────────────────────────────────── */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '26px',
-          flexWrap: 'wrap',
-          gap: '16px',
-          paddingLeft: '2px',
-        }}
-      >
+    <PageContainer>
+      {/* ── Page Header ────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1
-            style={{
-              fontSize: '28px',
-              fontWeight: 800,
-              color: '#0f172a',
-              letterSpacing: '-0.5px',
-              lineHeight: 1.25,
-              margin: '0 0 6px 0',
-            }}
-          >
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Dashboard
           </h1>
-          <p style={{ fontSize: '13.5px', color: '#475569', margin: 0, lineHeight: 1.5 }}>
+          <p className="text-sm text-slate-500 mt-1">
             Multi-engine AST security, dependency supply chain, and secret exposure monitor
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '8px 12px' }}
+            className="btn btn-secondary text-xs h-9 px-3 gap-1.5"
             title="Refresh Dashboard metrics"
           >
             <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
@@ -160,35 +141,17 @@ export const OverviewPage: React.FC = () => {
 
           <button
             onClick={handleStartScan}
-            className="btn btn-secondary"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12.5px',
-              padding: '8px 14px',
-              color: '#0f172a',
-              fontWeight: 600,
-            }}
+            className="btn btn-secondary text-xs h-9 px-3 gap-1.5 text-slate-700 font-medium"
           >
-            <Play size={13} fill="#2563eb" color="#2563eb" />
+            <Play size={13} className="text-blue-600 fill-blue-600" />
             <span>Start Manual Scan</span>
           </button>
 
           <button
             onClick={handleNewRepo}
-            className="btn btn-primary"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12.5px',
-              padding: '8px 16px',
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
-            }}
+            className="btn btn-primary text-xs h-9 px-3.5 gap-1.5 font-medium shadow-xs"
           >
-            <Plus size={15} />
+            <Plus size={14} />
             <span>New Repository</span>
           </button>
         </div>
@@ -1246,6 +1209,6 @@ export const OverviewPage: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };
