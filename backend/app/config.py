@@ -52,12 +52,20 @@ class Settings(BaseSettings):
     # 🔒 Scanner Timeouts — Three independent layers:
     # Layer 1: Semgrep internal per-rule timeout (default 15s to prevent catastrophic backtracking)
     semgrep_rule_timeout_seconds: int = 15
+    semgrep_timeout_seconds: int = 300
+    semgrep_timeout_threshold: int = 3
+    semgrep_max_memory_mb: int = 2048
+    semgrep_max_target_bytes: int = 1000000
     # Layer 2: Per-scanner process timeout (each individual scanner subprocess)
     scanner_timeout_seconds: int = 600              # 10 min per scanner subprocess
+    osv_scanner_timeout_seconds: int = 120
     # Layer 3: Outer job safety timeout (entire scan job across ALL scanners)
     scanner_job_max_runtime_seconds: int = 1800     # 30 min — configurable via env var
     # Concurrency limit for independent scanner subprocesses (protects Render CPU/RAM)
     scanner_concurrency_limit: int = 2
+    heavy_scan_slots: int = 2                       # Concurrent Semgrep semaphore slots
+    enable_incremental_scans: bool = True
+    scan_cache_ttl_seconds: int = 86400             # 24 hours
 
     # ── AI Snippet Extraction ─────────────────────────────────────────────────
     ai_context_lines: int = 15
@@ -115,6 +123,7 @@ class Settings(BaseSettings):
     redis_url: str = ""           # e.g. redis://localhost:6379/0 or rediss://...
     queue_name: str = "agentguard:scans"
     max_job_retries: int = 3
+    worker_max_jobs: int = 4
     worker_heartbeat_ttl_seconds: int = 60
     enable_async_worker: bool = True
 

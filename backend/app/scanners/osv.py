@@ -35,6 +35,44 @@ _OSV_LOCKFILE_CACHE: dict[str, tuple[float, ScannerResult]] = {}
 _OSV_CACHE_TTL_SECONDS = 86400  # 24 hours
 
 
+def discover_project_lockfiles(workspace_path: Path, max_depth: int = 2) -> list[Path]:
+    """
+    Fast, non-recursive lockfile discovery checking root and up to max_depth directory levels.
+    Strictly skips node_modules, .git, build, dist, vendor, .venv.
+    """
+    discovered: list[Path] = []
+    excluded_names = {
+        ".git", "node_modules", "vendor", "dist", "build", ".next",
+        ".venv", "venv", "__pycache__", "target", ".cache", ".turbo",
+        "scan_workspaces", ".scan_workspaces",
+    }
+
+    try:
+        if not workspace_path.exists() or not workspace_path.is_dir():
+            return []
+        for item in workspace_path.iterdir():
+            if item.is_file() and item.name in MANIFEST_LOCKFILE_NAMES:
+                discovered.append(item)
+            elif item.is_dir() and item.name not in excluded_names and not item.name.startswith("."):
+                try:
+                    for sub_item in item.iterdir():
+                        if sub_item.is_file() and sub_item.name in MANIFEST_LOCKFILE_NAMES:
+                            discovered.append(sub_item)
+                        elif max_depth > 1 and sub_item.is_dir() and sub_item.name not in excluded_names and not sub_item.name.startswith("."):
+                            try:
+                                for sub2 in sub_item.iterdir():
+                                    if sub2.is_file() and sub2.name in MANIFEST_LOCKFILE_NAMES:
+                                        discovered.append(sub2)
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+    except Exception as exc:
+        logger.warning("Error during fast lockfile discovery: %s", exc)
+
+    return sorted(list(set(discovered)), key=lambda p: str(p))
+
+
 def compute_manifests_fingerprint(
     workspace_path: Path,
     commit_sha: str | None = None,
@@ -52,12 +90,7 @@ def compute_manifests_fingerprint(
             if p.is_file() and p.name in MANIFEST_LOCKFILE_NAMES:
                 found_manifests.append(p)
     else:
-        try:
-            for f in workspace_path.rglob("*"):
-                if f.is_file() and f.name in MANIFEST_LOCKFILE_NAMES:
-                    found_manifests.append(f)
-        except Exception:
-            pass
+        found_manifests = discover_project_lockfiles(workspace_path)
 
     found_manifests.sort(key=lambda p: str(p.relative_to(workspace_path)))
     for mf in found_manifests:
@@ -308,32 +341,48 @@ class OSVScanner(BaseScanner):
 
         # Check 24-hour lockfile content cache: incorporates manifest hash + version + base URL
         raw_fp = compute_manifests_fingerprint(workspace_path, commit_sha, known_manifests=metadata.get("manifests"))
-        cache_key = hashlib.sha256(f"{raw_fp}:{version or 'api'}:{settings.osv_api_base_url}".encode()).hexdigest()
-        if cache_key in _OSV_LOCKFILE_CACHE:
-            cached_time, cached_result = _OSV_LOCKFILE_CACHE[cache_key]
-            if time.time() - cached_time < _OSV_CACHE_TTL_SECONDS:
-                logger.info("OSV-Scanner cache hit for manifest fingerprint %s (24h TTL)", cache_key[:12])
+        import datetime
+        cache_key = f"osv:lockfile:{raw_fp}:{datetime.date.today().isoformat()}"
+
+        from app.core.cache import get_cached_json, set_cached_json
+        try:
+            cached_findings = await get_cached_json(cache_key)
+            if cached_findings is not None:
+                logger.info("OSV-Scanner cache hit for manifest key %s (24h TTL)", cache_key[:24])
                 return ScannerResult(
-                    scanner=cached_result.scanner,
-                    scanner_version=cached_result.scanner_version,
-                    status=cached_result.status,
-                    reason=cached_result.reason,
-                    findings=cached_result.findings.copy(),
-                    error=cached_result.error,
+                    scanner=self.name,
+                    scanner_version=version or "cli",
+                    status="completed",
+                    reason="Loaded from daily lockfile cache",
+                    findings=list(cached_findings),
                     duration_seconds=round(time.time() - start_time, 3),
-                    exit_code=cached_result.exit_code or 0,
+                    exit_code=0,
                 )
+        except Exception as cache_err:
+            logger.debug("Lockfile cache check error: %s", cache_err)
+
         exe = find_scanner_executable("osv-scanner")
 
         # ── Case A: osv-scanner binary IS available on host ─────────────────
         if available and exe:
-            # osv-scanner v2.x requires subcommand: osv-scanner scan source --no-ignore --no-resolve --format json -r <path>
-            # The --no-resolve flag skips remote deps.dev graph queries, preventing slow network hangs and timeouts
-            # osv-scanner v1.x uses: osv-scanner --json -r <path>
-            if version and str(version).startswith("2"):
-                cmd = [exe, "scan", "source", "--no-ignore", "--no-resolve", "--format", "json", "-r", str(workspace_path)]
+            # Fast targeted lockfile scanning: pass discovered lockfiles directly
+            discovered_lockfiles = discover_project_lockfiles(workspace_path)
+            
+            if discovered_lockfiles:
+                if version and str(version).startswith("2"):
+                    cmd = [exe, "scan", "source", "--no-resolve", "--format", "json"]
+                    for lf in discovered_lockfiles:
+                        cmd.extend(["--lockfile", str(lf)])
+                else:
+                    cmd = [exe, "--json"]
+                    for lf in discovered_lockfiles:
+                        cmd.extend(["--lockfile", str(lf)])
             else:
-                cmd = [exe, "--json", "-r", str(workspace_path)]
+                # Fallback to directory scan if no explicit lockfiles identified
+                if version and str(version).startswith("2"):
+                    cmd = [exe, "scan", "source", "--no-ignore", "--no-resolve", "--format", "json", "-r", str(workspace_path)]
+                else:
+                    cmd = [exe, "--json", "-r", str(workspace_path)]
 
             try:
                 exit_code, stdout, stderr = await self.execute_cmd(
@@ -432,7 +481,10 @@ class OSVScanner(BaseScanner):
                 findings=findings,
                 duration_seconds=round(time.time() - start_time, 2),
             )
-            _OSV_LOCKFILE_CACHE[cache_key] = (time.time(), res)
+            try:
+                await set_cached_json(cache_key, findings, ex=settings.scan_cache_ttl_seconds)
+            except Exception as set_err:
+                logger.debug("Failed to set lockfile cache: %s", set_err)
             return res
 
         # ── Case B: osv-scanner binary is NOT installed on host ──────────────

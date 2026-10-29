@@ -1653,6 +1653,34 @@ export const RepositoriesPage: React.FC = () => {
                 )}
               </div>
 
+              {/* Real-time Progress Bar */}
+              {(isScanning || (currentScan && currentScan.status === 'running')) && (
+                <div style={{ width: '100%', height: '5px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', overflow: 'hidden', marginBottom: '14px' }}>
+                  <div
+                    style={{
+                      width: `${
+                        currentScan?.status === 'completed'
+                          ? 100
+                          : currentScan?.status === 'queued'
+                          ? 5
+                          : currentScan?.configuration?.progress_percent || (
+                              currentScan?.stage === 'validating' ? 10 :
+                              currentScan?.stage === 'fetching_metadata' ? 25 :
+                              currentScan?.stage === 'inspecting_file_tree' ? 40 :
+                              currentScan?.stage === 'running_scanners' ? 65 :
+                              currentScan?.stage === 'reviewing_evidence' ? 85 :
+                              currentScan?.stage === 'generating_report' ? 95 : 10
+                            )
+                      }%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #38bdf8, #2563eb)',
+                      transition: 'width 0.4s ease-in-out',
+                      borderRadius: '3px',
+                    }}
+                  />
+                </div>
+              )}
+
               {/* 6 Stages Grid - Responsive 1 col on phone, 2 on small tablet, 3 on tablet, 6 on desktop */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
                 {SCAN_STAGES.map((stg, idx) => {

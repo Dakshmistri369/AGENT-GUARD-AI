@@ -188,9 +188,13 @@ async def test_concurrent_three_scans_and_continuous_history_polling(
 
         completed_scans = {}
         for s_id in scan_ids:
-            poll_resp = await client.get(f"/api/scans/{s_id}")
-            assert poll_resp.status_code == 200
-            s_data = poll_resp.json()
+            for _ in range(60):
+                poll_resp = await client.get(f"/api/scans/{s_id}")
+                assert poll_resp.status_code == 200
+                s_data = poll_resp.json()
+                if s_data.get("status") in ["completed", "failed", "timed_out_partial"]:
+                    break
+                await asyncio.sleep(0.1)
             completed_scans[s_id] = s_data
 
         assert len(completed_scans) == 3, f"Not all scans reached terminal state in time: {completed_scans}"

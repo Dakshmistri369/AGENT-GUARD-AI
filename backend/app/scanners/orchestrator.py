@@ -105,6 +105,7 @@ class ScannerOrchestrator:
         commit_sha: str | None = None,
         timeout_seconds: int = 600,
         job_max_runtime_seconds: int = 1800,
+        **kwargs: Any,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
         """
         Execute applicable and available scanners on workspace_path.
@@ -176,18 +177,23 @@ class ScannerOrchestrator:
                 continue
 
             async def _execute_scanner(scanner: BaseScanner, is_avail: bool, matrix_entry: dict[str, Any]):
+                from contextlib import nullcontext
+                from app.queue.worker import HEAVY_SCAN_SEMAPHORE
                 async with sem:
                     try:
-                        res: ScannerResult = await scanner.scan(
-                            workspace_path=workspace_path,
-                            metadata=effective_metadata,
-                            commit_sha=commit_sha,
-                            timeout_seconds=timeout_seconds,
-                            scannable_files=inspection.scannable_files,
-                            small_files=inspection.small_files,
-                            big_files=inspection.big_files,
-                        )
-                        return scanner, is_avail, matrix_entry, res, None
+                        sem_cm = HEAVY_SCAN_SEMAPHORE if scanner.scanner_id == "semgrep" else nullcontext()
+                        async with sem_cm:
+                            res: ScannerResult = await scanner.scan(
+                                workspace_path=workspace_path,
+                                metadata=effective_metadata,
+                                commit_sha=commit_sha,
+                                timeout_seconds=timeout_seconds,
+                                scannable_files=inspection.scannable_files,
+                                small_files=inspection.small_files,
+                                big_files=inspection.big_files,
+                                incremental_files=kwargs.get("incremental_files"),
+                            )
+                            return scanner, is_avail, matrix_entry, res, None
                     except Exception as exc:
                         return scanner, is_avail, matrix_entry, None, exc
 

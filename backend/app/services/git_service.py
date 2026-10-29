@@ -94,18 +94,19 @@ class GitService:
             b64_creds = base64.b64encode(f"x-access-token:{auth_token}".encode("utf-8")).decode("ascii")
             cmd.extend(["-c", f"http.extraheader=AUTHORIZATION: basic {b64_creds}"])
 
-        cmd.extend([
+        clone_opts = [
             "clone",
             "--depth", str(max(1, depth)),
             "--single-branch",
             "--no-tags",
             "--recurse-submodules=no",
-        ])
-
+        ]
         if branch:
-            cmd.extend(["--branch", branch])
+            clone_opts.extend(["--branch", branch])
 
-        cmd.extend([normalized_url, str(target_dir)])
+        # Attempt treeless clone first (--filter=blob:none) to dramatically accelerate download on repos with historical/large blobs
+        treeless_cmd = list(cmd) + clone_opts + ["--filter=blob:none", normalized_url, str(target_dir)]
+        standard_cmd = list(cmd) + clone_opts + [normalized_url, str(target_dir)]
 
         logger.info("Executing safe git clone into isolated workspace: %s", target_dir)
 
@@ -118,13 +119,14 @@ class GitService:
         env = get_sanitized_subprocess_env()
 
         max_attempts = 3
+        active_cmd = treeless_cmd
         for attempt in range(1, max_attempts + 1):
             if target_dir.exists():
                 shutil.rmtree(target_dir, ignore_errors=True)
 
             try:
                 returncode, stdout_bytes, stderr_bytes = await self._run_git_command(
-                    cmd=cmd,
+                    cmd=active_cmd,
                     env=env,
                     timeout=float(self._timeout_seconds),
                 )
@@ -140,6 +142,12 @@ class GitService:
 
             if returncode == 0:
                 break
+
+            # If treeless clone failed on filter, fallback to standard shallow clone
+            if active_cmd is treeless_cmd:
+                logger.info("Treeless clone unsupported or failed; falling back to standard shallow clone.")
+                active_cmd = standard_cmd
+                continue
 
             raw_err = stderr_bytes.decode("utf-8", errors="replace")
             clean_err = redact_sensitive_text(raw_err) or ""
@@ -283,3 +291,27 @@ class GitService:
             return stdout_bytes.decode("utf-8", errors="replace").strip()
         except Exception as exc:
             raise GitExecutionError(f"Failed to read commit SHA from clone: {exc}") from exc
+
+    async def get_changed_files_between_commits(
+        self,
+        repo_dir: Path,
+        old_sha: str,
+        new_sha: str = "HEAD",
+    ) -> list[str]:
+        """
+        Run safe git diff --name-only to retrieve files modified between two commit SHAs.
+        Returns list of relative file paths.
+        """
+        if not self.is_git_available():
+            return []
+
+        cmd = [self._git_path, "-C", str(repo_dir), "diff", "--name-only", old_sha, new_sha]
+        try:
+            returncode, stdout_bytes, stderr_bytes = await self._run_git_command(cmd=cmd, timeout=15.0)
+            if returncode == 0:
+                raw = stdout_bytes.decode("utf-8", errors="replace").strip()
+                if raw:
+                    return [line.strip().replace("\\", "/") for line in raw.splitlines() if line.strip()]
+        except Exception as exc:
+            logger.warning("Could not compute git diff between %s and %s: %s", old_sha, new_sha, exc)
+        return []

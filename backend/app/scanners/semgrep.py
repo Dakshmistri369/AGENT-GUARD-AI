@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -102,10 +103,21 @@ class SemgrepScanner(BaseScanner):
         settings = get_settings()
         rule_timeout = str(settings.semgrep_rule_timeout_seconds if settings.semgrep_rule_timeout_seconds > 0 else 15)
 
+        base_rules_path = Path(__file__).resolve().parent / "rules" / "semgrep"
+        local_rules_file = base_rules_path / "rules.yaml"
+        if local_rules_file.exists():
+            config_target = str(local_rules_file)
+        elif base_rules_path.exists():
+            config_target = str(base_rules_path)
+        else:
+            config_target = "p/default"
+
+        jobs_count = max(1, (os.cpu_count() or 2) // max(1, settings.heavy_scan_slots))
+
         cmd = [
             exe,
             "scan",
-            "--config", "p/default",
+            "--config", config_target,
             "--no-git-ignore",
             "--exclude", ".git",
             "--exclude", "node_modules",
@@ -123,12 +135,18 @@ class SemgrepScanner(BaseScanner):
             "--exclude", ".ruff_cache",
             "--exclude", ".turbo",
             "--exclude", ".cache",
+            "--exclude", "test",
+            "--exclude", "tests",
+            "--exclude", "docs",
+            "--exclude", "fixtures",
+            "--exclude", "migrations",
             "--exclude", "scan_workspaces",
             "--exclude", ".scan_workspaces",
             "--exclude", ".idea",
             "--exclude", ".vscode",
             "--exclude", "*.min.js",
             "--exclude", "*.min.css",
+            "--exclude", "*.lock",
             "--exclude", "*.mp4",
             "--exclude", "*.pptx",
             "--exclude", "*.docx",
@@ -136,15 +154,33 @@ class SemgrepScanner(BaseScanner):
             "--exclude", "*.zip",
             "--exclude", "*.tar*",
             "--exclude", "*.parquet",
-            "--max-target-bytes", "1000000",
+            "--max-target-bytes", str(settings.semgrep_max_target_bytes),
             "--timeout", rule_timeout,
-            "--jobs", str(settings.scanner_concurrency_limit),
-            "--max-memory", "2048",
+            "--timeout-threshold", str(settings.semgrep_timeout_threshold),
+            "--jobs", str(jobs_count),
+            "--max-memory", str(settings.semgrep_max_memory_mb),
+            "--metrics=off",
+            "--disable-version-check",
             "--json",
             "--quiet",
-            "--disable-version-check",
-            str(workspace_path),
         ]
+
+        # Check for incremental targeted file list
+        incremental_files = kwargs.get("incremental_files") or kwargs.get("target_files")
+        if incremental_files:
+            valid_targets = [
+                str(workspace_path / f)
+                for f in incremental_files
+                if Path(f).suffix.lower() in SUPPORTED_EXTENSIONS and (workspace_path / f).exists()
+            ]
+            if valid_targets:
+                logger.info("Semgrep running in incremental mode on %d modified files", len(valid_targets))
+                cmd.extend(valid_targets)
+            else:
+                logger.info("No modified files matched Semgrep extensions; scanning workspace")
+                cmd.append(str(workspace_path))
+        else:
+            cmd.append(str(workspace_path))
 
         try:
             exit_code, stdout, stderr = await self.execute_cmd(

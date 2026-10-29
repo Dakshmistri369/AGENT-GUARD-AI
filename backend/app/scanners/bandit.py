@@ -66,6 +66,7 @@ class BanditScanner(BaseScanner):
         metadata: dict[str, Any],
         commit_sha: str | None = None,
         timeout_seconds: int = 600,
+        **kwargs: Any,
     ) -> ScannerResult:
         start_time = time.time()
         available, version = self.is_available()
