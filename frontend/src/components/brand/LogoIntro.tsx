@@ -189,7 +189,7 @@ const BACKGROUND_WATERMARKS: BackgroundWatermark[] = [
 export const LogoIntro: React.FC<LogoIntroProps> = ({
   onComplete,
   forcePlay = false,
-  durationSeconds = 2.0,
+  durationSeconds = 3.2,
 }) => {
   const shouldReduceMotion = useReducedMotion();
 
@@ -200,6 +200,13 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                  sessionStorage.getItem('agentguard_intro_completed') === 'true';
     return !seen;
   });
+
+  // If isVisible is initialized to false, notify completion immediately so caller can unmount
+  useEffect(() => {
+    if (!isVisible && onComplete) {
+      onComplete();
+    }
+  }, [isVisible, onComplete]);
 
   // Phases:
   // 0 = Canvas Initialization

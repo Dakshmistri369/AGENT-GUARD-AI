@@ -220,7 +220,13 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
         {/* Cinematic Animated Logo Intro Button (desktop/tablet only) */}
         <button
-          onClick={() => window.dispatchEvent(new CustomEvent('agentguard:replay-intro'))}
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              sessionStorage.removeItem('agentguard_intro_completed');
+              localStorage.removeItem('agentguard_intro_seen');
+              window.dispatchEvent(new CustomEvent('agentguard:replay-intro'));
+            }
+          }}
           className="hidden md:flex"
           style={{
             alignItems: 'center',

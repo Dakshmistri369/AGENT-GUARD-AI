@@ -47,11 +47,19 @@ const queryClient = new QueryClient({
 });
 
 export const App: React.FC = () => {
-  // Smooth instant-load: start directly on web app dashboard without blocking intro delays
-  const [showIntro, setShowIntro] = useState<boolean>(false);
+  const [introKey, setIntroKey] = useState<number>(0);
+  const [showIntro, setShowIntro] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('agentguard_intro_completed') !== 'true';
+  });
 
   useEffect(() => {
-    const handleReplay = () => setShowIntro(true);
+    const handleReplay = () => {
+      sessionStorage.removeItem('agentguard_intro_completed');
+      localStorage.removeItem('agentguard_intro_seen');
+      setIntroKey((k) => k + 1);
+      setShowIntro(true);
+    };
     window.addEventListener('agentguard:replay-intro', handleReplay);
     return () => window.removeEventListener('agentguard:replay-intro', handleReplay);
   }, []);
@@ -62,12 +70,13 @@ export const App: React.FC = () => {
         {showIntro && (
           <Suspense fallback={null}>
             <LogoIntro
-              forcePlay={false}
-              durationSeconds={2.0}
+              key={introKey}
+              forcePlay={true}
+              durationSeconds={3.2}
               onComplete={() => {
                 if (typeof window !== 'undefined') {
-                  localStorage.setItem('agentguard_intro_seen', 'true');
                   sessionStorage.setItem('agentguard_intro_completed', 'true');
+                  localStorage.setItem('agentguard_intro_seen', 'true');
                 }
                 setShowIntro(false);
               }}
