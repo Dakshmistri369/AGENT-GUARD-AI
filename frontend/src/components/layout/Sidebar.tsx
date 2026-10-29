@@ -116,54 +116,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }}
       >
         {!isEffectiveCollapsed ? (
-          <>
-            <Link
-              to="/"
-              onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', minWidth: 0, overflow: 'hidden' }}
-              title="AgentGuard AI Security Command Center"
-            >
-              <AnimatedBrandLogo
-                variant="full"
-                size="md"
-                scanState={scanState}
-                findingsCount={findingsCount}
-              />
-            </Link>
-
-            {/* Collapse toggle (desktop expanded) */}
-            {!isMobileDrawer && (
-              <button
-                onClick={toggleCollapse}
-                title="Collapse sidebar (Ctrl+B)"
-                aria-label="Collapse sidebar"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '6px',
-                  border: '1px solid #e2e8f0',
-                  background: '#f8fafc',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#64748b',
-                  transition: 'all 0.15s ease',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#e2e8f0';
-                  e.currentTarget.style.color = '#0f172a';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#f8fafc';
-                  e.currentTarget.style.color = '#64748b';
-                }}
-              >
-                <ChevronLeft size={16} />
-              </button>
-            )}
-          </>
+          <Link
+            to="/"
+            onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
+            style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', minWidth: 0, overflow: 'hidden' }}
+            title="AgentGuard AI Security Command Center"
+          >
+            <AnimatedBrandLogo
+              variant="full"
+              size="md"
+              scanState={scanState}
+              findingsCount={findingsCount}
+            />
+          </Link>
         ) : (
           /* Collapsed state header: icon + bright expand button */
           <div
@@ -195,39 +160,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 findingsCount={findingsCount}
               />
             </Link>
-
-            {!isMobileDrawer && (
-              <button
-                onClick={toggleCollapse}
-                title="Expand sidebar (Ctrl+B)"
-                aria-label="Expand sidebar"
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  background: '#eff6ff',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#2563eb',
-                  transition: 'all 0.15s ease',
-                  flexShrink: 0,
-                  boxShadow: '0 1px 2px rgba(37,99,235,0.12)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#2563eb';
-                  e.currentTarget.style.color = '#ffffff';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#eff6ff';
-                  e.currentTarget.style.color = '#2563eb';
-                }}
-              >
-                <ChevronRight size={14} />
-              </button>
-            )}
           </div>
         )}
 
