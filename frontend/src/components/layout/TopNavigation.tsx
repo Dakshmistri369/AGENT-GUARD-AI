@@ -17,6 +17,7 @@ import type { Repository } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { SHOW_SIGN_IN_BUTTON } from '../../config/authFeatures';
 import { BackgroundScanIndicator } from '../scans/BackgroundScanIndicator';
+import { API_BASE_URL } from '../../lib/api';
 
 export interface TopNavigationProps {
   repositories?: Repository[];
@@ -218,7 +219,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         {/* Background Scan Activity Indicator (always visible across all pages) */}
         <BackgroundScanIndicator />
 
-        {/* Cinematic Animated Logo Intro Button (desktop/tablet only) */}
+        {/* Cinematic Animated Logo Intro Button */}
         <button
           onClick={() => {
             if (typeof window !== 'undefined') {
@@ -227,8 +228,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               window.dispatchEvent(new CustomEvent('agentguard:replay-intro'));
             }
           }}
-          className="hidden md:flex"
           style={{
+            display: 'flex',
             alignItems: 'center',
             gap: '6px',
             fontSize: '12px',
@@ -244,7 +245,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           title="Play Cinematic Logo & Cybersecurity Animation"
         >
           <Play size={12} color="#7c3aed" fill="#7c3aed" />
-          <span>Play Intro</span>
+          <span className="hidden sm:inline">Play Intro</span>
         </button>
 
         {/* AI Assistant shortcut */}
@@ -275,7 +276,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
         {/* External Docs (desktop only) */}
         <a
-          href="/api/docs"
+          href={`${API_BASE_URL}/docs`}
           target="_blank"
           rel="noopener noreferrer"
           className="hidden md:flex"

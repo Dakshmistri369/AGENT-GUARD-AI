@@ -188,25 +188,14 @@ const BACKGROUND_WATERMARKS: BackgroundWatermark[] = [
 
 export const LogoIntro: React.FC<LogoIntroProps> = ({
   onComplete,
-  forcePlay = false,
+  forcePlay = true,
   durationSeconds = 3.2,
 }) => {
-  const shouldReduceMotion = useReducedMotion();
+  const systemReducedMotion = useReducedMotion();
+  // When forcePlay is requested, bypass reducedMotion so the user gets the visual intro
+  const shouldReduceMotion = forcePlay ? false : (systemReducedMotion ?? false);
 
-  const [isVisible, setIsVisible] = useState<boolean>(() => {
-    if (forcePlay) return true;
-    if (typeof window === 'undefined') return false;
-    const seen = localStorage.getItem('agentguard_intro_seen') === 'true' ||
-                 sessionStorage.getItem('agentguard_intro_completed') === 'true';
-    return !seen;
-  });
-
-  // If isVisible is initialized to false, notify completion immediately so caller can unmount
-  useEffect(() => {
-    if (!isVisible && onComplete) {
-      onComplete();
-    }
-  }, [isVisible, onComplete]);
+  const [isVisible, setIsVisible] = useState<boolean>(true);
 
   // Phases:
   // 0 = Canvas Initialization
@@ -227,19 +216,19 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
     if (onComplete) onComplete();
   }, [onComplete]);
 
-  // Handle reduced motion preferences gracefully
+  // Handle reduced motion preferences gracefully only when not forced
   useEffect(() => {
-    if (shouldReduceMotion && isVisible) {
+    if (shouldReduceMotion && isVisible && !forcePlay) {
       const quickTimer = setTimeout(() => {
         dismissIntro();
       }, 400);
       return () => clearTimeout(quickTimer);
     }
-  }, [shouldReduceMotion, isVisible, dismissIntro]);
+  }, [shouldReduceMotion, isVisible, forcePlay, dismissIntro]);
 
   // Main orchestrated cinematic timeline
   useEffect(() => {
-    if (!isVisible || shouldReduceMotion) return;
+    if (!isVisible) return;
 
     // Timeline sequences:
     const tStartAssembly = setTimeout(() => setPhase(1), 80);    // 0.08s: Parts connect from all areas
@@ -247,7 +236,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
     const tCompleteSnap = setTimeout(() => setPhase(3), 1250);   // 1.25s: Parts lock & flash shockwave
     const tWordmark = setTimeout(() => setPhase(4), 1600);       // 1.60s: Wordmark & tagline reveal
     const tLogoDoneWords = setTimeout(() => setPhase(5), 2050);  // 2.05s: LOGO DONE -> Background Words activate
-    const tFadeOut = setTimeout(() => setPhase(6), durationSeconds * 1000); // 4.80s: Transition
+    const tFadeOut = setTimeout(() => setPhase(6), durationSeconds * 1000); // 3.20s: Transition
     const tFinish = setTimeout(() => {
       dismissIntro();
     }, (durationSeconds + 0.65) * 1000);
@@ -267,7 +256,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
       clearTimeout(tFinish);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isVisible, shouldReduceMotion, durationSeconds, dismissIntro]);
+  }, [isVisible, durationSeconds, dismissIntro]);
 
   if (!isVisible) return null;
 

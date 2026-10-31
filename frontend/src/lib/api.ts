@@ -97,19 +97,39 @@ export const setAuthTokenGetter = (getter: () => string | null | Promise<string 
   authTokenGetter = getter;
 };
 
+/**
+ * Retrieve or generate a persistent anonymous session identifier for per-visitor data isolation.
+ * This guarantees that concurrent unauthenticated visitors never share repositories, active scans, or dashboard metrics.
+ */
+export function getOrCreateAnonymousSessionId(): string {
+  if (typeof window === 'undefined') return 'server_render_session';
+  const STORAGE_KEY = 'agentguard_session_id';
+  let sessionId = localStorage.getItem(STORAGE_KEY);
+  if (!sessionId || !/^[a-zA-Z0-9_-]{8,64}$/.test(sessionId)) {
+    sessionId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `sess_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+    localStorage.setItem(STORAGE_KEY, sessionId);
+  }
+  return sessionId;
+}
+
 const client = axios.create({
   baseURL: BASE,
   timeout: 300000, // 5 minutes for full static analysis and multi-engine cloning
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Dynamic Supabase JWT bearer injection
+// Dynamic Supabase JWT bearer injection and anonymous session identifier injection
 client.interceptors.request.use(async (config) => {
+  config.headers = config.headers || {};
+  // Inject session isolation header for ephemeral tenant segregation
+  config.headers['X-AgentGuard-Session-Id'] = getOrCreateAnonymousSessionId();
+
   if (authTokenGetter) {
     try {
       const token = await authTokenGetter();
       if (token) {
-        config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (e) {
@@ -276,5 +296,7 @@ export const api = {
     scans: (scanA: number, scanB: number): Promise<ScanComparisonResult> =>
       client.get('/api/scans/compare', { params: { scan_a: scanA, scan_b: scanB } }).then(r => r.data),
   },
+
+  getSessionId: getOrCreateAnonymousSessionId,
 };
 

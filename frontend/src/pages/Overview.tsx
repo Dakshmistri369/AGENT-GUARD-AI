@@ -52,13 +52,15 @@ export const OverviewPage: React.FC = () => {
     queryFn: async ({ signal }) => {
       const res = await api.dashboard.getSummary({ timeout: 15000, signal });
       try {
-        localStorage.setItem('agentguard_dashboard_summary', JSON.stringify(res));
+        const sessionKey = `agentguard_dashboard_summary_${api.getSessionId()}`;
+        localStorage.setItem(sessionKey, JSON.stringify(res));
       } catch {}
       return res;
     },
     initialData: () => {
       try {
-        const cached = localStorage.getItem('agentguard_dashboard_summary');
+        const sessionKey = `agentguard_dashboard_summary_${api.getSessionId()}`;
+        const cached = localStorage.getItem(sessionKey);
         if (cached) return JSON.parse(cached);
       } catch {}
       return undefined;

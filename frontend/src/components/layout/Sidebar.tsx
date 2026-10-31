@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { AnimatedBrandLogo, type LogoScanState } from '../brand/AnimatedBrandLogo';
+import { API_BASE_URL } from '../../lib/api';
 
 export interface SidebarProps {
   scanState?: LogoScanState;
@@ -64,7 +65,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Scan Comparison', path: '/repositories?tab=matrix', icon: Scale },
       { label: 'AI Security Assistant', path: '/repositories?tab=ai', icon: Sparkles },
       { label: 'Projects', path: '/projects', icon: FolderOpen },
-      { label: 'API Docs', path: '/api/docs', icon: BookOpen, isExternal: true },
+      { label: 'API Docs', path: `${API_BASE_URL}/docs`, icon: BookOpen, isExternal: true },
     ],
   },
 ];
@@ -272,7 +273,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={item.label}
                     to={item.path}
                     title={isEffectiveCollapsed ? item.label : undefined}
-                    onClick={() => isMobileDrawer && onCloseMobileDrawer?.()}
+                    onClick={() => {
+                      if (isMobileDrawer) onCloseMobileDrawer?.();
+                      if (item.label === 'AI Security Assistant') {
+                        window.dispatchEvent(new CustomEvent('agentguard:open-ai-assistant'));
+                      }
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',

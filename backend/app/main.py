@@ -193,6 +193,22 @@ def create_app() -> FastAPI:
     # Compress large JSON responses (findings, reports, AST trees) to reduce network payload by 80%+
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+    # Dynamic Anti-Caching Middleware: Prevent intermediate proxies/CDNs from caching dynamic user data
+    @app.middleware("http")
+    async def add_anti_cache_and_security_headers(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "private, no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+            existing_vary = response.headers.get("Vary", "")
+            vary_items = [v.strip() for v in existing_vary.split(",") if v.strip()]
+            for req_vary in ["Authorization", "X-AgentGuard-Session-Id", "Origin", "Accept-Encoding"]:
+                if req_vary not in vary_items:
+                    vary_items.append(req_vary)
+            response.headers["Vary"] = ", ".join(vary_items)
+        return response
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=raw_origins,
@@ -200,7 +216,7 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        expose_headers=["X-Auth-Mode"],
+        expose_headers=["X-Auth-Mode", "X-AgentGuard-Session-Id"],
     )
 
     app.include_router(api_router)

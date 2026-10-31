@@ -130,18 +130,27 @@ async def get_current_user(
             "Demo auth fallback active for unauthenticated request to %s (DEMO MODE)",
             request.url.path,
         )
-        # Check demo user cache
-        demo_cache_key = "auth:user:demo"
+        # Check for per-visitor session identifier to isolate demo state across visitors
+        session_id = request.headers.get("X-AgentGuard-Session-Id", "").strip()
+        import re
+        clean_session_id = re.sub(r"[^a-zA-Z0-9_\-]", "", session_id)
+        if len(clean_session_id) >= 8:
+            demo_email = f"demo_sess_{clean_session_id[:48]}@agentguard.local"
+            demo_cache_key = f"auth:user:demo:{clean_session_id[:48]}"
+        else:
+            demo_email = settings.demo_user_email
+            demo_cache_key = "auth:user:demo:default"
+
         cached_demo = await get_cached_json(demo_cache_key)
         if cached_demo and isinstance(cached_demo, dict) and cached_demo.get("id"):
             return _reconstruct_user_from_dict(cached_demo)
 
-        result = await db.execute(select(User).where(User.email == settings.demo_user_email))
+        result = await db.execute(select(User).where(User.email == demo_email))
         demo_user = result.scalar_one_or_none()
         if demo_user is None:
             try:
                 demo_user = User(
-                    email=settings.demo_user_email,
+                    email=demo_email,
                     password_hash="DEMO_MODE_NO_REAL_AUTH",  # nosec B106 # pragma: whitelist secret
                     email_verified=True,
                 )
@@ -150,7 +159,7 @@ async def get_current_user(
                 await db.refresh(demo_user)
             except Exception:
                 await db.rollback()
-                result = await db.execute(select(User).where(User.email == settings.demo_user_email))
+                result = await db.execute(select(User).where(User.email == demo_email))
                 demo_user = result.scalar_one_or_none()
 
         if demo_user:

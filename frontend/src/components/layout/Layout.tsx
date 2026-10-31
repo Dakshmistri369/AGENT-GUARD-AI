@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopNavigation } from './TopNavigation';
+import { AiAssistantDrawer } from '../ai/AiAssistantDrawer';
 import { api } from '../../lib/api';
 import type { Repository } from '../../types';
 import type { LogoScanState } from '../brand/AnimatedBrandLogo';
@@ -15,6 +16,7 @@ export const Layout: React.FC = () => {
   const [scanState, setScanState] = useState<LogoScanState>('idle');
   const [activeScanRepoName, setActiveScanRepoName] = useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
+  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState<boolean>(false);
 
   // Desktop sidebar collapsed state with localStorage persistence
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
@@ -106,8 +108,14 @@ export const Layout: React.FC = () => {
   };
 
   const handleOpenAiAssistant = () => {
-    navigate('/repositories?tab=ai');
+    setIsAiAssistantOpen(true);
   };
+
+  useEffect(() => {
+    const handleOpen = () => setIsAiAssistantOpen(true);
+    window.addEventListener('agentguard:open-ai-assistant', handleOpen);
+    return () => window.removeEventListener('agentguard:open-ai-assistant', handleOpen);
+  }, []);
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
@@ -173,6 +181,22 @@ export const Layout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Interactive AI Security Assistant Drawer */}
+      <AiAssistantDrawer
+        isOpen={isAiAssistantOpen}
+        onClose={() => setIsAiAssistantOpen(false)}
+        activeRepoName={
+          repositories.find((r) => r.id === selectedRepoId)?.full_name ||
+          repositories[0]?.full_name ||
+          null
+        }
+        activeRepoId={
+          repositories.find((r) => r.id === selectedRepoId)?.id ||
+          repositories[0]?.id ||
+          null
+        }
+      />
     </div>
   );
 };
