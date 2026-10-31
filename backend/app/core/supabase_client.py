@@ -5,8 +5,13 @@ The service role key is NEVER exposed to the client-side React app.
 """
 from __future__ import annotations
 
-from typing import Optional
-from supabase import create_client, Client
+from typing import Optional, Any
+
+try:
+    from supabase import create_client, Client
+except ImportError:  # pragma: no cover
+    create_client = None  # type: ignore
+    Client = Any  # type: ignore
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -25,6 +30,10 @@ def get_supabase_admin_client() -> Client:
     global _supabase_admin_client
     if _supabase_admin_client is not None:
         return _supabase_admin_client
+
+    if create_client is None:
+        logger.error("supabase package is not installed.")
+        raise RuntimeError("supabase package is not installed. Add 'supabase' to requirements.txt.")
 
     url = settings.supabase_url.strip()
     key = (settings.supabase_secret_key or settings.supabase_service_key or settings.supabase_publishable_key).strip()
