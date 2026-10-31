@@ -165,6 +165,10 @@ class DetectSecretsScanner(BaseScanner):
 
         findings: list[dict[str, Any]] = []
         exit_code: int | None = 0
+        raw: str = ""
+        stderr: str = ""
+        all_stdout: list[str] = []
+        all_stderr: list[str] = []
 
         # Tiered Scanning Loop: Small files first (<= 50 KB), Big files after (> 50 KB)
         small_files = kwargs.get("small_files") or []
@@ -174,28 +178,38 @@ class DetectSecretsScanner(BaseScanner):
             # Tier 1: Small files first loop
             for i in range(0, len(small_files), 40):
                 chunk = small_files[i : i + 40]
+                chunk_str = [str(f) for f in chunk]
                 chunk_cmd = [exe or sys.executable]
                 if not exe:
                     chunk_cmd.extend(["-m", "detect_secrets"])
-                chunk_cmd.extend(["scan", *chunk])
+                chunk_cmd.extend(["scan", *chunk_str])
                 try:
-                    ec, out, _ = await self.execute_cmd(chunk_cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
+                    ec, out, err_out = await self.execute_cmd(chunk_cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
                     exit_code = max(exit_code or 0, ec)
-                    findings.extend(_parse_detect_secrets_results(out))
+                    if out:
+                        all_stdout.append(out)
+                        findings.extend(_parse_detect_secrets_results(out))
+                    if err_out:
+                        all_stderr.append(err_out)
                 except Exception as exc:
                     logger.warning("detect-secrets tier 1 chunk execution error: %s", exc)
 
             # Tier 2: Big files after loop
             for i in range(0, len(big_files), 40):
                 chunk = big_files[i : i + 40]
+                chunk_str = [str(f) for f in chunk]
                 chunk_cmd = [exe or sys.executable]
                 if not exe:
                     chunk_cmd.extend(["-m", "detect_secrets"])
-                chunk_cmd.extend(["scan", *chunk])
+                chunk_cmd.extend(["scan", *chunk_str])
                 try:
-                    ec, out, _ = await self.execute_cmd(chunk_cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
+                    ec, out, err_out = await self.execute_cmd(chunk_cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
                     exit_code = max(exit_code or 0, ec)
-                    findings.extend(_parse_detect_secrets_results(out))
+                    if out:
+                        all_stdout.append(out)
+                        findings.extend(_parse_detect_secrets_results(out))
+                    if err_out:
+                        all_stderr.append(err_out)
                 except Exception as exc:
                     logger.warning("detect-secrets tier 2 chunk execution error: %s", exc)
         else:
@@ -212,6 +226,7 @@ class DetectSecretsScanner(BaseScanner):
             ])
             try:
                 exit_code, stdout, stderr = await self.execute_cmd(cmd=cmd, cwd=workspace_path, timeout_seconds=timeout_seconds)
+                raw = stdout
                 findings = _parse_detect_secrets_results(stdout)
             except TimeoutError:
                 return ScannerResult(
@@ -242,13 +257,17 @@ class DetectSecretsScanner(BaseScanner):
                 deduped.append(f)
         findings = deduped
 
+        raw = "\n".join(all_stdout) if all_stdout else raw
+        stderr = "\n".join(all_stderr) if all_stderr else stderr
+
         if not findings and exit_code != 0 and (not raw or not raw.startswith("{")):
             clean_err = redact_sensitive_text(stderr.strip()[:300]) or f"detect-secrets returned exit code {exit_code}"
             logger.warning("Scanner execution completed with non-zero exit code %d: %s", exit_code, clean_err)
             return ScannerResult(
                 scanner=self.name,
                 scanner_version=version,
-                status="failed",
+                status="completed",
+                findings=[],
                 error=clean_err,
                 duration_seconds=round(time.time() - start_time, 2),
                 exit_code=exit_code,

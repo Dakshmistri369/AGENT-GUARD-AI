@@ -417,7 +417,7 @@ class ScanExecutionService:
                         if s_fail:
                             s_fail.status = "failed"
                             s_fail.stage = "validating"
-                            s_fail.error_message = f"Repository acquisition failed: {git_err}."
+                            s_fail.error_message = f"Repository acquisition failed: {git_err}. Security scanning could not start."
                             s_fail.completed_at = datetime.datetime.now(datetime.timezone.utc)
                             s_fail.configuration = {
                                 **(s_fail.configuration or {}),
@@ -571,11 +571,13 @@ class ScanExecutionService:
                 if not scan_final:
                     return {"scan_id": scan_id, "status": "failed", "error": "Scan record disappeared"}
 
+                executed_scanners = coverage_summary.get("executed_scanners") or []
+
                 if scan_timed_out:
                     scan_final.status = "timed_out_partial"
-                    scan_final.stage = "timed_out_partial"
-                    scan_final.error_message = f"Scan exceeded outer safety timeout. Partial findings preserved."
-                elif failed_scanners or missing_scanners:
+                    scan_final.stage = "completed"
+                    scan_final.error_message = "Scan exceeded outer safety timeout. Partial findings preserved."
+                elif (failed_scanners or missing_scanners) and not findings_to_persist:
                     unavail_list = sorted(list(set(failed_scanners + missing_scanners)))
                     scan_final.status = "failed"
                     scan_final.stage = "running_scanners"
@@ -586,7 +588,15 @@ class ScanExecutionService:
                 else:
                     scan_final.status = "completed"
                     scan_final.stage = "completed"
-                    scan_final.error_message = None
+                    if failed_scanners or missing_scanners:
+                        unavail_list = sorted(list(set(failed_scanners + missing_scanners)))
+                        scan_final.error_message = (
+                            f"Partial scanner coverage: {', '.join(unavail_list)} scanner(s) had warnings or were unavailable on host. "
+                            f"Active engines ({', '.join(executed_scanners) or 'Static SAST'}) completed the audit. "
+                            f"All {len(findings_to_persist)} discovered findings preserved."
+                        )
+                    else:
+                        scan_final.error_message = None
 
                 scan_final.completed_at = datetime.datetime.now(datetime.timezone.utc)
                 scan_final.summary = summary_dict

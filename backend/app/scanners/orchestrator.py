@@ -335,15 +335,6 @@ class ScannerOrchestrator:
                         "findings_count": len(res.findings),
                         "duration_seconds": res.duration_seconds,
                     })
-                    scanners_run.append({
-                        "name": sc.name,
-                        "scanner_id": sc.scanner_id,
-                        "version": res.scanner_version,
-                        "status": res.status,
-                        "reason": res.reason,
-                        "findings_count": len(res.findings),
-                        "duration_seconds": res.duration_seconds,
-                    })
 
         # Deduplicate findings by fingerprint and ensure evidence-based classification
         unique_findings: dict[str, dict[str, Any]] = {}

@@ -1768,17 +1768,17 @@ export const RepositoriesPage: React.FC = () => {
                   marginTop: '12px',
                   padding: '12px 14px',
                   borderRadius: '6px',
-                  background: 'rgba(244, 63, 94, 0.1)',
-                  border: '1px solid rgba(244, 63, 94, 0.3)',
-                  color: 'var(--accent-rose)',
+                  background: currentScan.status === 'failed' ? 'rgba(244, 63, 94, 0.1)' : 'rgba(245, 158, 11, 0.08)',
+                  border: currentScan.status === 'failed' ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(245, 158, 11, 0.35)',
+                  color: currentScan.status === 'failed' ? 'var(--accent-rose)' : '#b45309',
                   fontSize: '12px',
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '8px',
                 }}>
-                  <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: '2px', color: currentScan.status === 'failed' ? 'var(--accent-rose)' : '#d97706' }} />
                   <div>
-                    <strong>{currentScan.status === 'failed' ? 'Scan Failure: ' : 'Scan Warning: '}</strong>
+                    <strong>{currentScan.status === 'failed' ? 'Scan Failure: ' : 'Coverage Warning: '}</strong>
                     {currentScan.error_message}
                   </div>
                 </div>

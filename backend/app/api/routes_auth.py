@@ -27,6 +27,7 @@ async def get_current_user_profile(
         "supabase_user_id": current_user.supabase_user_id or str(current_user.id),
         "email": current_user.email,
         "email_verified": getattr(current_user, "email_verified", True),
+        "auth_status": "VERIFIED",
         "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
         "plan": "free",
     }
