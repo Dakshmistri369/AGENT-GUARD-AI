@@ -16,6 +16,7 @@ from app.models.repository import Repository
 from app.models.user import User
 from app.schemas.repository import (
     RepositoryCreate,
+    RepositoryUpdate,
     RepositoryListResponse,
     RepositoryResponse,
     RepositoryValidateRequest,
@@ -210,6 +211,38 @@ async def get_repository(
     repo = result.scalar_one_or_none()
     if not repo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found.")
+    return RepositoryResponse.model_validate(repo)
+
+
+@router.patch("/{repository_id}", response_model=RepositoryResponse)
+async def update_repository(
+    repository_id: int,
+    payload: RepositoryUpdate,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> RepositoryResponse:
+    """Update repository name, default branch, description, or active status."""
+    stmt = select(Repository).where(Repository.id == repository_id, Repository.owner_id == current_user.id)
+    result = await db.execute(stmt)
+    repo = result.scalar_one_or_none()
+    if not repo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repository not found.")
+
+    if payload.name is not None:
+        repo.name = payload.name
+    if payload.default_branch is not None:
+        repo.default_branch = payload.default_branch
+    if payload.is_active is not None:
+        repo.is_active = payload.is_active
+    if payload.description is not None:
+        meta = dict(repo.metadata_json or {})
+        meta["description"] = payload.description
+        repo.metadata_json = meta
+
+    await db.commit()
+    await db.refresh(repo)
+    await invalidate_dashboard_cache(current_user.id)
     return RepositoryResponse.model_validate(repo)
 
 

@@ -116,8 +116,29 @@ class Settings(BaseSettings):
     # ── Supabase ──────────────────────────────────────────────────────────────
     supabase_url: str = ""
     supabase_publishable_key: str = ""
+    supabase_secret_key: str = ""
+    supabase_service_key: str = ""
     supabase_jwt_secret: str = ""
+    supabase_db_url: str = ""
     enable_demo_auth: bool = False
+    signed_url_expiry_seconds: int = 600
+
+    # ── Storage Buckets ───────────────────────────────────────────────────────
+    storage_bucket_reports: str = "scan-reports"
+    storage_bucket_logs: str = "scan-logs"
+    storage_bucket_snapshots: str = "repo-snapshots"
+
+    # ── Scanner Toggles ───────────────────────────────────────────────────────
+    semgrep_enabled: bool = True
+    bandit_enabled: bool = True
+    osv_enabled: bool = True
+    max_repository_size_mb: int = 100
+
+    # ── NVIDIA Nemotron Explicit Aliases ──────────────────────────────────────
+    nvidia_nemotron_api_key: str = ""
+    nvidia_nemotron_model: str = "nvidia/llama-3.1-nemotron-70b-instruct"
+    nvidia_nemotron_enabled: bool = False
+    api_prefix: str = "/api"
 
     # ── Background Worker & Job Queue (arq + Redis) ───────────────────────────
     redis_url: str = ""           # e.g. redis://localhost:6379/0 or rediss://...

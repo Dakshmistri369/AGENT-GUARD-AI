@@ -238,3 +238,20 @@ code, .mono {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 12px;
 }
+
+
+/* Slide in right animation for AI Assistant drawer */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

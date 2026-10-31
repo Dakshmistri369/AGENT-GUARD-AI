@@ -221,7 +221,9 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
         {/* Cinematic Animated Logo Intro Button */}
         <button
-          onClick={() => {
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
             if (typeof window !== 'undefined') {
               sessionStorage.removeItem('agentguard_intro_completed');
               localStorage.removeItem('agentguard_intro_seen');
@@ -242,37 +244,61 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#f3e8ff';
+            e.currentTarget.style.borderColor = '#d8b4fe';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#faf5ff';
+            e.currentTarget.style.borderColor = '#e9d5ff';
+          }}
           title="Play Cinematic Logo & Cybersecurity Animation"
+          aria-label="Play Cinematic Logo & Cybersecurity Animation"
         >
           <Play size={12} color="#7c3aed" fill="#7c3aed" />
           <span className="hidden sm:inline">Play Intro</span>
         </button>
 
         {/* AI Assistant shortcut */}
-        {onOpenAiAssistant && (
-          <button
-            onClick={onOpenAiAssistant}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#1d4ed8',
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              borderRadius: '6px',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              minHeight: '36px',
-              transition: 'all 0.15s ease',
-            }}
-            title="Open AI Security Assistant"
-          >
-            <Sparkles size={13} color="#2563eb" />
-            <span className="hidden sm:inline">AI Assistant</span>
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            if (onOpenAiAssistant) {
+              onOpenAiAssistant();
+            } else if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('agentguard:open-ai-assistant'));
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: '12px',
+            fontWeight: 600,
+            color: '#1d4ed8',
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: '6px',
+            padding: '6px 10px',
+            cursor: 'pointer',
+            minHeight: '36px',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#dbeafe';
+            e.currentTarget.style.borderColor = '#93c5fd';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#eff6ff';
+            e.currentTarget.style.borderColor = '#bfdbfe';
+          }}
+          title="Open AI Security Assistant (Nemotron & LangGraph)"
+          aria-label="Open AI Security Assistant"
+        >
+          <Sparkles size={13} color="#2563eb" />
+          <span className="hidden sm:inline">AI Assistant</span>
+        </button>
 
         {/* External Docs (desktop only) */}
         <a

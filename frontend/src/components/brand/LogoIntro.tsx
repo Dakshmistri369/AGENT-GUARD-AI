@@ -987,3 +987,5 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
     </AnimatePresence>
   );
 };
+
+export default LogoIntro;

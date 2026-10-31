@@ -5,9 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/layout/Layout';
 import { ENABLE_LOGIN_PAGES } from './config/authFeatures';
-
-// Lazy-load LogoIntro so initial page load bundle is not bloated
-const LogoIntro = lazy(() => import('./components/brand/LogoIntro').then((m) => ({ default: m.LogoIntro })));
+import { LogoIntro } from './components/brand/LogoIntro';
 
 // Code-split page routes so initial bundle is minimal and fast
 const OverviewPage = lazy(() => import('./pages/Overview').then((m) => ({ default: m.OverviewPage })));
@@ -50,43 +48,56 @@ export const App: React.FC = () => {
   const [introKey, setIntroKey] = useState<number>(0);
   const [showIntro, setShowIntro] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
+    // Check if URL has ?skip_intro=true
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('skip_intro') === 'true') return false;
     return sessionStorage.getItem('agentguard_intro_completed') !== 'true';
   });
 
   useEffect(() => {
     const handleReplay = () => {
-      sessionStorage.removeItem('agentguard_intro_completed');
-      localStorage.removeItem('agentguard_intro_seen');
-      setIntroKey((k) => k + 1);
-      setShowIntro(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('agentguard_intro_completed');
+        localStorage.removeItem('agentguard_intro_seen');
+      }
+      // Clean unmount followed by remount to restart all SVG and Framer Motion timelines from phase 0
+      setShowIntro(false);
+      requestAnimationFrame(() => {
+        setIntroKey((k) => k + 1);
+        setShowIntro(true);
+      });
     };
+
     window.addEventListener('agentguard:replay-intro', handleReplay);
-    return () => window.removeEventListener('agentguard:replay-intro', handleReplay);
+    (window as any).replayAgentGuardIntro = handleReplay;
+
+    return () => {
+      window.removeEventListener('agentguard:replay-intro', handleReplay);
+      delete (window as any).replayAgentGuardIntro;
+    };
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         {showIntro && (
-          <Suspense fallback={null}>
-            <LogoIntro
-              key={introKey}
-              forcePlay={true}
-              durationSeconds={3.2}
-              onComplete={() => {
-                if (typeof window !== 'undefined') {
-                  sessionStorage.setItem('agentguard_intro_completed', 'true');
-                  localStorage.setItem('agentguard_intro_seen', 'true');
-                }
-                setShowIntro(false);
-              }}
-            />
-          </Suspense>
+          <LogoIntro
+            key={introKey}
+            forcePlay={true}
+            durationSeconds={3.2}
+            onComplete={() => {
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('agentguard_intro_completed', 'true');
+                localStorage.setItem('agentguard_intro_seen', 'true');
+              }
+              setShowIntro(false);
+            }}
+          />
         )}
         <BrowserRouter>
           <Suspense fallback={<PageLoadingFallback />}>
             <Routes>
-              {/* Public Auth Routes (Preserved - redirects to "/" when login pages are temporarily disabled) */}
+              {/* Public Auth Routes */}
               <Route path="/login" element={ENABLE_LOGIN_PAGES ? <LoginPage /> : <Navigate to="/" replace />} />
               <Route path="/register" element={ENABLE_LOGIN_PAGES ? <RegisterPage /> : <Navigate to="/" replace />} />
               <Route path="/forgot-password" element={ENABLE_LOGIN_PAGES ? <ForgotPasswordPage /> : <Navigate to="/" replace />} />

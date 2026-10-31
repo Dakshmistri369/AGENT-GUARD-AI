@@ -21,7 +21,24 @@ class RepositoryValidateResponse(BaseModel):
 
 
 class RepositoryCreate(BaseModel):
-    url: str = Field(..., description="GitHub repository HTTPS URL")
+    url: str | None = Field(default=None, description="GitHub repository HTTPS URL")
+    repo_url: str | None = Field(default=None, description="Alternative alias for repo URL")
+    name: str | None = Field(default=None, description="Optional custom repository name")
+    description: str | None = Field(default=None, description="Optional repository description")
+    default_branch: str | None = Field(default="main", description="Default branch name")
+
+    def get_url(self) -> str:
+        res = self.repo_url or self.url
+        if not res:
+            raise ValueError("Either 'url' or 'repo_url' must be supplied.")
+        return res
+
+
+class RepositoryUpdate(BaseModel):
+    name: str | None = None
+    default_branch: str | None = None
+    description: str | None = None
+    is_active: bool | None = None
 
 
 class RepositoryMetadata(BaseModel):
@@ -42,20 +59,28 @@ class RepositoryMetadata(BaseModel):
 
 
 class RepositoryResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
-    id: int
-    owner_id: int
+    id: str | int
+    owner_id: str | int
     name: str
-    owner_name: str
-    full_name: str
+    owner_name: str | None = None
+    full_name: str | None = None
     url: str
-    default_branch: str
+    repo_url: str | None = None
+    provider: str = "github"
+    default_branch: str = "main"
+    description: str | None = None
+    is_active: bool = True
     pinned_sha: str | None = None
     is_private: bool = False
     metadata_json: dict[str, Any] | None = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
+
+    def model_post_init(self, __context: Any) -> None:
+        if not self.repo_url and self.url:
+            self.repo_url = self.url
 
 
 class RepositoryListResponse(BaseModel):

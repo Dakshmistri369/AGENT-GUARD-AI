@@ -322,3 +322,35 @@ For multi-tenant SaaS deployments:
 - Register a GitHub App with read-only repository permissions.
 - Use private RSA keys to generate short-lived (1-hour) installation access tokens.
 - Secure private keys in AWS Secrets Manager or HashiCorp Vault.
+
+
+---
+
+## 12. Supabase Cloud Backend Integration
+
+AgentGuard AI supports Supabase for cloud persistence, JWT authentication, and secure artifact storage:
+
+### Architecture
+- **Supabase Auth**: Server-side JWT verification supporting ES256/RS256 via JWKS and symmetric HS256 secret.
+- **Supabase PostgreSQL**: Scalable relational store with Row Level Security (RLS) on `profiles`, `repositories`, `scans`, `findings`, `scan_artifacts`, and `scan_jobs`.
+- **Supabase Storage**: 3 private encrypted buckets (`scan-reports`, `scan-logs`, `repo-snapshots`) with 25MB limits and 10-minute temporary signed download URLs.
+- **Background Workers**: Asynchronous Redis + Arq worker running Semgrep, Bandit, and OSV, writing artifacts directly to Supabase Storage.
+
+### Applying Database Migrations
+```bash
+# Push SQL schema and storage bucket policies to your Supabase project:
+supabase db push
+```
+Or execute the files directly in the Supabase Dashboard SQL Editor:
+1. `supabase/migrations/20261031120000_create_agentguard_schema.sql`
+2. `supabase/migrations/20261031120001_create_storage_buckets.sql`
+
+### Starting the Arq Background Worker
+```bash
+python -m arq app.workers.arq_worker.WorkerSettings
+```
+
+### Running Backend Supabase Tests
+```bash
+python -m pytest backend/tests/test_supabase_backend.py -v
+```

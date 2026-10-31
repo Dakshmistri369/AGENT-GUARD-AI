@@ -10,6 +10,12 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.schemas.finding import FindingResponse
 
 
+class ScanCreate(BaseModel):
+    repository_id: str | int = Field(..., description="Target repository ID")
+    branch: str | None = Field(default=None, description="Optional branch name to scan")
+    scan_type: str | None = Field(default="full", description="Scan type: full or metadata_only")
+
+
 class ScanTriggerRequest(BaseModel):
     metadata_only: bool = Field(
         default=False,
@@ -32,24 +38,30 @@ class ScanSummaryResponse(BaseModel):
 
 
 class ScanResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
-    id: int
-    repository_id: int | None = None
-    project_id: int | None = None
-    status: str  # pending | running | completed | failed | cancelled | timed_out_partial
-    stage: str | None = None  # validating | fetching_metadata | inspecting_file_tree | running_scanners | reviewing_evidence | generating_report | completed
+    id: str | int
+    repository_id: str | int | None = None
+    user_id: str | int | None = None
+    project_id: str | int | None = None
+    status: str  # queued | running | completed | failed | cancelled | timed_out_partial
+    stage: str | None = None
+    branch: str | None = None
     commit_sha: str | None = None
+    scan_type: str | None = "full"
+    duration_seconds: float | None = None
     error_message: str | None = None
     started_at: datetime.datetime | None = None
     completed_at: datetime.datetime | None = None
     summary: dict[str, Any] | None = None
+    scanner_versions: dict[str, Any] | None = None
     configuration: dict[str, Any] | None = None
     files_discovered: int = 0
     files_scanned: int = 0
     files_skipped: int = 0
     skip_manifest: dict[str, Any] | None = None
     created_at: datetime.datetime
+    updated_at: datetime.datetime | None = None
 
     @classmethod
     def from_orm_safe(cls, scan: Any) -> "ScanResponse":
@@ -70,6 +82,24 @@ class ScanResponse(BaseModel):
                 data[field_name] = getattr(scan, field_name, None)
 
         return cls.model_validate(data)
+
+
+class ScanListResponse(BaseModel):
+    items: list[ScanResponse]
+    total: int
+    page: int = 1
+    page_size: int = 20
+    pages: int = 1
+
+
+class ScanStatusResponse(BaseModel):
+    scan_id: str | int
+    status: str
+    error_message: str | None = None
+    started_at: datetime.datetime | None = None
+    completed_at: datetime.datetime | None = None
+    duration_seconds: float | None = None
+    summary: dict[str, Any] | None = None
 
 
 class ScanReportResponse(BaseModel):

@@ -184,6 +184,12 @@ export const api = {
   health: {
     get: (): Promise<HealthStatus> =>
       client.get('/health').then(r => r.data),
+
+    checkSupabase: (): Promise<{ status: string; provider?: string; error?: string }> =>
+      client.get('/api/health/supabase').then(r => r.data),
+
+    checkRedis: (): Promise<{ status: string; queue?: string; error?: string }> =>
+      client.get('/api/health/redis').then(r => r.data),
   },
 
   projects: {
@@ -221,16 +227,28 @@ export const api = {
   },
 
   scans: {
+    create: (payload: { repository_id: number | string; branch?: string }): Promise<Scan> =>
+      client.post('/api/scans', payload).then(r => r.data),
+
+    list: (page = 1, pageSize = 20): Promise<{ items: Scan[]; total: number; page: number; pages: number }> =>
+      client.get('/api/scans', { params: { page, page_size: pageSize } }).then(r => r.data),
+
     analyze: (repositoryId: number, options?: { metadata_only?: boolean; branch?: string }): Promise<Scan> =>
       client.post(`/api/repositories/${repositoryId}/analyze`, options ?? {}).then(r => r.data),
 
-    get: (scanId: number): Promise<Scan> =>
+    get: (scanId: number | string): Promise<Scan> =>
       client.get(`/api/scans/${scanId}`).then(r => r.data),
 
-    report: (scanId: number): Promise<ScanReport> =>
+    report: (scanId: number | string): Promise<ScanReport> =>
       client.get(`/api/scans/${scanId}/report`).then(r => r.data),
 
-    cancel: (scanId: number): Promise<Scan> =>
+    getFindings: (scanId: number | string, params?: Record<string, any>): Promise<any> =>
+      client.get(`/api/scans/${scanId}/findings`, { params }).then(r => r.data),
+
+    getArtifacts: (scanId: number | string): Promise<{ items: any[]; total: number }> =>
+      client.get(`/api/scans/${scanId}/artifacts`).then(r => r.data),
+
+    cancel: (scanId: number | string): Promise<Scan> =>
       client.post(`/api/scans/${scanId}/cancel`).then(r => r.data),
 
     listByRepo: (repositoryId: number, limit = 50, offset = 0): Promise<Scan[]> =>
@@ -241,6 +259,11 @@ export const api = {
 
     cancelAll: (): Promise<{ cancelled_count: number; cancelled_scan_ids: number[]; message: string }> =>
       client.post('/api/scans/active/cancel-all').then(r => r.data),
+  },
+
+  artifacts: {
+    getDownloadUrl: (artifactId: number | string): Promise<{ artifact_id: string; file_name: string; signed_url: string; expires_in_seconds: number }> =>
+      client.get(`/api/artifacts/${artifactId}/download-url`).then(r => r.data),
   },
 
   solutions: {
