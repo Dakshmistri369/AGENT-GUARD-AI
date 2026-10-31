@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import datetime
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -13,7 +13,7 @@ class ScanArtifact(Base):
 
     # Use String(64) to seamlessly accommodate both UUIDs and integers
     id: Mapped[str] = mapped_column(String(64), primary_key=True, index=True)
-    scan_id: Mapped[str] = mapped_column(String(64), ForeignKey("scans.id", ondelete="CASCADE"), nullable=False, index=True)
+    scan_id: Mapped[int] = mapped_column(Integer, ForeignKey("scans.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     artifact_type: Mapped[str] = mapped_column(String(32), nullable=False)  # report | sarif | log | sbom | raw_output
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)

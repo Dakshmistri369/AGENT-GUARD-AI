@@ -107,7 +107,7 @@ class ScanService:
         try:
             scan_job = ScanJob(
                 id=str(uuid.uuid4()),
-                scan_id=str(new_scan.id),
+                scan_id=int(new_scan.id),
                 user_id=str(user_id),
                 arq_job_id=str(arq_job_id) if arq_job_id else None,
                 status="queued",

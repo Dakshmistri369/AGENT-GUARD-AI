@@ -111,7 +111,8 @@ async def list_scan_artifacts(
     # Verify scan ownership
     await ScanService.get_scan(db, current_user.id, scan_id)
 
-    query = select(ScanArtifact).where(ScanArtifact.scan_id == str(scan_id))
+    int_scan_id = int(scan_id) if str(scan_id).isdigit() else 0
+    query = select(ScanArtifact).where(ScanArtifact.scan_id == int_scan_id)
     result = await db.execute(query)
     artifacts = result.scalars().all()
 

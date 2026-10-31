@@ -12,7 +12,7 @@ class ScanJob(Base):
     __tablename__ = "scan_jobs"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True, index=True)
-    scan_id: Mapped[str] = mapped_column(String(64), ForeignKey("scans.id", ondelete="CASCADE"), nullable=False, index=True)
+    scan_id: Mapped[int] = mapped_column(Integer, ForeignKey("scans.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     arq_job_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="queued")

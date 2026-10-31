@@ -99,7 +99,7 @@ class StorageService:
         artifact_id = str(uuid.uuid4())
         artifact = ScanArtifact(
             id=artifact_id,
-            scan_id=str(scan_id),
+            scan_id=int(scan_id),
             user_id=str(user_id),
             artifact_type=artifact_type,
             file_name=file_name,
