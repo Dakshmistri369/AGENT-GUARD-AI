@@ -1,5 +1,7 @@
 # AgentGuard AI — GitHub Repository Integration & Multi-Engine Security Auditor
 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 AgentGuard AI is an independent security and quality auditor for AI-generated and human-written software. AI coding tools generate software; AgentGuard independently verifies code security, audits dependencies, identifies architectural risks, and produces evidence-grounded reports.
 
 This release introduces native **Multi-Engine Security Scanning** integrating **Semgrep**, **Bandit**, **OSV-Scanner**, and **detect-secrets** alongside safe **GitHub Repository Integration**, ephemeral workspace isolation, and zero-token public repository analysis.
@@ -353,4 +355,20 @@ python -m arq app.workers.arq_worker.WorkerSettings
 ### Running Backend Supabase Tests
 ```bash
 python -m pytest backend/tests/test_supabase_backend.py -v
+```
+
+---
+
+## 13. License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+```
+Copyright 2026 AgentGuard AI (Daksh Mistri)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
 ```
