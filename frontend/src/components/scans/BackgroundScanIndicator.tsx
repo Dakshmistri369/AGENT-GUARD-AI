@@ -20,10 +20,12 @@ import type { ActiveScanItem, ActiveScansResponse } from '../../types';
 interface ScanToast {
   id: string;
   scanId: number;
+  repoId?: number | null;
   repoName: string;
-  type: 'success' | 'error' | 'warning';
+  type: 'success' | 'error' | 'warning' | 'info';
   title: string;
   message: string;
+  findingsCount?: number;
 }
 
 export const BackgroundScanIndicator: React.FC = () => {
@@ -73,24 +75,33 @@ export const BackgroundScanIndicator: React.FC = () => {
         api.scans
           .get(prevId)
           .then((finalScan) => {
-            // Auto-refresh dashboard queries when scan completes
+            // Auto-refresh all relevant dashboard and repository queries when scan completes
             queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
+            queryClient.invalidateQueries({ queryKey: ['scans'] });
+            queryClient.invalidateQueries({ queryKey: ['findings'] });
+            queryClient.invalidateQueries({ queryKey: ['repositories'] });
 
             const isSuccess = finalScan.status === 'completed';
+            const isPartial = finalScan.status === 'timed_out_partial';
             const findingsCount = finalScan.summary?.total_findings ?? 0;
+            const targetRepoId = prevScan.repository_id || (finalScan as any).repository_id;
 
             const newToast: ScanToast = {
               id: `${prevId}-${Date.now()}`,
               scanId: prevId,
+              repoId: targetRepoId,
               repoName: prevScan.repository_name,
-              type: isSuccess ? 'success' : 'error',
-              title: isSuccess ? 'Scan Completed' : 'Scan Ended',
+              type: isSuccess ? 'success' : isPartial ? 'warning' : 'error',
+              title: isSuccess
+                ? `Scan completed · ${findingsCount} finding${findingsCount === 1 ? '' : 's'}`
+                : isPartial
+                ? `Scan completed with limited coverage · ${findingsCount} finding${findingsCount === 1 ? '' : 's'}`
+                : `Scan ended (${finalScan.status})`,
               message: isSuccess
-                ? `Audit of ${prevScan.repository_name} finished (${findingsCount} findings identified).`
-                : `Scan of ${prevScan.repository_name} ${finalScan.status}: ${
-                    finalScan.error_message || 'Unexpected worker interruption.'
-                  }`,
+                ? `Audit of ${prevScan.repository_name} completed cleanly.`
+                : finalScan.error_message || `Scan of ${prevScan.repository_name} ended with status: ${finalScan.status}.`,
+              findingsCount,
             };
 
             setToasts((prev) => [...prev, newToast]);
@@ -98,13 +109,16 @@ export const BackgroundScanIndicator: React.FC = () => {
           .catch(() => {
             // Fallback generic completion notification
             queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
+            queryClient.invalidateQueries({ queryKey: ['findings'] });
             setToasts((prev) => [
               ...prev,
               {
                 id: `${prevId}-${Date.now()}`,
                 scanId: prevId,
+                repoId: prevScan.repository_id,
                 repoName: prevScan.repository_name,
-                type: 'info' as any,
+                type: 'info',
                 title: 'Scan Finished',
                 message: `Background scan for ${prevScan.repository_name} has concluded.`,
               },
@@ -655,6 +669,35 @@ export const BackgroundScanIndicator: React.FC = () => {
                 </div>
                 <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px', lineHeight: 1.4 }}>
                   {toast.message}
+                </div>
+                <div style={{ marginTop: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeToast(toast.id);
+                      if (toast.repoId) {
+                        navigate(`/repositories?repoId=${toast.repoId}&scanId=${toast.scanId}&tab=findings`);
+                      } else {
+                        navigate('/repositories?tab=findings');
+                      }
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      color: '#2563eb',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '5px',
+                      padding: '3px 8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span>View results</span>
+                    <ChevronRight size={12} />
+                  </button>
                 </div>
               </div>
               <button

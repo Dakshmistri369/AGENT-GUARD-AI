@@ -281,11 +281,19 @@ export const api = {
   },
 
   dashboard: {
-    getSummary: (options?: { timeout?: number; signal?: AbortSignal }): Promise<DashboardSummaryResponse> =>
-      client.get('/api/dashboard/summary', { timeout: options?.timeout ?? 15000, signal: options?.signal }).then(r => r.data),
+    getSummary: (options?: { repoId?: number | null; timeout?: number; signal?: AbortSignal }): Promise<DashboardSummaryResponse> =>
+      client.get('/api/dashboard/summary', {
+        params: options?.repoId ? { repository_id: options.repoId } : undefined,
+        timeout: options?.timeout ?? 15000,
+        signal: options?.signal,
+      }).then(r => r.data),
 
-    getMetrics: (options?: { timeout?: number; signal?: AbortSignal }): Promise<DashboardMetricsResponse> =>
-      client.get('/api/dashboard/metrics', { timeout: options?.timeout ?? 15000, signal: options?.signal }).then(r => r.data),
+    getMetrics: (options?: { repoId?: number | null; timeout?: number; signal?: AbortSignal }): Promise<DashboardMetricsResponse> =>
+      client.get('/api/dashboard/metrics', {
+        params: options?.repoId ? { repository_id: options.repoId } : undefined,
+        timeout: options?.timeout ?? 15000,
+        signal: options?.signal,
+      }).then(r => r.data),
   },
 
   findings: {

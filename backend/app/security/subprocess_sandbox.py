@@ -137,6 +137,18 @@ def get_sanitized_subprocess_env(extra_env: dict[str, str] | None = None) -> dic
         if os.path.isdir(c_bin) and c_bin not in sanitized_path:
             sanitized_path = f"{c_bin}{sep}{sanitized_path}"
 
+    # Ensure current Python environment directories are in PATH across all operating systems
+    python_parent = Path(sys.executable).parent
+    python_candidate_paths = [
+        str(python_parent),
+        str(python_parent / "bin"),
+        str(python_parent / "Scripts"),
+        str(Path.home() / ".local" / "bin"),
+    ]
+    for c_path in python_candidate_paths:
+        if os.path.isdir(c_path) and c_path not in sanitized_path:
+            sanitized_path = f"{c_path}{sep}{sanitized_path}"
+
     # Windows specific tool paths (Python Scripts & WinGet)
     if os.name == "nt":
         appdata = os.environ.get("APPDATA")
@@ -144,10 +156,6 @@ def get_sanitized_subprocess_env(extra_env: dict[str, str] | None = None) -> dic
             user_scripts = str(Path(appdata) / "Python" / f"Python{sys.version_info.major}{sys.version_info.minor}" / "Scripts")
             if os.path.isdir(user_scripts) and user_scripts not in sanitized_path:
                 sanitized_path = f"{user_scripts}{sep}{sanitized_path}"
-
-        env_scripts = str(Path(sys.executable).parent / "Scripts")
-        if os.path.isdir(env_scripts) and env_scripts not in sanitized_path:
-            sanitized_path = f"{env_scripts}{sep}{sanitized_path}"
 
         localappdata = os.environ.get("LOCALAPPDATA")
         if localappdata:

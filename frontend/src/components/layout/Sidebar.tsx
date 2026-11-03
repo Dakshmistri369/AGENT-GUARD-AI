@@ -6,15 +6,11 @@ import {
   GitBranch,
   History,
   FileText,
-  Plus,
-  Play,
   Settings,
-  Scale,
   Sparkles,
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  FolderOpen,
   X,
 } from 'lucide-react';
 import { AnimatedBrandLogo, type LogoScanState } from '../brand/AnimatedBrandLogo';
@@ -42,30 +38,26 @@ interface NavSection {
 
 const NAV_SECTIONS: NavSection[] = [
   {
-    title: 'GENERAL',
+    title: 'WORKSPACE',
     items: [
-      { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-      { label: 'Issues', path: '/repositories?tab=findings', icon: AlertTriangle },
+      { label: 'Overview', path: '/', icon: LayoutDashboard },
       { label: 'Repositories', path: '/repositories', icon: GitBranch },
+      { label: 'Findings', path: '/repositories?tab=findings', icon: AlertTriangle },
       { label: 'Scans', path: '/repositories?tab=history', icon: History },
       { label: 'Reports', path: '/repositories?tab=solutions', icon: FileText },
     ],
   },
   {
-    title: 'QUICK ACTIONS',
+    title: 'TOOLS',
     items: [
-      { label: 'Start Scan', path: '/repositories?action=scan', icon: Play },
-      { label: 'New Repo', path: '/repositories?action=new', icon: Plus },
+      { label: 'AI Assistant', path: '/repositories?tab=ai', icon: Sparkles },
     ],
   },
   {
-    title: 'CONFIG',
+    title: 'CONFIGURATION',
     items: [
-      { label: 'General / Settings', path: '/settings', icon: Settings },
-      { label: 'Scan Comparison', path: '/repositories?tab=matrix', icon: Scale },
-      { label: 'AI Security Assistant', path: '/repositories?tab=ai', icon: Sparkles },
-      { label: 'Projects', path: '/projects', icon: FolderOpen },
-      { label: 'API Docs', path: `${API_BASE_URL}/docs`, icon: BookOpen, isExternal: true },
+      { label: 'Settings', path: '/settings', icon: Settings },
+      { label: 'Help & API Docs', path: `${API_BASE_URL}/docs`, icon: BookOpen, isExternal: true },
     ],
   },
 ];
@@ -275,7 +267,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     title={isEffectiveCollapsed ? item.label : undefined}
                     onClick={() => {
                       if (isMobileDrawer) onCloseMobileDrawer?.();
-                      if (item.label === 'AI Security Assistant') {
+                      if (item.label === 'AI Assistant' || item.label === 'AI Security Assistant') {
                         window.dispatchEvent(new CustomEvent('agentguard:open-ai-assistant'));
                       }
                     }}

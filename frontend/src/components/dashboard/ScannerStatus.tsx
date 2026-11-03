@@ -153,7 +153,7 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
                   color: scanner.findings_count > 0 ? '#b45309' : '#059669',
                 }}
               >
-                {scanner.findings_count > 0 ? `${scanner.findings_count} findings` : 'Clean / 0 findings'}
+                {scanner.findings_count > 0 ? `${scanner.findings_count} finding${scanner.findings_count === 1 ? '' : 's'}` : '0 findings (Active)'}
               </span>
             </div>
           </div>

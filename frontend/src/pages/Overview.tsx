@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Play,
-  Plus,
   Clock,
   Code2,
   Cpu,
@@ -30,6 +29,14 @@ export const OverviewPage: React.FC = () => {
 
   const [selectedIssue, setSelectedIssue] = useState<CriticalIssueItem | null>(null);
   const [updatingFindingId, setUpdatingFindingId] = useState<number | null>(null);
+  const [selectedRepoId, setSelectedRepoId] = useState<number | null>(null);
+
+  // Connected repositories list for scoping
+  const { data: repoData } = useQuery({
+    queryKey: ['repositoriesList'],
+    queryFn: () => api.repositories.list(1, 100),
+  });
+  const repositories = repoData?.items ?? [];
 
   // Live background active scans polling (6s interval)
   const { data: activeScansData } = useQuery<ActiveScansResponse>({
@@ -39,7 +46,7 @@ export const OverviewPage: React.FC = () => {
   });
   const activeScans = activeScansData?.scans ?? [];
 
-  // TanStack Query for live Dashboard Analytics with 15s timeout and instant localStorage hydration
+  // TanStack Query for live Dashboard Analytics scoped to user/repo with rapid invalidation
   const {
     data: summary,
     isLoading,
@@ -47,25 +54,17 @@ export const OverviewPage: React.FC = () => {
     error,
     refetch,
     isFetching,
+    dataUpdatedAt,
   } = useQuery<DashboardSummaryResponse>({
-    queryKey: ['dashboardSummary'],
+    queryKey: ['dashboardSummary', selectedRepoId],
     queryFn: async ({ signal }) => {
-      const res = await api.dashboard.getSummary({ timeout: 15000, signal });
-      try {
-        const sessionKey = `agentguard_dashboard_summary_${api.getSessionId()}`;
-        localStorage.setItem(sessionKey, JSON.stringify(res));
-      } catch {}
-      return res;
+      return api.dashboard.getSummary({
+        repoId: selectedRepoId,
+        timeout: 15000,
+        signal,
+      });
     },
-    initialData: () => {
-      try {
-        const sessionKey = `agentguard_dashboard_summary_${api.getSessionId()}`;
-        const cached = localStorage.getItem(sessionKey);
-        if (cached) return JSON.parse(cached);
-      } catch {}
-      return undefined;
-    },
-    staleTime: 60_000,
+    staleTime: 5000,
     retry: 1,
     refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
@@ -94,6 +93,7 @@ export const OverviewPage: React.FC = () => {
     },
     onSuccess: (updatedFinding) => {
       queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
       if (selectedIssue && selectedIssue.id === updatedFinding.id) {
         setSelectedIssue((prev) =>
           prev ? { ...prev, verification_status: updatedFinding.verification_status } : null
@@ -108,7 +108,11 @@ export const OverviewPage: React.FC = () => {
   });
 
   const handleStartScan = () => {
-    navigate('/repositories?action=scan');
+    if (selectedRepoId) {
+      navigate(`/repositories?repoId=${selectedRepoId}&action=scan`);
+    } else {
+      navigate('/repositories?action=scan');
+    }
   };
 
   const handleNewRepo = () => {
@@ -116,82 +120,133 @@ export const OverviewPage: React.FC = () => {
   };
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl xl:max-w-screen-2xl mx-auto bg-white min-h-full pb-safe">
-      {/* ── Page Header with Black Fonts ────────────────────────────────────────── */}
+    <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl xl:max-w-screen-2xl mx-auto bg-[#f8fafc] min-h-full pb-safe">
+      {/* ── Page Header: Repository & Scope Filters with Single Action ──────────────── */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '26px',
+          marginBottom: '20px',
           flexWrap: 'wrap',
           gap: '16px',
-          paddingLeft: '2px',
         }}
       >
         <div>
-          <h1
-            style={{
-              fontSize: '28px',
-              fontWeight: 800,
-              color: '#0f172a',
-              letterSpacing: '-0.5px',
-              lineHeight: 1.25,
-              margin: '0 0 6px 0',
-            }}
-          >
-            Dashboard
-          </h1>
-          <p style={{ fontSize: '13.5px', color: '#475569', margin: 0, lineHeight: 1.5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1
+              style={{
+                fontSize: '24px',
+                fontWeight: 800,
+                color: '#0f172a',
+                letterSpacing: '-0.5px',
+                lineHeight: 1.25,
+                margin: 0,
+              }}
+            >
+              Overview
+            </h1>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#2563eb',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                padding: '2px 8px',
+                borderRadius: '6px',
+              }}
+            >
+              Current Posture
+            </span>
+          </div>
+          <p style={{ fontSize: '13px', color: '#475569', margin: '4px 0 0 0', lineHeight: 1.4 }}>
             Multi-engine AST security, dependency supply chain, and secret exposure monitor
           </p>
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Filters and Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Repository Scope Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label htmlFor="repo-scope-select" className="sr-only">Scope by Repository</label>
+            <select
+              id="repo-scope-select"
+              value={selectedRepoId || ''}
+              onChange={(e) => setSelectedRepoId(e.target.value ? Number(e.target.value) : null)}
+              style={{
+                fontSize: '12.5px',
+                fontWeight: 600,
+                color: '#0f172a',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                padding: '7px 12px',
+                cursor: 'pointer',
+                outline: 'none',
+                maxWidth: '220px',
+              }}
+              aria-label="Filter overview by connected repository"
+            >
+              <option value="">All Repositories ({repositories.length})</option>
+              {repositories.map((repo) => (
+                <option key={repo.id} value={repo.id}>
+                  {repo.full_name || repo.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Last updated indicator */}
+          <div
+            style={{
+              display: 'none',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '11.5px',
+              color: '#64748b',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              padding: '6px 10px',
+              borderRadius: '6px',
+            }}
+            className="md:flex"
+            title="Timestamp of latest metrics refresh"
+          >
+            <Clock size={12} color="#64748b" />
+            <span>
+              {dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Live'}
+            </span>
+          </div>
+
           <button
             onClick={() => refetch()}
             disabled={isFetching}
             className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '8px 12px' }}
-            title="Refresh Dashboard metrics"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '7px 12px', background: '#ffffff' }}
+            title="Refresh overview metrics"
+            aria-label="Refresh overview metrics"
           >
             <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
-            <span className="hidden sm:inline">Refresh</span>
+            <span className="hidden sm:inline">{isFetching ? 'Updating…' : 'Refresh'}</span>
           </button>
 
           <button
             onClick={handleStartScan}
-            className="btn btn-secondary"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12.5px',
-              padding: '8px 14px',
-              color: '#0f172a',
-              fontWeight: 600,
-            }}
-          >
-            <Play size={13} fill="#2563eb" color="#2563eb" />
-            <span>Start Manual Scan</span>
-          </button>
-
-          <button
-            onClick={handleNewRepo}
             className="btn btn-primary"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               fontSize: '12.5px',
-              padding: '8px 16px',
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
+              padding: '7px 14px',
+              background: '#2563eb',
+              boxShadow: '0 1px 3px rgba(37, 99, 235, 0.2)',
             }}
+            title="Start automated security audit"
           >
-            <Plus size={15} />
-            <span>New Repository</span>
+            <Play size={13} fill="#ffffff" color="#ffffff" />
+            <span>Run Scan</span>
           </button>
         </div>
       </div>
@@ -374,85 +429,105 @@ export const OverviewPage: React.FC = () => {
         );
       })()}
 
-      {/* ── Top Row: 4 Summary Cards with Different Background Colors & Black Fonts ── */}
+      {/* ── Top Row: 4 Metric Cards with Neutral White Surfaces and Honest Scope ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <SummaryCard
-          title="Scans & Reviews"
-          value={isError ? '—' : (summary?.scans_and_reviews.total_scans ?? 0)}
+          title="Open Findings"
+          value={isError ? '—' : (summary?.potential_issues.count ?? 0)}
           subtext={
             isError
-              ? isUnauthorized ? 'Authentication required for private scan history' : 'Unable to connect to scan service'
-              : `${summary?.scans_and_reviews.pr_reviews ?? 0} PR reviews and ${
-                  summary?.scans_and_reviews.scans_last_30_days ?? 0
-                } full scans in the last 30 days`
+              ? isUnauthorized ? 'Authentication required for private findings' : 'Unable to load finding metrics'
+              : selectedRepoId
+              ? 'Active findings detected in latest scan of selected repository'
+              : 'Active findings detected across latest scans of all repositories'
           }
           accentColor="#2563eb"
-          bgColor="#f0f7ff"
-          borderColor="#bfdbfe"
-          onClick={() => navigate('/repositories?tab=history')}
-          isLoading={isLoading && !summary}
-        />
-
-        <SummaryCard
-          title="False Positives"
-          value={isError ? '—' : (summary?.false_positives.count ?? 0)}
-          subtext={
-            isError
-              ? 'Metrics unavailable'
-              : `Filtered ${summary?.false_positives.count ?? 0} false positives out of ${
-                  summary?.false_positives.total_issues ?? 0
-                } total issues.`
+          bgColor="#ffffff"
+          borderColor="#e2e8f0"
+          badge={
+            !isError && summary && summary.potential_issues.count > 0
+              ? `${summary.severity_distribution.critical} Crit · ${summary.severity_distribution.high} High`
+              : 'Clean'
           }
-          accentColor="#059669"
-          bgColor="#f0fdf4"
-          borderColor="#bbf7d0"
-          badge={!isError && summary && summary.false_positives.percentage > 0 ? `${summary.false_positives.percentage}%` : undefined}
-          badgeColor="#059669"
+          badgeColor={(summary?.severity_distribution.critical ?? 0) > 0 ? '#b91c1c' : '#2563eb'}
           onClick={() => navigate('/repositories?tab=findings')}
           isLoading={isLoading && !summary}
         />
 
         <SummaryCard
-          title="Potential Issues"
+          title="Critical & High"
           value={
             isError
               ? '—'
-              : summary
-              ? summary.potential_issues.count > 1000
-                ? `${(summary.potential_issues.count / 1000).toFixed(1)}k`
-                : summary.potential_issues.count
-              : 0
+              : ((summary?.severity_distribution.critical ?? 0) + (summary?.severity_distribution.high ?? 0))
           }
           subtext={
             isError
-              ? isUnauthorized ? 'Protected repository data requires authorization' : 'Security scanner findings offline'
-              : `Found ${summary?.potential_issues.count ?? 0} potential issues out of ${
-                  summary?.potential_issues.total_issues ?? 0
-                } total issues.`
+              ? 'Severity breakdown unavailable'
+              : ((summary?.severity_distribution.critical ?? 0) + (summary?.severity_distribution.high ?? 0)) > 0
+              ? 'High-priority vulnerabilities requiring immediate code remediation'
+              : 'Zero critical or high severity vulnerabilities detected'
           }
-          accentColor="#d97706"
-          bgColor="#fffbeb"
-          borderColor="#fde68a"
-          onClick={() => navigate('/repositories?tab=findings')}
+          accentColor="#b91c1c"
+          bgColor="#ffffff"
+          borderColor="#e2e8f0"
+          badge={
+            ((summary?.severity_distribution.critical ?? 0) + (summary?.severity_distribution.high ?? 0)) > 0
+              ? 'Action Required'
+              : 'None'
+          }
+          badgeColor={
+            ((summary?.severity_distribution.critical ?? 0) + (summary?.severity_distribution.high ?? 0)) > 0
+              ? '#b91c1c'
+              : '#059669'
+          }
+          onClick={() => navigate('/repositories?tab=findings&severity=critical')}
           isLoading={isLoading && !summary}
         />
 
         <SummaryCard
-          title="Patches generated"
-          value={isError ? '—' : (summary?.patches_generated.count ?? 0)}
+          title="Repositories Needing Attention"
+          value={
+            isError
+              ? '—'
+              : (summary?.issues_by_repository.filter((r) => r.total > 0).length ?? 0)
+          }
           subtext={
             isError
-              ? 'Patches unavailable'
-              : `Generated patches for ${summary?.patches_generated.count ?? 0} out of ${
-                  summary?.potential_issues.count ?? 0
-                } potential issues`
+              ? 'Repository posture unavailable'
+              : `Out of ${summary?.issues_by_repository.length ?? repositories.length} connected repositories in scope`
           }
-          accentColor="#7c3aed"
-          bgColor="#faf5ff"
-          borderColor="#e9d5ff"
-          badge={!isError && summary && summary.patches_generated.percentage > 0 ? `${summary.patches_generated.percentage}%` : undefined}
-          badgeColor="#7c3aed"
-          onClick={() => navigate('/repositories?tab=solutions')}
+          accentColor="#d97706"
+          bgColor="#ffffff"
+          borderColor="#e2e8f0"
+          badge={
+            (summary?.issues_by_repository.filter((r) => r.total > 0).length ?? 0) > 0
+              ? `${summary?.issues_by_repository.filter((r) => r.total > 0).length} Affected`
+              : 'All Clear'
+          }
+          badgeColor={
+            (summary?.issues_by_repository.filter((r) => r.total > 0).length ?? 0) > 0
+              ? '#d97706'
+              : '#059669'
+          }
+          onClick={() => navigate('/repositories')}
+          isLoading={isLoading && !summary}
+        />
+
+        <SummaryCard
+          title="Scan Coverage"
+          value={isError ? '—' : `${summary?.metrics.total_files_scanned ?? 0} files`}
+          subtext={
+            isError
+              ? 'Coverage metrics unavailable'
+              : `${summary?.scans_and_reviews.total_scans ?? 0} total scans completed across Semgrep, Bandit, secrets & OSV`
+          }
+          accentColor="#059669"
+          bgColor="#ffffff"
+          borderColor="#e2e8f0"
+          badge="4 Engines"
+          badgeColor="#059669"
+          onClick={() => navigate('/repositories?tab=history')}
           isLoading={isLoading && !summary}
         />
       </div>
@@ -490,8 +565,21 @@ export const OverviewPage: React.FC = () => {
           ) : !summary || summary.vulnerability_types.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
               <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>No Issues Found</div>
-              <div style={{ fontSize: '12px' }}>Your scanned codebases have zero reported vulnerabilities.</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                {summary && summary.scans_and_reviews.total_scans > 0
+                  ? 'No Findings in Completed Checks'
+                  : 'Not Scanned Yet'}
+              </div>
+              <div style={{ fontSize: '12px', textAlign: 'center', maxWidth: '280px', marginTop: '4px' }}>
+                {summary && summary.scans_and_reviews.total_scans > 0
+                  ? 'Security engines detected zero vulnerabilities in the completed check scope.'
+                  : 'Run your first audit to analyze code for AST flaws and vulnerable dependencies.'}
+              </div>
+              {(!summary || summary.scans_and_reviews.total_scans === 0) && (
+                <button onClick={handleStartScan} className="btn btn-secondary" style={{ fontSize: '11px', padding: '4px 10px', marginTop: '8px' }}>
+                  Run First Scan
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row items-center justify-between sm:h-[240px] gap-4 py-2">
@@ -605,8 +693,16 @@ export const OverviewPage: React.FC = () => {
           ) : !summary || summary.severity_distribution.total === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
               <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Zero Vulnerabilities</div>
-              <div style={{ fontSize: '12px' }}>No critical, high, medium, or low findings recorded.</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                {summary && summary.scans_and_reviews.total_scans > 0
+                  ? 'No Findings Detected'
+                  : 'Not Scanned Yet'}
+              </div>
+              <div style={{ fontSize: '12px', textAlign: 'center', maxWidth: '280px', marginTop: '4px' }}>
+                {summary && summary.scans_and_reviews.total_scans > 0
+                  ? 'No open critical, high, medium, or low findings recorded in latest scan scope.'
+                  : 'Start an audit to generate a severity breakdown across your codebase.'}
+              </div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '240px', padding: '0 8px' }}>
@@ -869,8 +965,14 @@ export const OverviewPage: React.FC = () => {
           ) : !summary || summary.most_critical_issues.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
               <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>No Critical Issues</div>
-              <div style={{ fontSize: '12px' }}>All connected repositories are free of critical vulnerabilities.</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                {summary && summary.scans_and_reviews.total_scans > 0 ? 'No Critical Findings' : 'Not Scanned Yet'}
+              </div>
+              <div style={{ fontSize: '12px', textAlign: 'center', maxWidth: '280px', marginTop: '4px' }}>
+                {summary && summary.scans_and_reviews.total_scans > 0
+                  ? 'Repositories in current scope have no open critical vulnerabilities.'
+                  : 'Run an audit to detect code flaws, secret exposures, and CVEs.'}
+              </div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', maxHeight: '280px' }}>

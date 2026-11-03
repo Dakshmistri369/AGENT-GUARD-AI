@@ -178,3 +178,99 @@ async def test_dashboard_metrics_redis_read_through_and_invalidation(client: Asy
     assert resp3.status_code == 200
     assert resp3.headers.get("X-Cache") == "MISS"
 
+
+@pytest.mark.asyncio
+async def test_dashboard_scoped_to_latest_scan_not_historical_sum(client: AsyncClient, db_session: AsyncSession):
+    """
+    Test that current open findings reflect only the latest completed scan per repository,
+    avoiding historical summation inflation (Fix for Defect B).
+    """
+    from app.core.cache import invalidate_dashboard_cache
+    await invalidate_dashboard_cache(1)
+
+    # 1. Create a dedicated repository
+    repo = Repository(
+        id=501,
+        owner_id=1,
+        name="multi-scan-repo",
+        owner_name="test-org",
+        full_name="test-org/multi-scan-repo",
+        url="https://github.com/test-org/multi-scan-repo",
+        default_branch="main",
+        is_private=False,
+    )
+    db_session.add(repo)
+    await db_session.flush()
+
+    # 2. Historical Scan 1 (3 findings)
+    scan1 = Scan(
+        id=601,
+        repository_id=501,
+        status="completed",
+        stage="generating_report",
+    )
+    db_session.add(scan1)
+    await db_session.flush()
+
+    for idx, (title, sev) in enumerate([("Vuln A", "high"), ("Vuln B", "medium"), ("Vuln C", "low")], start=1):
+        db_session.add(Finding(
+            id=1000 + idx,
+            scan_id=601,
+            title=title,
+            severity=sev,
+            confidence="high",
+            scanner="semgrep",
+            file_path=f"src/file{idx}.py",
+            line_number=idx * 10,
+            verification_status="unverified",
+        ))
+    await db_session.flush()
+
+    # 3. New Latest Scan 2 (only 1 remaining finding after fixing code)
+    scan2 = Scan(
+        id=602,
+        repository_id=501,
+        status="completed",
+        stage="generating_report",
+    )
+    db_session.add(scan2)
+    await db_session.flush()
+
+    db_session.add(Finding(
+        id=2001,
+        scan_id=602,
+        title="Remaining Vuln",
+        severity="critical",
+        confidence="high",
+        scanner="semgrep",
+        file_path="src/main.py",
+        line_number=5,
+        verification_status="unverified",
+    ))
+    await db_session.commit()
+    await invalidate_dashboard_cache(1)
+
+    # 4. Verify metrics endpoint only counts the latest scan findings (1 finding, NOT 3 + 1 = 4)
+    resp = await client.get("/api/dashboard/metrics?repository_id=501")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total_findings"] == 1
+    assert data["critical_findings"] == 1
+    assert data["high_findings"] == 0
+    assert data["medium_findings"] == 0
+
+    # 5. Verify summary endpoint only reflects the latest scan findings
+    sum_resp = await client.get("/api/dashboard/summary?repository_id=501")
+    assert sum_resp.status_code == 200
+    sum_data = sum_resp.json()
+    assert sum_data["severity_distribution"]["total"] == 1
+    assert sum_data["severity_distribution"]["critical"] == 1
+    assert sum_data["severity_distribution"]["high"] == 0
+    assert len(sum_data["most_critical_issues"]) == 1
+    assert sum_data["most_critical_issues"][0]["title"] == "Remaining Vuln"
+
+    # 6. Verify 404 on non-existent or unowned repository ID
+    err_resp = await client.get("/api/dashboard/summary?repository_id=999999")
+    assert err_resp.status_code == 404
+
+

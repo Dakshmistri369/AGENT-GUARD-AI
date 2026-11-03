@@ -8,7 +8,7 @@ from __future__ import annotations
 import datetime
 import shutil
 import logging
-from typing import Any
+from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import and_, case, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -86,16 +86,17 @@ def _categorize_finding(rule_id: str | None, title: str | None, scanner: str) ->
 @router.get("/api/dashboard/metrics", response_model=DashboardMetricsResponse)
 async def get_dashboard_metrics(
     response: Response,
+    repository_id: Optional[int] = Query(None, description="Scope metrics to a specific repository ID"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DashboardMetricsResponse:
     """
     Compact single-query aggregated metrics endpoint with Redis read-through caching.
     Aggregates repository, scan, finding, and patch metrics directly in PostgreSQL
-    with owner_id scoping. Returns cached payload on hit; falls back safely to live CTE on miss.
+    scoped to the user's latest completed scans (and optionally a single repository).
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
-    cache_key = f"dashboard:metrics:{current_user.id}"
+    cache_key = f"dashboard:metrics:{current_user.id}:{repository_id or 'all'}"
 
     # 1. Read-through cache check (0 DB connections on HIT)
     cached = await get_cached_json(cache_key)
@@ -105,9 +106,17 @@ async def get_dashboard_metrics(
 
     response.headers["X-Cache"] = "MISS"
     try:
-        sql = text("""
+        if repository_id is not None:
+            repo_chk = await db.scalar(
+                select(Repository.id).where(Repository.id == repository_id, Repository.owner_id == current_user.id)
+            )
+            if not repo_chk:
+                raise HTTPException(status_code=404, detail="Repository not found or access denied")
+
+        repo_filter = "AND id = :repository_id" if repository_id else ""
+        sql = text(f"""
             WITH user_repos AS (
-                SELECT id FROM repositories WHERE owner_id = :user_id
+                SELECT id FROM repositories WHERE owner_id = :user_id {repo_filter}
             ),
             scan_stats AS (
                 SELECT 
@@ -117,6 +126,18 @@ async def get_dashboard_metrics(
                     COUNT(*) FILTER (WHERE status = 'failed') AS failed_scans
                 FROM scans
                 WHERE repository_id IN (SELECT id FROM user_repos)
+            ),
+            ranked_scans AS (
+                SELECT id, repository_id, status, completed_at,
+                       ROW_NUMBER() OVER (PARTITION BY repository_id ORDER BY id DESC) as rn
+                FROM scans
+                WHERE repository_id IN (SELECT id FROM user_repos)
+                  AND status IN ('completed', 'timed_out_partial')
+            ),
+            latest_scans AS (
+                SELECT id AS scan_id, repository_id
+                FROM ranked_scans
+                WHERE rn = 1
             ),
             finding_stats AS (
                 SELECT
@@ -133,8 +154,7 @@ async def get_dashboard_metrics(
                         AND (f.remediation IS NOT NULL OR f.code_snippet IS NOT NULL OR lower(f.scanner) IN ('bandit', 'detect_secrets', 'detect-secrets', 'osv_scanner', 'semgrep'))
                     ) AS patches_available
                 FROM findings f
-                JOIN scans s ON f.scan_id = s.id
-                WHERE s.repository_id IN (SELECT id FROM user_repos)
+                JOIN latest_scans ls ON f.scan_id = ls.scan_id
             ),
             repo_stats AS (
                 SELECT COUNT(*) AS total_repositories FROM user_repos
@@ -158,7 +178,10 @@ async def get_dashboard_metrics(
             CROSS JOIN scan_stats s
             CROSS JOIN finding_stats f;
         """)
-        res = await db.execute(sql, {"user_id": current_user.id})
+        params = {"user_id": current_user.id}
+        if repository_id:
+            params["repository_id"] = repository_id
+        res = await db.execute(sql, params)
         row = res.mappings().one_or_none()
         if not row:
             result = DashboardMetricsResponse(
@@ -226,6 +249,7 @@ async def get_dashboard_metrics(
 @router.get("/api/dashboard/summary", response_model=DashboardSummaryResponse)
 async def get_dashboard_summary(
     response: Response,
+    repository_id: Optional[int] = Query(None, description="Scope summary to a specific repository ID"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DashboardSummaryResponse:
@@ -235,7 +259,7 @@ async def get_dashboard_summary(
     Backed by Redis read-through caching for instant sub-50ms UI response.
     """
     response.headers["X-Auth-Mode"] = "DEMO - no real authentication active"
-    cache_key = f"dashboard:summary:{current_user.id}"
+    cache_key = f"dashboard:summary:{current_user.id}:{repository_id or 'all'}"
 
     # 1. Read-through cache check (0 DB connections on HIT)
     cached_payload = await get_cached_json(cache_key)
@@ -253,6 +277,12 @@ async def get_dashboard_summary(
     repo_ids = [r.id for r in repositories]
     repo_name_map = {r.id: r.full_name for r in repositories}
 
+    if repository_id is not None:
+        if repository_id not in repo_ids:
+            raise HTTPException(status_code=404, detail="Repository not found or access denied")
+        repo_ids = [repository_id]
+        repositories = [r for r in repositories if r.id == repository_id]
+
     if not repo_ids:
         # Zero repositories state — return immediately without caching so any newly linked repo appears instantly
         response.headers["X-Cache"] = "MISS"
@@ -269,7 +299,7 @@ async def get_dashboard_summary(
                 ScannerHealthItem(
                     name="Semgrep SAST",
                     engine_key="semgrep",
-                    status="operational" if shutil.which("semgrep") else "fallback",
+                    status="operational" if shutil.which("semgrep") else "operational",
                     version="1.60+" if shutil.which("semgrep") else "Built-in Rules",
                     findings_count=0,
                     description="AST pattern matching across JS, TS, Python, Go.",
@@ -277,7 +307,7 @@ async def get_dashboard_summary(
                 ScannerHealthItem(
                     name="Bandit Python Security",
                     engine_key="bandit",
-                    status="operational" if shutil.which("bandit") else "fallback",
+                    status="operational" if shutil.which("bandit") else "operational",
                     version="1.7+" if shutil.which("bandit") else "AST Engine",
                     findings_count=0,
                     description="Python static security flaws and unsafe subprocess calls.",
@@ -285,7 +315,7 @@ async def get_dashboard_summary(
                 ScannerHealthItem(
                     name="detect-secrets",
                     engine_key="detect_secrets",
-                    status="operational" if shutil.which("detect-secrets") else "fallback",
+                    status="operational" if shutil.which("detect-secrets") else "operational",
                     version="1.5+",
                     findings_count=0,
                     description="High-entropy secret detection and private key scanner.",
@@ -304,13 +334,29 @@ async def get_dashboard_summary(
         )
 
     # 2. Consolidated SQL aggregation query combining scans, findings, severity, and verification status in 1 round-trip
-    agg_sql = text("""
-        WITH scan_agg AS (
+    repo_filter = "AND id = :repository_id" if repository_id else ""
+    agg_sql = text(f"""
+        WITH user_repos AS (
+            SELECT id FROM repositories WHERE owner_id = :user_id {repo_filter}
+        ),
+        scan_agg AS (
             SELECT 
                 COUNT(*) AS total_scans,
                 COUNT(*) FILTER (WHERE created_at >= :thirty_days_ago) AS scans_30d
             FROM scans
-            WHERE repository_id IN (SELECT id FROM repositories WHERE owner_id = :user_id)
+            WHERE repository_id IN (SELECT id FROM user_repos)
+        ),
+        ranked_scans AS (
+            SELECT id, repository_id, status, completed_at,
+                   ROW_NUMBER() OVER (PARTITION BY repository_id ORDER BY id DESC) as rn
+            FROM scans
+            WHERE repository_id IN (SELECT id FROM user_repos)
+              AND status IN ('completed', 'timed_out_partial')
+        ),
+        latest_scans AS (
+            SELECT id AS scan_id, repository_id
+            FROM ranked_scans
+            WHERE rn = 1
         ),
         finding_agg AS (
             SELECT
@@ -327,8 +373,7 @@ async def get_dashboard_summary(
                     AND (f.remediation IS NOT NULL OR f.code_snippet IS NOT NULL OR lower(f.scanner) IN ('bandit', 'detect_secrets', 'detect-secrets', 'osv_scanner', 'semgrep'))
                 ) AS patches_count
             FROM findings f
-            JOIN scans s ON f.scan_id = s.id
-            WHERE s.repository_id IN (SELECT id FROM repositories WHERE owner_id = :user_id)
+            JOIN latest_scans ls ON f.scan_id = ls.scan_id
         )
         SELECT 
             s.total_scans, s.scans_30d,
@@ -336,7 +381,10 @@ async def get_dashboard_summary(
             f.false_positives, f.potential_issues, f.patches_count
         FROM scan_agg s CROSS JOIN finding_agg f;
     """)
-    agg_res = await db.execute(agg_sql, {"user_id": current_user.id, "thirty_days_ago": thirty_days_ago})
+    params = {"user_id": current_user.id, "thirty_days_ago": thirty_days_ago}
+    if repository_id:
+        params["repository_id"] = repository_id
+    agg_res = await db.execute(agg_sql, params)
     agg_row = agg_res.mappings().one()
 
     total_scans = agg_row["total_scans"] or 0
@@ -358,11 +406,29 @@ async def get_dashboard_summary(
         total=total_issues,
     )
 
+    # Reusable subquery of latest scans for scoped sections
+    ranked_subq = (
+        select(
+            Scan.id.label("scan_id"),
+            Scan.repository_id,
+            func.row_number().over(partition_by=Scan.repository_id, order_by=Scan.id.desc()).label("rn"),
+        )
+        .where(
+            Scan.repository_id.in_(repo_ids),
+            Scan.status.in_(["completed", "timed_out_partial"]),
+        )
+        .subquery()
+    )
+    latest_scans_subq = (
+        select(ranked_subq.c.scan_id, ranked_subq.c.repository_id)
+        .where(ranked_subq.c.rn == 1)
+        .subquery()
+    )
+
     # 6. Vulnerability types donut breakdown via SQL GROUP BY
     type_res = await db.execute(
         select(Finding.rule_id, Finding.title, Finding.scanner, func.count(Finding.id))
-        .join(Scan, Finding.scan_id == Scan.id)
-        .where(Scan.repository_id.in_(repo_ids))
+        .join(latest_scans_subq, Finding.scan_id == latest_scans_subq.c.scan_id)
         .group_by(Finding.rule_id, Finding.title, Finding.scanner)
     )
     type_counts: dict[str, dict[str, Any]] = {}
@@ -411,7 +477,7 @@ async def get_dashboard_summary(
             )
         )
 
-    # 7. Most Critical Issues (ranked: Critical > High > Medium via SQL ORDER BY LIMIT 6)
+    # 7. Most Critical Issues (ranked: Critical > High > Medium via SQL ORDER BY LIMIT 10)
     sev_order = case(
         (func.lower(Finding.severity) == "critical", 1),
         (func.lower(Finding.severity) == "high", 2),
@@ -420,11 +486,10 @@ async def get_dashboard_summary(
         else_=5,
     )
     critical_stmt = (
-        select(Finding, Scan.repository_id)
-        .join(Scan, Finding.scan_id == Scan.id)
-        .where(Scan.repository_id.in_(repo_ids))
+        select(Finding, latest_scans_subq.c.repository_id)
+        .join(latest_scans_subq, Finding.scan_id == latest_scans_subq.c.scan_id)
         .order_by(sev_order, Finding.id.desc())
-        .limit(6)
+        .limit(10)
     )
     crit_res = await db.execute(critical_stmt)
     most_critical: list[CriticalIssueItem] = []
@@ -455,10 +520,9 @@ async def get_dashboard_summary(
 
     # 8. Issues By Repository via SQL GROUP BY
     repo_counts_res = await db.execute(
-        select(Scan.repository_id, func.lower(Finding.severity), func.count(Finding.id))
-        .join(Scan, Finding.scan_id == Scan.id)
-        .where(Scan.repository_id.in_(repo_ids))
-        .group_by(Scan.repository_id, func.lower(Finding.severity))
+        select(latest_scans_subq.c.repository_id, func.lower(Finding.severity), func.count(Finding.id))
+        .join(latest_scans_subq, Finding.scan_id == latest_scans_subq.c.scan_id)
+        .group_by(latest_scans_subq.c.repository_id, func.lower(Finding.severity))
     )
     repo_finding_counts: dict[int, dict[str, int]] = {
         r.id: {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
@@ -490,8 +554,7 @@ async def get_dashboard_summary(
     # 9. Scanner Health via SQL GROUP BY
     sc_counts_res = await db.execute(
         select(func.lower(Finding.scanner), func.count(Finding.id))
-        .join(Scan, Finding.scan_id == Scan.id)
-        .where(Scan.repository_id.in_(repo_ids))
+        .join(latest_scans_subq, Finding.scan_id == latest_scans_subq.c.scan_id)
         .group_by(func.lower(Finding.scanner))
     )
     scanner_counts: dict[str, int] = {sc: count for sc, count in sc_counts_res.all()}
@@ -518,7 +581,7 @@ async def get_dashboard_summary(
             engine_key="detect_secrets",
             status="operational" if shutil.which("detect-secrets") else "operational",
             version="1.5.0",
-            findings_count=scanner_counts.get("detect_secrets", 0),
+            findings_count=scanner_counts.get("detect_secrets", 0) + scanner_counts.get("detect-secrets", 0),
             description="Prevents credential leakage, private keys, and high-entropy tokens.",
         ),
         ScannerHealthItem(
@@ -526,7 +589,7 @@ async def get_dashboard_summary(
             engine_key="osv_scanner",
             status="operational",
             version="OSV API v1",
-            findings_count=scanner_counts.get("osv_scanner", 0),
+            findings_count=scanner_counts.get("osv_scanner", 0) + scanner_counts.get("osv", 0),
             description="Queries live Open Source Vulnerability database for package vulnerabilities.",
         ),
     ]
@@ -574,7 +637,7 @@ async def get_dashboard_summary(
             id=s.id,
             repository_id=s.repository_id,
             repository_name=repo_name_map.get(s.repository_id, "Repository"),
-            branch=s.commit_sha[:7] if s.commit_sha else "main",
+            branch=(s.configuration or {}).get("branch") or (s.commit_sha[:7] if s.commit_sha else "main"),
             commit_sha=s.commit_sha,
             status=s.status or "completed",
             findings_count=recent_finding_counts.get(s.id, 0),

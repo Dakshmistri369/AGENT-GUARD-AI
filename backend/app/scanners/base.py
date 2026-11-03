@@ -107,12 +107,21 @@ def find_scanner_executable(tool_name: str) -> str | None:
                 if candidate.exists():
                     return str(candidate)
 
-    # 3. Check current Python environment Scripts/bin
-    env_scripts = Path(sys.executable).parent / ("Scripts" if os.name == "nt" else "bin")
-    for t_name in tools_to_check:
-        candidate_env = env_scripts / (f"{t_name}.exe" if os.name == "nt" else t_name)
-        if candidate_env.exists():
-            return str(candidate_env)
+    # 3. Check current Python environment bin / Scripts directories
+    env_dir = Path(sys.executable).parent
+    possible_dirs = [env_dir]
+    if os.name == "nt":
+        possible_dirs.append(env_dir / "Scripts")
+    else:
+        possible_dirs.append(env_dir / "bin")
+        possible_dirs.append(Path.home() / ".local" / "bin")
+
+    for p_dir in possible_dirs:
+        if p_dir.exists():
+            for t_name in tools_to_check:
+                candidate_env = p_dir / (f"{t_name}.exe" if os.name == "nt" else t_name)
+                if candidate_env.exists() and candidate_env.is_file():
+                    return str(candidate_env)
 
     # 4. Check Windows Registry PATH entries (User & Machine)
     if os.name == "nt":

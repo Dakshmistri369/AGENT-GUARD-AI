@@ -48,16 +48,16 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   // Determine page title for breadcrumb
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/') return 'Dashboard';
+    if (path === '/') return 'Overview';
     if (path.startsWith('/repositories')) return 'Repositories';
-    if (path.startsWith('/findings')) return 'Findings Explorer';
+    if (path.startsWith('/findings')) return 'Findings';
     if (path.startsWith('/history')) return 'Scan History';
     if (path.startsWith('/compare')) return 'Scan Comparison';
     if (path.startsWith('/projects')) return 'Projects';
     if (path.startsWith('/settings')) return 'Settings';
-    if (path.startsWith('/remediation')) return 'Remediation Preview';
+    if (path.startsWith('/remediation')) return 'Remediation';
     if (path.startsWith('/rules')) return 'Security Rules';
-    return 'Dashboard';
+    return 'Overview';
   };
 
   return (

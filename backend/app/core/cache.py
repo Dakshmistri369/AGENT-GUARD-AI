@@ -102,11 +102,38 @@ async def delete_cached(key: str) -> bool:
     return True
 
 
+async def delete_cached_prefix(prefix: str) -> bool:
+    """Delete all keys matching prefix from Redis and L1 cache."""
+    # Evict matching keys from in-memory L1 cache
+    matching_l1 = [k for k in list(_l1_cache.keys()) if k.startswith(prefix)]
+    for k in matching_l1:
+        _l1_cache.pop(k, None)
+
+    # Evict matching keys from Redis if available
+    try:
+        client = await get_redis_cache_client()
+        if client is not None:
+            match_pattern = f"{prefix}*"
+            # Scan in chunks to avoid blocking Redis event loop
+            cursor = 0
+            while True:
+                cursor, keys = await client.scan(cursor=cursor, match=match_pattern, count=100)
+                if keys:
+                    await client.delete(*keys)
+                if cursor == 0:
+                    break
+    except Exception as exc:
+        logger.debug("Redis cache delete_cached_prefix error for %s: %s", prefix, exc)
+    return True
+
+
 async def invalidate_dashboard_cache(user_id: int | str) -> bool:
-    """Invalidate cached dashboard metrics and summary for the given user."""
-    res1 = await delete_cached(f"dashboard:metrics:{user_id}")
-    res2 = await delete_cached(f"dashboard:summary:{user_id}")
-    return res1 and res2
+    """Invalidate all cached dashboard metrics and summary for the given user, across all scopes."""
+    await delete_cached(f"dashboard:metrics:{user_id}")
+    await delete_cached(f"dashboard:summary:{user_id}")
+    await delete_cached_prefix(f"dashboard:metrics:{user_id}")
+    await delete_cached_prefix(f"dashboard:summary:{user_id}")
+    return True
 
 
 async def invalidate_user_auth_cache(user_id: int | str, sub: Optional[str] = None) -> bool:

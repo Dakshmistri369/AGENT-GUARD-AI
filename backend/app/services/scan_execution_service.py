@@ -577,7 +577,7 @@ class ScanExecutionService:
                     scan_final.status = "timed_out_partial"
                     scan_final.stage = "completed"
                     scan_final.error_message = "Scan exceeded outer safety timeout. Partial findings preserved."
-                elif (failed_scanners or missing_scanners) and not findings_to_persist:
+                elif (failed_scanners or missing_scanners) and not executed_scanners and not findings_to_persist:
                     unavail_list = sorted(list(set(failed_scanners + missing_scanners)))
                     scan_final.status = "failed"
                     scan_final.stage = "running_scanners"

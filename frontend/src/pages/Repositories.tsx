@@ -1809,7 +1809,7 @@ export const RepositoriesPage: React.FC = () => {
               aria-selected={activeTab === 'findings'}
             >
               <AlertTriangle size={15} />
-              Issues & Findings
+              Findings
               {activeFindingsList.length > 0 && (
                 <span
                   style={{
