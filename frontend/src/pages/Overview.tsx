@@ -120,7 +120,7 @@ export const OverviewPage: React.FC = () => {
   };
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl xl:max-w-screen-2xl mx-auto bg-[#f8fafc] min-h-full pb-safe">
+    <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-7xl xl:max-w-screen-2xl mx-auto bg-transparent min-h-full pb-safe">
       {/* ── Page Header: Repository & Scope Filters with Single Action ──────────────── */}
       <div
         style={{
@@ -138,7 +138,7 @@ export const OverviewPage: React.FC = () => {
               style={{
                 fontSize: '24px',
                 fontWeight: 800,
-                color: '#0f172a',
+                color: '#f8fafc',
                 letterSpacing: '-0.5px',
                 lineHeight: 1.25,
                 margin: 0,
@@ -150,9 +150,9 @@ export const OverviewPage: React.FC = () => {
               style={{
                 fontSize: '11px',
                 fontWeight: 600,
-                color: '#2563eb',
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
+                color: '#38bdf8',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
                 padding: '2px 8px',
                 borderRadius: '6px',
               }}
@@ -160,7 +160,7 @@ export const OverviewPage: React.FC = () => {
               Current Posture
             </span>
           </div>
-          <p style={{ fontSize: '13px', color: '#475569', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+          <p style={{ fontSize: '13px', color: '#94a3b8', margin: '4px 0 0 0', lineHeight: 1.4 }}>
             Multi-engine AST security, dependency supply chain, and secret exposure monitor
           </p>
         </div>
@@ -177,9 +177,9 @@ export const OverviewPage: React.FC = () => {
               style={{
                 fontSize: '12.5px',
                 fontWeight: 600,
-                color: '#0f172a',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
+                color: '#f8fafc',
+                background: 'rgba(10, 18, 32, 0.85)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
                 borderRadius: '6px',
                 padding: '7px 12px',
                 cursor: 'pointer',
@@ -188,9 +188,9 @@ export const OverviewPage: React.FC = () => {
               }}
               aria-label="Filter overview by connected repository"
             >
-              <option value="">All Repositories ({repositories.length})</option>
+              <option value="" style={{ background: '#0a1220', color: '#94a3b8' }}>All Repositories ({repositories.length})</option>
               {repositories.map((repo) => (
-                <option key={repo.id} value={repo.id}>
+                <option key={repo.id} value={repo.id} style={{ background: '#0a1220', color: '#f8fafc' }}>
                   {repo.full_name || repo.name}
                 </option>
               ))}
@@ -204,16 +204,16 @@ export const OverviewPage: React.FC = () => {
               alignItems: 'center',
               gap: '6px',
               fontSize: '11.5px',
-              color: '#64748b',
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              color: '#94a3b8',
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
               padding: '6px 10px',
               borderRadius: '6px',
             }}
             className="md:flex"
             title="Timestamp of latest metrics refresh"
           >
-            <Clock size={12} color="#64748b" />
+            <Clock size={12} color="#38bdf8" />
             <span>
               {dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Live'}
             </span>
@@ -223,7 +223,7 @@ export const OverviewPage: React.FC = () => {
             onClick={() => refetch()}
             disabled={isFetching}
             className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '7px 12px', background: '#ffffff' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '7px 12px' }}
             title="Refresh overview metrics"
             aria-label="Refresh overview metrics"
           >
@@ -240,8 +240,6 @@ export const OverviewPage: React.FC = () => {
               gap: '6px',
               fontSize: '12.5px',
               padding: '7px 14px',
-              background: '#2563eb',
-              boxShadow: '0 1px 3px rgba(37, 99, 235, 0.2)',
             }}
             title="Start automated security audit"
           >
@@ -594,16 +592,16 @@ export const OverviewPage: React.FC = () => {
                           return (
                             <div
                               style={{
-                                background: '#ffffff',
-                                border: '1px solid #e2e8f0',
+                                background: 'rgba(10, 18, 32, 0.95)',
+                                border: '1px solid rgba(56, 189, 248, 0.3)',
                                 padding: '8px 12px',
                                 borderRadius: '8px',
                                 fontSize: '12px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
                               }}
                             >
-                              <div style={{ fontWeight: 700, color: '#0f172a' }}>{data.name}</div>
-                              <div style={{ color: '#0d9488', fontWeight: 600, marginTop: '2px' }}>
+                              <div style={{ fontWeight: 700, color: '#f8fafc' }}>{data.name}</div>
+                              <div style={{ color: '#00f0ff', fontWeight: 600, marginTop: '2px' }}>
                                 {data.count} issues ({data.percentage}%)
                               </div>
                             </div>
@@ -1130,10 +1128,12 @@ export const OverviewPage: React.FC = () => {
             style={{
               width: '100%',
               maxWidth: '680px',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
+              background: 'rgba(6, 12, 22, 0.96)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(56, 189, 248, 0.28)',
               borderRadius: '14px',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 240, 255, 0.15)',
               overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
@@ -1148,7 +1148,7 @@ export const OverviewPage: React.FC = () => {
             <div
               className="px-4 py-3 sm:px-6 sm:py-4"
               style={{
-                borderBottom: '1px solid #e2e8f0',
+                borderBottom: '1px solid rgba(56, 189, 248, 0.18)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -1164,16 +1164,16 @@ export const OverviewPage: React.FC = () => {
                     borderRadius: '6px',
                     background:
                       selectedIssue.severity === 'critical'
-                        ? '#fef2f2'
-                        : '#fffbeb',
-                    color: selectedIssue.severity === 'critical' ? '#dc2626' : '#b45309',
-                    border: `1px solid ${selectedIssue.severity === 'critical' ? '#fecaca' : '#fde68a'}`,
+                        ? 'rgba(244, 63, 94, 0.15)'
+                        : 'rgba(245, 158, 11, 0.15)',
+                    color: selectedIssue.severity === 'critical' ? '#fb7185' : '#fcd34d',
+                    border: `1px solid ${selectedIssue.severity === 'critical' ? 'rgba(244, 63, 94, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
                   }}
                 >
                   {selectedIssue.severity}
                 </span>
-                <span style={{ fontSize: '13px', color: '#475569' }}>
-                  Risk Score: <strong style={{ color: '#0f172a' }}>{selectedIssue.score}/100</strong>
+                <span style={{ fontSize: '13px', color: '#94a3b8' }}>
+                  Risk Score: <strong style={{ color: '#00f0ff' }}>{selectedIssue.score}/100</strong>
                 </span>
               </div>
 
@@ -1182,7 +1182,7 @@ export const OverviewPage: React.FC = () => {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  color: '#64748b',
+                  color: '#94a3b8',
                   cursor: 'pointer',
                   padding: '6px',
                   minWidth: '40px',
@@ -1200,12 +1200,12 @@ export const OverviewPage: React.FC = () => {
             {/* Modal Body */}
             <div className="p-4 sm:p-6 overflow-y-auto flex flex-col gap-4">
               <div>
-                <h3 id="issue-detail-title" style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
+                <h3 id="issue-detail-title" style={{ fontSize: '17px', fontWeight: 800, color: '#f8fafc', lineHeight: 1.3 }}>
                   {selectedIssue.title}
                 </h3>
-                <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
                   Repository:{' '}
-                  <span style={{ color: '#0d9488', fontWeight: 700 }}>{selectedIssue.repository_name}</span>
+                  <span style={{ color: '#00f0ff', fontWeight: 700 }}>{selectedIssue.repository_name}</span>
                 </div>
               </div>
 
@@ -1217,33 +1217,33 @@ export const OverviewPage: React.FC = () => {
                   gap: '10px',
                   padding: '12px 14px',
                   borderRadius: '8px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  background: 'rgba(10, 18, 32, 0.7)',
+                  border: '1px solid rgba(56, 189, 248, 0.18)',
                   fontSize: '12px',
                 }}
               >
                 <div>
                   <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>Scanner Engine</div>
-                  <div style={{ color: '#0f172a', fontWeight: 700, marginTop: '2px' }}>{selectedIssue.scanner}</div>
+                  <div style={{ color: '#f8fafc', fontWeight: 700, marginTop: '2px' }}>{selectedIssue.scanner}</div>
                 </div>
                 <div>
                   <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>Rule ID / CWE</div>
-                  <div style={{ color: '#2563eb', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, marginTop: '2px' }}>
+                  <div style={{ color: '#00f0ff', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, marginTop: '2px' }}>
                     {selectedIssue.cwe_or_rule}
                   </div>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
                   <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>File & Line Location</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                    <div style={{ color: '#0f172a', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
+                    <div style={{ color: '#f8fafc', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
                       {selectedIssue.file_path || 'source_code'}
                     </div>
                     <span
                       style={{
                         fontSize: '11px',
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
-                        border: '1px solid #bfdbfe',
+                        background: 'rgba(56, 189, 248, 0.12)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(56, 189, 248, 0.25)',
                         padding: '1px 6px',
                         borderRadius: '4px',
                         fontWeight: 700,
@@ -1263,10 +1263,10 @@ export const OverviewPage: React.FC = () => {
                   borderRadius: '8px',
                   background:
                     selectedIssue.verification_status === 'false_positive'
-                      ? '#f0fdf4'
-                      : '#eff6ff',
+                      ? 'rgba(16, 185, 129, 0.12)'
+                      : 'rgba(56, 189, 248, 0.12)',
                   border: `1px solid ${
-                    selectedIssue.verification_status === 'false_positive' ? '#bbf7d0' : '#bfdbfe'
+                    selectedIssue.verification_status === 'false_positive' ? 'rgba(16, 185, 129, 0.35)' : 'rgba(56, 189, 248, 0.25)'
                   }`,
                   display: 'flex',
                   alignItems: 'center',
@@ -1274,8 +1274,8 @@ export const OverviewPage: React.FC = () => {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Current Verification Status</div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', textTransform: 'capitalize' }}>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>Current Verification Status</div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc', textTransform: 'capitalize' }}>
                     {selectedIssue.verification_status.replace('_', ' ')}
                   </div>
                 </div>
@@ -1303,8 +1303,8 @@ export const OverviewPage: React.FC = () => {
                       style={{
                         fontSize: '11px',
                         padding: '5px 12px',
-                        borderColor: '#059669',
-                        color: '#059669',
+                        borderColor: 'rgba(16, 185, 129, 0.5)',
+                        color: '#34d399',
                         fontWeight: 600,
                       }}
                     >
@@ -1319,11 +1319,11 @@ export const OverviewPage: React.FC = () => {
             <div
               style={{
                 padding: '14px 24px',
-                borderTop: '1px solid #e2e8f0',
+                borderTop: '1px solid rgba(56, 189, 248, 0.18)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: '#f8fafc',
+                background: 'rgba(6, 12, 22, 0.98)',
               }}
             >
               <button

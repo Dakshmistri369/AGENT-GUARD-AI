@@ -46,6 +46,7 @@ import type {
   FindingSolution,
   RepositorySolutionPlan,
 } from '../types';
+import { EmbeddedCyberRadar } from '../components/scans/EmbeddedCyberRadar';
 
 const SCAN_STAGES = [
   { id: 'validating', label: '1. Validating Repository' },
@@ -1249,20 +1250,21 @@ export const RepositoriesPage: React.FC = () => {
                     fontSize: '12px',
                     padding: '5px 12px',
                     borderRadius: '6px',
-                    background: isSelected ? '#eff6ff' : '#f8fafc',
-                    color: isSelected ? '#1d4ed8' : '#0f172a',
-                    border: isSelected ? '1px solid #93c5fd' : '1px solid #cbd5e1',
-                    fontWeight: isSelected ? 600 : 500,
+                    background: isSelected ? 'rgba(0, 240, 255, 0.15)' : 'rgba(15, 23, 42, 0.7)',
+                    color: isSelected ? '#00f0ff' : '#94a3b8',
+                    border: isSelected ? '1px solid rgba(0, 240, 255, 0.5)' : '1px solid rgba(56, 189, 248, 0.2)',
+                    fontWeight: isSelected ? 700 : 500,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
+                    boxShadow: isSelected ? '0 0 10px rgba(0, 240, 255, 0.15)' : 'none',
                     transition: 'all 0.15s ease',
                   }}
                   aria-pressed={isSelected}
                   aria-label={`Select repository ${repo.full_name}`}
                 >
-                  <GitBranch size={12} color={isSelected ? '#1d4ed8' : '#64748b'} />
+                  <GitBranch size={12} color={isSelected ? '#00f0ff' : '#64748b'} />
                   <span>{repo.full_name}</span>
                 </button>
               );
@@ -1584,8 +1586,8 @@ export const RepositoriesPage: React.FC = () => {
             {/* Inspection Pills */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginTop: '20px' }}>
               {/* Languages */}
-              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                <div style={{ fontSize: '11px', color: '#0f172a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+              <div style={{ background: 'rgba(8, 14, 26, 0.75)', padding: '14px 16px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.18)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Detected Languages
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1598,9 +1600,9 @@ export const RepositoriesPage: React.FC = () => {
                           fontWeight: 600,
                           padding: '3px 9px',
                           borderRadius: '6px',
-                          background: '#eff6ff',
-                          color: '#1d4ed8',
-                          border: '1px solid #bfdbfe',
+                          background: 'rgba(56, 189, 248, 0.12)',
+                          color: '#38bdf8',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
                         }}
                       >
                         {lang}
@@ -1613,8 +1615,8 @@ export const RepositoriesPage: React.FC = () => {
               </div>
 
               {/* Manifests */}
-              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                <div style={{ fontSize: '11px', color: '#0f172a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+              <div style={{ background: 'rgba(8, 14, 26, 0.75)', padding: '14px 16px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.18)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Detected Manifests
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1627,9 +1629,9 @@ export const RepositoriesPage: React.FC = () => {
                           fontWeight: 600,
                           padding: '3px 9px',
                           borderRadius: '6px',
-                          background: '#f0fdf4',
-                          color: '#15803d',
-                          border: '1px solid #bbf7d0',
+                          background: 'rgba(16, 185, 129, 0.12)',
+                          color: '#34d399',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
                         }}
                       >
                         {m}
@@ -1642,8 +1644,8 @@ export const RepositoriesPage: React.FC = () => {
               </div>
 
               {/* Test & Config */}
-              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                <div style={{ fontSize: '11px', color: '#0f172a', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+              <div style={{ background: 'rgba(8, 14, 26, 0.75)', padding: '14px 16px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.18)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Test & CI Detection
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1656,9 +1658,9 @@ export const RepositoriesPage: React.FC = () => {
                           fontWeight: 600,
                           padding: '3px 9px',
                           borderRadius: '6px',
-                          background: '#faf5ff',
-                          color: '#7e22ce',
-                          border: '1px solid #e9d5ff',
+                          background: 'rgba(168, 85, 247, 0.12)',
+                          color: '#c084fc',
+                          border: '1px solid rgba(168, 85, 247, 0.3)',
                         }}
                       >
                         📁 {t}
@@ -1674,9 +1676,9 @@ export const RepositoriesPage: React.FC = () => {
                         fontWeight: 600,
                         padding: '3px 9px',
                         borderRadius: '6px',
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
-                        border: '1px solid #bfdbfe',
+                        background: 'rgba(56, 189, 248, 0.12)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(56, 189, 248, 0.3)',
                       }}
                     >
                       ⚡ Workflows ({meta.workflow_files.length})
@@ -1687,13 +1689,22 @@ export const RepositoriesPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 6-Stage Security Verification Stepper */}
+          {/* 6-Stage Security Verification Stepper & Embedded Cyber Radar Console */}
           {(isScanning || currentScan) && (
             <div className="glass-card p-3.5 sm:p-5">
+              {/* Native In-Page Cyber Radar Console */}
+              <EmbeddedCyberRadar
+                scan={currentScan}
+                isScanning={isScanning}
+                repoName={activeRepo.full_name}
+                branch={targetBranch.trim() || activeRepo.default_branch}
+                commitSha={activeRepo.pinned_sha || currentScan?.commit_sha}
+              />
+
               <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   {isScanning ? (
-                    <RotateCw size={15} className="animate-spin flex-shrink-0" color="var(--electric-blue-bright)" />
+                    <RotateCw size={15} className="animate-spin flex-shrink-0" color="var(--electric-blue)" />
                   ) : currentScan?.status === 'completed' ? (
                     <CheckCircle2 size={16} className="flex-shrink-0" color="var(--accent-green)" />
                   ) : currentScan?.status === 'failed' ? (
@@ -1701,7 +1712,7 @@ export const RepositoriesPage: React.FC = () => {
                   ) : (
                     <Clock size={16} className="flex-shrink-0" color="var(--text-muted)" />
                   )}
-                  <span style={{ wordBreak: 'break-word' }}>
+                  <span style={{ wordBreak: 'break-word', color: '#f8fafc' }}>
                     {isScanning
                       ? currentScan?.status === 'queued'
                         ? `Scan #${currentScan?.id} Queued — Preparing Scanner Slot...`
@@ -1726,35 +1737,7 @@ export const RepositoriesPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Real-time Progress Bar */}
-              {(isScanning || (currentScan && currentScan.status === 'running')) && (
-                <div style={{ width: '100%', height: '5px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', overflow: 'hidden', marginBottom: '14px' }}>
-                  <div
-                    style={{
-                      width: `${
-                        currentScan?.status === 'completed'
-                          ? 100
-                          : currentScan?.status === 'queued'
-                          ? 5
-                          : currentScan?.configuration?.progress_percent || (
-                              currentScan?.stage === 'validating' ? 10 :
-                              currentScan?.stage === 'fetching_metadata' ? 25 :
-                              currentScan?.stage === 'inspecting_file_tree' ? 40 :
-                              currentScan?.stage === 'running_scanners' ? 65 :
-                              currentScan?.stage === 'reviewing_evidence' ? 85 :
-                              currentScan?.stage === 'generating_report' ? 95 : 10
-                            )
-                      }%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #38bdf8, #2563eb)',
-                      transition: 'width 0.4s ease-in-out',
-                      borderRadius: '3px',
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* 6 Stages Grid - Responsive 1 col on phone, 2 on small tablet, 3 on tablet, 6 on desktop */}
+              {/* 6 Stages Grid - Responsive Cyber Telemetry Pills */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
                 {SCAN_STAGES.map((stg, idx) => {
                   const isScanRunning = isScanning || currentScan?.status === 'running' || currentScan?.status === 'queued' || currentScan?.status === 'pending';
@@ -1793,42 +1776,44 @@ export const RepositoriesPage: React.FC = () => {
                         padding: '10px 12px',
                         borderRadius: '8px',
                         background: isStageFailed
-                          ? 'rgba(244, 63, 94, 0.08)'
+                          ? 'rgba(244, 63, 94, 0.15)'
                           : isStageDone
-                          ? '#f0fdf4'
+                          ? 'rgba(16, 185, 129, 0.12)'
                           : isStageCurrent
-                          ? '#eff6ff'
-                          : '#f8fafc',
+                          ? 'rgba(0, 240, 255, 0.15)'
+                          : 'rgba(15, 23, 42, 0.6)',
                         border: isStageFailed
-                          ? '1px solid rgba(244, 63, 94, 0.4)'
+                          ? '1px solid rgba(244, 63, 94, 0.45)'
                           : isStageDone
-                          ? '1px solid #86efac'
+                          ? '1px solid rgba(16, 185, 129, 0.4)'
                           : isStageCurrent
-                          ? '1px solid #3b82f6'
-                          : '1px solid #e2e8f0',
+                          ? '1px solid rgba(0, 240, 255, 0.5)'
+                          : '1px solid rgba(56, 189, 248, 0.14)',
+                        boxShadow: isStageCurrent ? '0 0 14px rgba(0, 240, 255, 0.25)' : 'none',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
                         fontSize: '12px',
                         color: isStageFailed
-                          ? 'var(--accent-rose)'
+                          ? '#fb7185'
                           : isStageDone
-                          ? '#15803d'
+                          ? '#34d399'
                           : isStageCurrent
-                          ? '#1d4ed8'
-                          : '#475569',
+                          ? '#00f0ff'
+                          : '#64748b',
+                        transition: 'all 0.2s ease',
                       }}
                     >
                       {isStageFailed ? (
-                        <XCircle size={13} color="var(--accent-rose)" />
+                        <XCircle size={13} color="#fb7185" />
                       ) : isStageDone ? (
-                        <CheckCircle2 size={13} color="var(--accent-green)" />
+                        <CheckCircle2 size={13} color="#34d399" />
                       ) : isStageCurrent ? (
-                        <RotateCw size={13} className="animate-spin" color="var(--electric-blue-bright)" />
+                        <RotateCw size={13} className="animate-spin" color="#00f0ff" />
                       ) : (
-                        <Clock size={13} color="var(--text-muted)" />
+                        <Clock size={13} color="#64748b" />
                       )}
-                      <span style={{ fontWeight: isStageFailed || isStageCurrent ? 600 : 400 }}>
+                      <span style={{ fontWeight: isStageFailed || isStageCurrent ? 700 : 500 }}>
                         {stg.label}{isStageFailed ? ' (Failed)' : ''}
                       </span>
                     </div>
@@ -1841,15 +1826,15 @@ export const RepositoriesPage: React.FC = () => {
                   marginTop: '12px',
                   padding: '12px 14px',
                   borderRadius: '6px',
-                  background: currentScan.status === 'failed' ? 'rgba(244, 63, 94, 0.1)' : 'rgba(245, 158, 11, 0.08)',
-                  border: currentScan.status === 'failed' ? '1px solid rgba(244, 63, 94, 0.3)' : '1px solid rgba(245, 158, 11, 0.35)',
-                  color: currentScan.status === 'failed' ? 'var(--accent-rose)' : '#b45309',
+                  background: currentScan.status === 'failed' ? 'rgba(244, 63, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  border: currentScan.status === 'failed' ? '1px solid rgba(244, 63, 94, 0.45)' : '1px solid rgba(245, 158, 11, 0.4)',
+                  color: currentScan.status === 'failed' ? '#fb7185' : '#fcd34d',
                   fontSize: '12px',
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '8px',
                 }}>
-                  <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: '2px', color: currentScan.status === 'failed' ? 'var(--accent-rose)' : '#d97706' }} />
+                  <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: '2px', color: currentScan.status === 'failed' ? '#fb7185' : '#fcd34d' }} />
                   <div>
                     <strong>{currentScan.status === 'failed' ? 'Scan Failure: ' : 'Coverage Warning: '}</strong>
                     {currentScan.error_message}
@@ -2058,43 +2043,43 @@ export const RepositoriesPage: React.FC = () => {
 
                   {/* Summary Metric Counters */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid #00f0ff', boxShadow: '0 0 15px rgba(0, 240, 255, 0.1)' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#f8fafc' }}>
                         {metricsSource.total}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         Total Findings
                       </div>
                     </div>
-                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid var(--accent-rose)' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#f87171' }}>
+                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid #f43f5e', boxShadow: '0 0 15px rgba(244, 63, 94, 0.1)' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#fb7185' }}>
                         {metricsSource.critical}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         Critical
                       </div>
                     </div>
-                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid var(--accent-amber)' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#fbbf24' }}>
+                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid #f59e0b', boxShadow: '0 0 15px rgba(245, 158, 11, 0.1)' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#fcd34d' }}>
                         {metricsSource.high}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         High
                       </div>
                     </div>
-                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid var(--electric-blue)' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#60a5fa' }}>
+                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid #38bdf8', boxShadow: '0 0 15px rgba(56, 189, 248, 0.1)' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#7dd3fc' }}>
                         {metricsSource.medium}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         Medium
                       </div>
                     </div>
-                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid var(--accent-green)' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#34d399' }}>
+                    <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid #10b981', boxShadow: '0 0 15px rgba(16, 185, 129, 0.1)' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#6ee7b7' }}>
                         {metricsSource.low}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         Low / Info
                       </div>
                     </div>
@@ -2105,25 +2090,25 @@ export const RepositoriesPage: React.FC = () => {
                     {/* Header Row: Title, Scope Switcher, and Save/Export Action Toolbar */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px', paddingBottom: '14px', borderBottom: '1px solid var(--border)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                          <AlertTriangle size={18} color="var(--electric-blue-bright)" />
+                        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                          <AlertTriangle size={18} color="#00f0ff" />
                           Issues in Repositories ({filteredFindings.length})
                         </h3>
 
                         {/* Scope Switcher Pills */}
-                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'inline-flex', background: 'rgba(15, 23, 42, 0.85)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
                           <button
                             onClick={() => setFindingsScope('current')}
                             style={{
-                              background: findingsScope === 'current' ? '#ffffff' : 'transparent',
-                              color: findingsScope === 'current' ? '#1d4ed8' : '#64748b',
-                              border: 'none',
+                              background: findingsScope === 'current' ? 'rgba(0, 240, 255, 0.15)' : 'transparent',
+                              color: findingsScope === 'current' ? '#00f0ff' : '#94a3b8',
+                              border: findingsScope === 'current' ? '1px solid rgba(0, 240, 255, 0.35)' : '1px solid transparent',
                               borderRadius: '6px',
                               padding: '4px 10px',
                               fontSize: '11px',
                               fontWeight: findingsScope === 'current' ? 700 : 500,
                               cursor: 'pointer',
-                              boxShadow: findingsScope === 'current' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                              boxShadow: findingsScope === 'current' ? '0 0 8px rgba(0, 240, 255, 0.15)' : 'none',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '5px',
@@ -2131,9 +2116,9 @@ export const RepositoriesPage: React.FC = () => {
                             }}
                             title="Show issues in selected repository only"
                           >
-                            <GitBranch size={12} color={findingsScope === 'current' ? '#1d4ed8' : '#64748b'} />
+                            <GitBranch size={12} color={findingsScope === 'current' ? '#00f0ff' : '#64748b'} />
                             <span>{activeRepo?.name || 'Current Repo'}</span>
-                            <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', background: findingsScope === 'current' ? '#dbeafe' : '#e2e8f0' }}>
+                            <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', background: findingsScope === 'current' ? 'rgba(0, 240, 255, 0.25)' : 'rgba(56, 189, 248, 0.1)' }}>
                               {scanReport?.findings?.length || 0}
                             </span>
                           </button>
@@ -2144,15 +2129,15 @@ export const RepositoriesPage: React.FC = () => {
                               loadAllRepositoryFindings();
                             }}
                             style={{
-                              background: findingsScope === 'all' ? '#ffffff' : 'transparent',
-                              color: findingsScope === 'all' ? '#1d4ed8' : '#64748b',
-                              border: 'none',
+                              background: findingsScope === 'all' ? 'rgba(0, 240, 255, 0.15)' : 'transparent',
+                              color: findingsScope === 'all' ? '#00f0ff' : '#94a3b8',
+                              border: findingsScope === 'all' ? '1px solid rgba(0, 240, 255, 0.35)' : '1px solid transparent',
                               borderRadius: '6px',
                               padding: '4px 10px',
                               fontSize: '11px',
                               fontWeight: findingsScope === 'all' ? 700 : 500,
                               cursor: 'pointer',
-                              boxShadow: findingsScope === 'all' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                              boxShadow: findingsScope === 'all' ? '0 0 8px rgba(0, 240, 255, 0.15)' : 'none',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '5px',
@@ -2160,9 +2145,9 @@ export const RepositoriesPage: React.FC = () => {
                             }}
                             title="Show and save all issues across all connected repositories"
                           >
-                            {isLoadingAllFindings ? <RotateCw size={12} className="animate-spin" /> : <Layers size={12} color={findingsScope === 'all' ? '#1d4ed8' : '#64748b'} />}
+                            {isLoadingAllFindings ? <RotateCw size={12} className="animate-spin" /> : <Layers size={12} color={findingsScope === 'all' ? '#00f0ff' : '#64748b'} />}
                             <span>All Repositories</span>
-                            <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', background: findingsScope === 'all' ? '#dbeafe' : '#e2e8f0' }}>
+                            <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '4px', background: findingsScope === 'all' ? 'rgba(0, 240, 255, 0.25)' : 'rgba(56, 189, 248, 0.1)' }}>
                               {isLoadingAllFindings ? '...' : allRepoFindings.length}
                             </span>
                           </button>
@@ -2599,7 +2584,7 @@ export const RepositoriesPage: React.FC = () => {
                                   {/* Expanded Detail Row */}
                                   {isExpanded && (
                                     <tr>
-                                      <td colSpan={findingsScope === 'all' ? 7 : 6} style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                                      <td colSpan={findingsScope === 'all' ? 7 : 6} style={{ padding: '16px 20px', background: 'rgba(8, 14, 26, 0.95)', borderBottom: '1px solid var(--border)' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                           {/* Exact Location & Repository Header Banner */}
                                           <div
@@ -2611,22 +2596,22 @@ export const RepositoriesPage: React.FC = () => {
                                               gap: '8px',
                                               padding: '10px 14px',
                                               borderRadius: '6px',
-                                              background: '#eff6ff',
-                                              border: '1px solid #bfdbfe',
+                                              background: 'rgba(0, 240, 255, 0.1)',
+                                              border: '1px solid rgba(0, 240, 255, 0.25)',
                                             }}
                                           >
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', flexWrap: 'wrap' }}>
-                                              <Folder size={14} color="#2563eb" />
-                                              <span style={{ color: '#1e3a8a', fontWeight: 600 }}>File & Line Location:</span>
-                                              <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#1d4ed8', fontWeight: 700 }}>
+                                              <Folder size={14} color="#00f0ff" />
+                                              <span style={{ color: '#f8fafc', fontWeight: 600 }}>File & Line Location:</span>
+                                              <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#00f0ff', fontWeight: 700 }}>
                                                 {finding.file_path ? `${finding.file_path}:${finding.line_number || 1}${finding.line_end && finding.line_end !== (finding.line_number || 1) ? `-${finding.line_end}` : ''}` : `manifest:Line ${finding.line_number || 1}`}
                                               </span>
                                               <span
                                                 style={{
                                                   fontSize: '11px',
-                                                  background: '#dbeafe',
-                                                  color: '#1e40af',
-                                                  border: '1px solid #bfdbfe',
+                                                  background: 'rgba(0, 240, 255, 0.2)',
+                                                  color: '#00f0ff',
+                                                  border: '1px solid rgba(0, 240, 255, 0.35)',
                                                   padding: '1px 7px',
                                                   borderRadius: '4px',
                                                   fontWeight: 700,
@@ -2636,7 +2621,7 @@ export const RepositoriesPage: React.FC = () => {
                                                 Line {finding.line_number || 1}{finding.line_end && finding.line_end !== (finding.line_number || 1) ? `-${finding.line_end}` : ''}
                                               </span>
                                               {finding.repository_name && (
-                                                <span style={{ color: '#64748b', fontSize: '11px', marginLeft: '6px' }}>
+                                                <span style={{ color: '#94a3b8', fontSize: '11px', marginLeft: '6px' }}>
                                                   (Repository: <strong>{finding.repository_name}</strong>)
                                                 </span>
                                               )}
@@ -3324,8 +3309,8 @@ export const RepositoriesPage: React.FC = () => {
 
                     {/* Quick-Fix CLI Commands */}
                     {solutionPlan?.quick_fix_cli_commands && solutionPlan.quick_fix_cli_commands.length > 0 && (
-                      <div style={{ marginTop: '14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ marginTop: '14px', background: 'rgba(8, 14, 26, 0.75)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '8px', padding: '14px 16px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#34d399', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Terminal size={14} /> Batch Terminal Upgrade Commands:
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -3336,14 +3321,14 @@ export const RepositoriesPage: React.FC = () => {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                background: '#ffffff',
-                                border: '1px solid #cbd5e1',
+                                background: '#040810',
+                                border: '1px solid rgba(56, 189, 248, 0.25)',
                                 borderRadius: '6px',
                                 padding: '8px 12px',
                                 gap: '12px',
                               }}
                             >
-                              <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#0f172a', overflowX: 'auto', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>
+                              <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '12px', color: '#38bdf8', overflowX: 'auto', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>
                                 $ {cmd}
                               </code>
                               <button
@@ -3383,9 +3368,10 @@ export const RepositoriesPage: React.FC = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: selectedSolutionFilter === 'all' ? '#2563eb' : '#ffffff',
-                        color: selectedSolutionFilter === 'all' ? '#fff' : '#334155',
-                        border: selectedSolutionFilter === 'all' ? '1px solid #2563eb' : '1px solid #cbd5e1',
+                        background: selectedSolutionFilter === 'all' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'rgba(15, 23, 42, 0.7)',
+                        color: selectedSolutionFilter === 'all' ? '#fff' : '#94a3b8',
+                        border: selectedSolutionFilter === 'all' ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.2)',
+                        boxShadow: selectedSolutionFilter === 'all' ? '0 0 10px rgba(0, 240, 255, 0.25)' : 'none',
                       }}
                     >
                       All Solutions ({solutionPlan?.total_solutions ?? 0})
@@ -3398,9 +3384,9 @@ export const RepositoriesPage: React.FC = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: selectedSolutionFilter === 'code_diff' ? '#2563eb' : '#ffffff',
-                        color: selectedSolutionFilter === 'code_diff' ? '#fff' : '#334155',
-                        border: selectedSolutionFilter === 'code_diff' ? '1px solid #2563eb' : '1px solid #cbd5e1',
+                        background: selectedSolutionFilter === 'code_diff' ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'rgba(15, 23, 42, 0.7)',
+                        color: selectedSolutionFilter === 'code_diff' ? '#fff' : '#94a3b8',
+                        border: selectedSolutionFilter === 'code_diff' ? '1px solid #38bdf8' : '1px solid rgba(56, 189, 248, 0.2)',
                       }}
                     >
                       Code Diffs ({solutionPlan?.code_diffs_count ?? 0})
@@ -3413,9 +3399,9 @@ export const RepositoriesPage: React.FC = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: selectedSolutionFilter === 'dependency_upgrade' ? '#0d9488' : '#ffffff',
-                        color: selectedSolutionFilter === 'dependency_upgrade' ? '#fff' : '#334155',
-                        border: selectedSolutionFilter === 'dependency_upgrade' ? '1px solid #0d9488' : '1px solid #cbd5e1',
+                        background: selectedSolutionFilter === 'dependency_upgrade' ? 'linear-gradient(135deg, #059669, #047857)' : 'rgba(15, 23, 42, 0.7)',
+                        color: selectedSolutionFilter === 'dependency_upgrade' ? '#fff' : '#94a3b8',
+                        border: selectedSolutionFilter === 'dependency_upgrade' ? '1px solid #34d399' : '1px solid rgba(56, 189, 248, 0.2)',
                       }}
                     >
                       Dependency Upgrades ({solutionPlan?.dependency_upgrades_count ?? 0})
@@ -3428,9 +3414,9 @@ export const RepositoriesPage: React.FC = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: selectedSolutionFilter === 'secret_removal' ? '#e11d48' : '#ffffff',
-                        color: selectedSolutionFilter === 'secret_removal' ? '#fff' : '#334155',
-                        border: selectedSolutionFilter === 'secret_removal' ? '1px solid #e11d48' : '1px solid #cbd5e1',
+                        background: selectedSolutionFilter === 'secret_removal' ? 'linear-gradient(135deg, #e11d48, #be123c)' : 'rgba(15, 23, 42, 0.7)',
+                        color: selectedSolutionFilter === 'secret_removal' ? '#fff' : '#94a3b8',
+                        border: selectedSolutionFilter === 'secret_removal' ? '1px solid #fb7185' : '1px solid rgba(56, 189, 248, 0.2)',
                       }}
                     >
                       Secret Removals ({solutionPlan?.secret_removals_count ?? 0})
@@ -3805,22 +3791,22 @@ export const RepositoriesPage: React.FC = () => {
                   style={{
                     padding: '22px 24px',
                     border: '1px solid var(--border)',
-                    background: '#ffffff',
+                    background: 'rgba(10, 18, 32, 0.85)',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Sparkles size={18} color="var(--electric-blue)" />
-                      <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      <Sparkles size={18} color="#00f0ff" />
+                      <span style={{ fontSize: '16px', fontWeight: 800, color: '#f8fafc' }}>
                         NVIDIA Nemotron • LangGraph 4-Agent Security Audit
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontWeight: 600 }}>
+                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 240, 255, 0.12)', color: '#00f0ff', border: '1px solid rgba(0, 240, 255, 0.3)', fontWeight: 600 }}>
                         Model: {scanReport.ai_analysis.model || 'NVIDIA Nemotron'}
                       </span>
                       {scanReport.ai_analysis.is_fallback && (
-                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 600 }}>
+                        <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#fcd34d', border: '1px solid rgba(245, 158, 11, 0.4)', fontWeight: 600 }}>
                           Deterministic Heuristic Fallback
                         </span>
                       )}
@@ -3828,18 +3814,18 @@ export const RepositoriesPage: React.FC = () => {
                   </div>
 
                   {/* LangGraph Pipeline Stage Indicator */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '14px', flexWrap: 'wrap' }}>
-                    <span style={{ color: '#0f766e', fontWeight: 600 }}>Orchestration Pipeline:</span>
-                    <span style={{ background: '#f1f5f9', color: '#0f172a', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>1. Threat Modeler</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#94a3b8', marginBottom: '14px', flexWrap: 'wrap' }}>
+                    <span style={{ color: '#00f0ff', fontWeight: 600 }}>Orchestration Pipeline:</span>
+                    <span style={{ background: 'rgba(15, 23, 42, 0.85)', color: '#f8fafc', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>1. Threat Modeler</span>
                     <span>→</span>
-                    <span style={{ background: '#f1f5f9', color: '#0f172a', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>2. Test Strategist</span>
+                    <span style={{ background: 'rgba(15, 23, 42, 0.85)', color: '#f8fafc', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>2. Test Strategist</span>
                     <span>→</span>
-                    <span style={{ background: '#f1f5f9', color: '#0f172a', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>3. Evidence Analyst</span>
+                    <span style={{ background: 'rgba(15, 23, 42, 0.85)', color: '#f8fafc', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>3. Evidence Analyst</span>
                     <span>→</span>
-                    <span style={{ background: '#f1f5f9', color: '#0f172a', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>4. Remediation Verifier</span>
+                    <span style={{ background: 'rgba(15, 23, 42, 0.85)', color: '#f8fafc', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>4. Remediation Verifier</span>
                   </div>
 
-                  <p style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: '16px' }}>
+                  <p style={{ fontSize: '13px', color: '#f8fafc', lineHeight: 1.6, marginBottom: '16px' }}>
                     {scanReport.ai_analysis.executive_summary}
                   </p>
 
@@ -3847,8 +3833,8 @@ export const RepositoriesPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-3">
                     {/* Agent 1: Threat Modeler */}
                     {scanReport.ai_analysis.threat_model && (
-                      <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #bfdbfe', borderTop: '3px solid #2563eb' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#1d4ed8', marginBottom: '6px' }}>
+                      <div style={{ background: 'rgba(10, 18, 32, 0.75)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)', borderTop: '3px solid #00f0ff' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#00f0ff', marginBottom: '6px' }}>
                           Agent 1 • Threat Modeler
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
@@ -3868,8 +3854,8 @@ export const RepositoriesPage: React.FC = () => {
 
                     {/* Agent 2: Test Strategist */}
                     {scanReport.ai_analysis.test_strategy && (
-                      <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #bbf7d0', borderTop: '3px solid #16a34a' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>
+                      <div style={{ background: 'rgba(10, 18, 32, 0.75)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.25)', borderTop: '3px solid #10b981' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#34d399', marginBottom: '6px' }}>
                           Agent 2 • Test Strategist
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
@@ -3889,18 +3875,18 @@ export const RepositoriesPage: React.FC = () => {
 
                     {/* Agent 3: Evidence Analyst */}
                     {scanReport.ai_analysis.evidence_analysis && (
-                      <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #fde68a', borderTop: '3px solid #d97706' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#b45309', marginBottom: '6px' }}>
+                      <div style={{ background: 'rgba(10, 18, 32, 0.75)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.25)', borderTop: '3px solid #f59e0b' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#fcd34d', marginBottom: '6px' }}>
                           Agent 3 • Evidence Analyst
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                           {scanReport.ai_analysis.evidence_analysis.analysis_summary}
                         </div>
                         <div style={{ display: 'flex', gap: '10px', fontSize: '11px' }}>
-                          <span style={{ color: '#15803d' }}>
+                          <span style={{ color: '#34d399' }}>
                             Verified Proof: <strong>{scanReport.ai_analysis.evidence_analysis.verified_findings_count ?? 0}</strong>
                           </span>
-                          <span style={{ color: '#b45309' }}>
+                          <span style={{ color: '#fcd34d' }}>
                             Unverified/Heuristic: <strong>{scanReport.ai_analysis.evidence_analysis.unverified_findings_count ?? 0}</strong>
                           </span>
                         </div>
@@ -3909,15 +3895,15 @@ export const RepositoriesPage: React.FC = () => {
 
                     {/* Agent 4: Remediation Verifier */}
                     {scanReport.ai_analysis.remediation_plan && (
-                      <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #99f6e4', borderTop: '3px solid #0d9488' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f766e', marginBottom: '6px' }}>
+                      <div style={{ background: 'rgba(10, 18, 32, 0.75)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.25)', borderTop: '3px solid #a855f7' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#c084fc', marginBottom: '6px' }}>
                           Agent 4 • Remediation Verifier
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                           {scanReport.ai_analysis.remediation_plan.executive_remediation_summary}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Status: <strong style={{ color: '#b45309' }}>Unverified</strong> (Requires passing CI test assertions)
+                          Status: <strong style={{ color: '#fcd34d' }}>Unverified</strong> (Requires passing CI test assertions)
                         </div>
                       </div>
                     )}

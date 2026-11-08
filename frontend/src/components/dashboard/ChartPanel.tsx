@@ -25,13 +25,15 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
       style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        background: 'rgba(10, 18, 32, 0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(56, 189, 248, 0.18)',
         borderRadius: '12px',
         padding: '20px 22px',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+        boxShadow: '0 4px 24px -2px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(56, 189, 248, 0.08)',
         minHeight,
         height: '100%',
         position: 'relative',
@@ -52,7 +54,7 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
             style={{
               fontSize: '14px',
               fontWeight: 700,
-              color: '#0f172a',
+              color: '#f8fafc',
               letterSpacing: '-0.1px',
               margin: 0,
             }}
@@ -70,7 +72,7 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
                 borderRadius: '4px',
                 transition: 'color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#0f172a')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#00f0ff')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
               aria-label={infoTooltip}
             >

@@ -252,9 +252,6 @@ export const SettingsPage: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
-        borderColor: '#e2e8f0',
-        background: '#ffffff',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
       }}>
         <AnimatedBrandLogo variant="full" size="lg" />
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.6 }}>

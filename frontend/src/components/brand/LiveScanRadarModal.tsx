@@ -31,20 +31,50 @@ export const LiveScanRadarModal: React.FC<LiveScanRadarModalProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('agentguard_cyber_sound') !== 'true';
+    } catch {
+      return false;
+    }
+  });
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(10);
 
-  // Restart video playback when opened
+  // Sync mute state on open
   useEffect(() => {
     if (isOpen && videoRef.current) {
       videoRef.current.currentTime = 0;
-      videoRef.current.muted = isMuted;
+      const soundPref = localStorage.getItem('agentguard_cyber_sound') === 'true';
+      videoRef.current.muted = !soundPref;
+      setIsMuted(!soundPref);
+      if (soundPref) {
+        videoRef.current.volume = 0.85;
+      }
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
   }, [isOpen]);
+
+  // Sync with global sound toggle events
+  useEffect(() => {
+    const handleSoundChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const nextMuted = detail.muted !== undefined ? detail.muted : !isMuted;
+      setIsMuted(nextMuted);
+      if (videoRef.current) {
+        videoRef.current.muted = nextMuted;
+        if (!nextMuted) {
+          videoRef.current.volume = 0.85;
+          videoRef.current.play().catch(() => {});
+        }
+      }
+    };
+    window.addEventListener('agentguard:toggle-cyber-sound', handleSoundChange);
+    return () => window.removeEventListener('agentguard:toggle-cyber-sound', handleSoundChange);
+  }, [isMuted]);
 
   // Handle keyboard shortcuts (Escape to close, Space to toggle play/pause, M to mute/unmute)
   useEffect(() => {
@@ -83,6 +113,7 @@ export const LiveScanRadarModal: React.FC<LiveScanRadarModalProps> = ({
     setIsMuted(nextMuted);
     try {
       localStorage.setItem('agentguard_cyber_sound', nextMuted ? 'false' : 'true');
+      window.dispatchEvent(new CustomEvent('agentguard:toggle-cyber-sound', { detail: { muted: nextMuted } }));
     } catch {}
     if (!nextMuted) {
       videoRef.current.volume = 0.85;

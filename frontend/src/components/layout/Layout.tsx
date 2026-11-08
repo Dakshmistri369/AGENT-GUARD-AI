@@ -136,9 +136,9 @@ export const Layout: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f8fafc', position: 'relative' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#060b13', position: 'relative' }}>
       {/* Dynamic Cyber Video Background (with hardware acceleration & idle pause) */}
-      <CyberScanBackground opacity={0.25} />
+      <CyberScanBackground opacity={0.16} />
 
       {/* Permanent Desktop Sidebar (Hidden below lg breakpoint) */}
       <div className="hidden lg:flex">
@@ -160,12 +160,12 @@ export const Layout: React.FC = () => {
           {/* Backdrop */}
           <div
             onClick={() => setIsMobileNavOpen(false)}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs transition-opacity"
             aria-hidden="true"
           />
 
           {/* Slide-over Drawer with Safe-area padding */}
-          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] h-full bg-[#f8fafc] shadow-2xl flex flex-col z-10 animate-slide-in pt-safe pb-safe">
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] h-full bg-[#070d18] border-r border-[rgba(56,189,248,0.2)] shadow-2xl flex flex-col z-10 animate-slide-in pt-safe pb-safe">
             <Sidebar
               isMobileDrawer
               onCloseMobileDrawer={() => setIsMobileNavOpen(false)}
@@ -190,12 +190,12 @@ export const Layout: React.FC = () => {
           onToggleSidebar={handleToggleSidebar}
         />
 
-        {/* Content View */}
+        {/* Content View with seamless dark cyber transparency */}
         <main
           style={{
             flex: 1,
             overflowY: 'auto',
-            background: '#ffffff',
+            background: 'transparent',
             position: 'relative',
           }}
         >

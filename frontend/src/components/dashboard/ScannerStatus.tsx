@@ -27,7 +27,7 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
             style={{
               height: '48px',
               borderRadius: '8px',
-              background: '#f1f5f9',
+              background: 'rgba(56, 189, 248, 0.08)',
             }}
           />
         ))}
@@ -49,11 +49,11 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
           padding: '0 16px',
         }}
       >
-        <AlertCircle size={32} color="#dc2626" style={{ marginBottom: '8px' }} />
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+        <AlertCircle size={32} color="#f43f5e" style={{ marginBottom: '8px' }} />
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
           Scanner Health Unavailable
         </div>
-        <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px' }}>
+        <div style={{ fontSize: '12px', color: '#94a3b8', maxWidth: '280px', marginTop: '4px' }}>
           {errorMessage || 'Unable to connect to scanner coordinator.'}
         </div>
         {onRetry && (
@@ -83,11 +83,11 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
           textAlign: 'center',
         }}
       >
-        <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+        <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '8px' }} />
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
           Engines Operational
         </div>
-        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
           Semgrep, Bandit, detect-secrets, and OSV Scanner are active.
         </div>
       </div>
@@ -107,20 +107,20 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
               justifyContent: 'space-between',
               padding: '10px 14px',
               borderRadius: '8px',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              transition: 'background 0.15s ease',
+              background: 'rgba(10, 18, 32, 0.7)',
+              border: '1px solid rgba(56, 189, 248, 0.18)',
+              transition: 'all 0.15s ease',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
               {isOperational ? (
-                <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0 }} />
+                <CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />
               ) : (
-                <AlertCircle size={16} color="#d97706" style={{ flexShrink: 0 }} />
+                <AlertCircle size={16} color="#f59e0b" style={{ flexShrink: 0 }} />
               )}
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
                     {scanner.name}
                   </span>
                   {scanner.version && (
@@ -129,17 +129,18 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
                         fontSize: '10px',
                         padding: '1px 5px',
                         borderRadius: '4px',
-                        background: '#eff6ff',
-                        color: '#2563eb',
+                        background: 'rgba(0, 240, 255, 0.12)',
+                        color: '#00f0ff',
                         fontFamily: 'JetBrains Mono, monospace',
                         fontWeight: 600,
+                        border: '1px solid rgba(0, 240, 255, 0.25)',
                       }}
                     >
                       {scanner.version}
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '1px' }}>
+                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
                   {scanner.description}
                 </div>
               </div>
@@ -150,7 +151,7 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
                 style={{
                   fontSize: '11.5px',
                   fontWeight: 600,
-                  color: scanner.findings_count > 0 ? '#b45309' : '#059669',
+                  color: scanner.findings_count > 0 ? '#fcd34d' : '#34d399',
                 }}
               >
                 {scanner.findings_count > 0 ? `${scanner.findings_count} finding${scanner.findings_count === 1 ? '' : 's'}` : '0 findings (Active)'}
