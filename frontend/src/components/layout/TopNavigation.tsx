@@ -12,6 +12,9 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Radio,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import type { Repository } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -44,6 +47,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const [isCyberSoundActive, setIsCyberSoundActive] = React.useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('agentguard_cyber_sound') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Determine page title for breadcrumb
   const getPageTitle = () => {
@@ -257,6 +268,91 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         >
           <Play size={12} color="#7c3aed" fill="#7c3aed" />
           <span className="hidden sm:inline">Play Intro</span>
+        </button>
+
+        {/* Cyber Radar Visualizer Button */}
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('agentguard:open-cyber-radar', {
+                  detail: {
+                    repoName: repositories.find((r) => r.id === selectedRepoId)?.full_name || activeScanRepoName || 'Target Repository',
+                  },
+                })
+              );
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '12px',
+            fontWeight: 700,
+            color: '#0284c7',
+            background: 'rgba(2, 132, 199, 0.08)',
+            border: '1px solid rgba(2, 132, 199, 0.3)',
+            borderRadius: '6px',
+            padding: '6px 10px',
+            cursor: 'pointer',
+            minHeight: '36px',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(2, 132, 199, 0.15)';
+            e.currentTarget.style.borderColor = '#0284c7';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(2, 132, 199, 0.08)';
+            e.currentTarget.style.borderColor = 'rgba(2, 132, 199, 0.3)';
+          }}
+          title="Open Live Cyber Scan Radar Visualizer with Sound Effects"
+          aria-label="Open Live Cyber Scan Radar"
+        >
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: '#0284c7',
+              boxShadow: '0 0 8px #0284c7',
+              animation: 'pulse 1.5s infinite',
+            }}
+          />
+          <Radio size={13} color="#0284c7" />
+          <span className="hidden sm:inline">Cyber Radar</span>
+        </button>
+
+        {/* Audio Sound FX Toggle */}
+        <button
+          onClick={() => {
+            const nextSound = !isCyberSoundActive;
+            setIsCyberSoundActive(nextSound);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(
+                new CustomEvent('agentguard:toggle-cyber-sound', {
+                  detail: { muted: !nextSound },
+                })
+              );
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '36px',
+            height: '36px',
+            borderRadius: '6px',
+            border: isCyberSoundActive ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid #e2e8f0',
+            background: isCyberSoundActive ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+            color: isCyberSoundActive ? '#10b981' : '#64748b',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          title={isCyberSoundActive ? 'Mute Cyber Audio Effects' : 'Enable Cyber Audio Effects'}
+          aria-label="Toggle Cyber Sound"
+        >
+          {isCyberSoundActive ? <Volume2 size={16} /> : <VolumeX size={16} />}
         </button>
 
         {/* AI Assistant shortcut */}

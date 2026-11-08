@@ -3,6 +3,8 @@ import { Outlet, useNavigate, useSearchParams, useLocation } from 'react-router-
 import { Sidebar } from './Sidebar';
 import { TopNavigation } from './TopNavigation';
 import { AiAssistantDrawer } from '../ai/AiAssistantDrawer';
+import { CyberScanBackground } from '../brand/CyberScanBackground';
+import { LiveScanRadarModal } from '../brand/LiveScanRadarModal';
 import { api } from '../../lib/api';
 import type { Repository } from '../../types';
 import type { LogoScanState } from '../brand/AnimatedBrandLogo';
@@ -17,6 +19,12 @@ export const Layout: React.FC = () => {
   const [activeScanRepoName, setActiveScanRepoName] = useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
   const [isAiAssistantOpen, setIsAiAssistantOpen] = useState<boolean>(false);
+  const [isRadarModalOpen, setIsRadarModalOpen] = useState<boolean>(false);
+  const [radarModalData, setRadarModalData] = useState<{
+    repoName?: string | null;
+    branch?: string | null;
+    commitSha?: string | null;
+  }>({});
 
   // Desktop sidebar collapsed state with localStorage persistence
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
@@ -117,8 +125,21 @@ export const Layout: React.FC = () => {
     return () => window.removeEventListener('agentguard:open-ai-assistant', handleOpen);
   }, []);
 
+  useEffect(() => {
+    const handleOpenRadar = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      setRadarModalData(detail);
+      setIsRadarModalOpen(true);
+    };
+    window.addEventListener('agentguard:open-cyber-radar', handleOpenRadar);
+    return () => window.removeEventListener('agentguard:open-cyber-radar', handleOpenRadar);
+  }, []);
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f8fafc', position: 'relative' }}>
+      {/* Dynamic Cyber Video Background (with hardware acceleration & idle pause) */}
+      <CyberScanBackground opacity={0.25} />
+
       {/* Permanent Desktop Sidebar (Hidden below lg breakpoint) */}
       <div className="hidden lg:flex">
         <Sidebar
@@ -196,6 +217,20 @@ export const Layout: React.FC = () => {
           repositories[0]?.id ||
           null
         }
+      />
+
+      {/* Interactive Live Cyber Scan Radar Visualizer Modal */}
+      <LiveScanRadarModal
+        isOpen={isRadarModalOpen}
+        onClose={() => setIsRadarModalOpen(false)}
+        repoName={
+          radarModalData.repoName ||
+          repositories.find((r) => r.id === selectedRepoId)?.full_name ||
+          activeScanRepoName ||
+          'Active Repository'
+        }
+        branch={radarModalData.branch || 'main'}
+        commitSha={radarModalData.commitSha || 'HEAD'}
       />
     </div>
   );

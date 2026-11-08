@@ -29,4 +29,6 @@ backend/bin/*.bin
 !bin/.gitkeep
 !backend/bin/.gitkeep
 backend/load_testing/*.csv
+preview_*.mp4
+*.mp4.tmp
 

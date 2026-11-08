@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings as SettingsIcon, AlertCircle, Shield, Cpu, Database, Package, Sparkles, LogOut, ArrowRight } from 'lucide-react';
+import { Settings as SettingsIcon, AlertCircle, Shield, Cpu, Database, Package, Sparkles, LogOut, ArrowRight, Radio } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AnimatedBrandLogo } from '../components/brand/AnimatedBrandLogo';
 import { useAuth } from '../context/AuthContext';
@@ -166,6 +166,84 @@ export const SettingsPage: React.FC = () => {
           Configure them via environment variables or a secrets manager.
         </div>
       </div>
+
+      {/* Cybernetic Experience & Video Visualizer */}
+      <Section title="Cyber Experience & Radar Visualizer" icon={<Radio size={14} color="#0284c7" />}>
+        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Cybernetic Scanning Video Background
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Hardware-accelerated 3D radar video layer rendered subtly behind the security command center.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: '12px', padding: '6px 14px' }}
+              onClick={() => {
+                const current = localStorage.getItem('agentguard_cyber_bg') !== 'false';
+                localStorage.setItem('agentguard_cyber_bg', String(!current));
+                window.dispatchEvent(new CustomEvent('agentguard:toggle-cyber-bg', { detail: { enabled: !current } }));
+              }}
+            >
+              Toggle Video Background
+            </button>
+          </div>
+
+          <div style={{ height: '1px', background: '#e2e8f0' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Futuristic Audio Sound Effects (SFX)
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Synthesized sub-bass cyber drone, radar chirps, and audit completion chimes during scans.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: '12px', padding: '6px 14px' }}
+              onClick={() => {
+                const isMuted = localStorage.getItem('agentguard_cyber_sound') !== 'true';
+                localStorage.setItem('agentguard_cyber_sound', isMuted ? 'true' : 'false');
+                window.dispatchEvent(new CustomEvent('agentguard:toggle-cyber-sound', { detail: { muted: !isMuted } }));
+              }}
+            >
+              Toggle Audio Effects
+            </button>
+          </div>
+
+          <div style={{ height: '1px', background: '#e2e8f0' }} />
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn"
+              style={{
+                fontSize: '12px',
+                padding: '7px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #10b981 100%)',
+                color: '#ffffff',
+                fontWeight: 600,
+              }}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('agentguard:open-cyber-radar'));
+              }}
+            >
+              <Radio size={14} />
+              Launch Live Cyber Radar Visualizer
+            </button>
+          </div>
+        </div>
+      </Section>
 
       {/* About & Branding */}
       <div className="glass-card" style={{
