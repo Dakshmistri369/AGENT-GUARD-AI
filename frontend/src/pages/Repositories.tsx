@@ -1403,34 +1403,35 @@ export const RepositoriesPage: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.3px' }}>
                     {activeRepo.full_name}
                   </h2>
                   <a
                     href={activeRepo.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center' }}
+                    style={{ color: '#cbd5e1', display: 'inline-flex', alignItems: 'center' }}
                     title="Open on GitHub"
                     aria-label="Open repository on GitHub"
                   >
                     <ExternalLink size={15} />
                   </a>
                 </div>
-                <div style={{ display: 'flex', gap: '14px', marginTop: '8px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', gap: '14px', marginTop: '8px', flexWrap: 'wrap', fontSize: '12px', color: '#cbd5e1' }}>
                   <span>
-                    Default Branch: <strong style={{ color: '#0f766e', fontWeight: 700 }}>{activeRepo.default_branch}</strong>
+                    Default Branch: <strong style={{ color: '#34d399', fontWeight: 700 }}>{activeRepo.default_branch}</strong>
                   </span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     Commit SHA:{' '}
                     <code
                       style={{
-                        background: '#f1f5f9',
+                        background: 'rgba(15, 23, 42, 0.85)',
                         padding: '2px 6px',
                         borderRadius: '4px',
-                        border: '1px solid #cbd5e1',
-                        color: '#0f172a',
+                        border: '1px solid rgba(56, 189, 248, 0.25)',
+                        color: '#00f0ff',
                         fontWeight: 600,
+                        fontFamily: 'JetBrains Mono, monospace',
                       }}
                     >
                       {activeRepo.pinned_sha ? activeRepo.pinned_sha.slice(0, 7) : 'Unpinned'}
@@ -1443,7 +1444,7 @@ export const RepositoriesPage: React.FC = () => {
                             setTimeout(() => setCopiedSha(false), 1500);
                           })
                         }
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                        style={{ background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: '2px' }}
                         title="Copy full commit SHA"
                         aria-label="Copy commit SHA"
                       >
@@ -1452,13 +1453,13 @@ export const RepositoriesPage: React.FC = () => {
                     )}
                   </span>
                   <span>
-                    Files: <strong style={{ color: 'var(--text-primary)' }}>{meta?.file_count ?? 0}</strong>
+                    Files: <strong style={{ color: '#ffffff' }}>{meta?.file_count ?? 0}</strong>
                   </span>
                   <span>
-                    Directories: <strong style={{ color: 'var(--text-primary)' }}>{meta?.directory_count ?? 0}</strong>
+                    Directories: <strong style={{ color: '#ffffff' }}>{meta?.directory_count ?? 0}</strong>
                   </span>
                   <span>
-                    Size: <strong style={{ color: 'var(--text-primary)' }}>{meta?.size_kb ?? 0} KB</strong>
+                    Size: <strong style={{ color: '#ffffff' }}>{meta?.size_kb ?? 0} KB</strong>
                   </span>
                 </div>
               </div>
@@ -1587,7 +1588,7 @@ export const RepositoriesPage: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginTop: '20px' }}>
               {/* Languages */}
               <div style={{ background: 'rgba(8, 14, 26, 0.75)', padding: '14px 16px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.18)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-                <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#ffffff', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Detected Languages
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1609,14 +1610,14 @@ export const RepositoriesPage: React.FC = () => {
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>None detected</span>
+                    <span style={{ fontSize: '12px', color: '#cbd5e1' }}>None detected</span>
                   )}
                 </div>
               </div>
 
               {/* Manifests */}
               <div style={{ background: 'rgba(8, 14, 26, 0.75)', padding: '14px 16px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.18)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-                <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#ffffff', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Detected Manifests
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1638,14 +1639,14 @@ export const RepositoriesPage: React.FC = () => {
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>No manifests detected</span>
+                    <span style={{ fontSize: '12px', color: '#cbd5e1' }}>No manifests detected</span>
                   )}
                 </div>
               </div>
 
               {/* Test & Config */}
               <div style={{ background: 'rgba(8, 14, 26, 0.75)', padding: '14px 16px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.18)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-                <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
+                <div style={{ fontSize: '11px', color: '#ffffff', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
                   Test & CI Detection
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1667,7 +1668,7 @@ export const RepositoriesPage: React.FC = () => {
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>No test directories</span>
+                    <span style={{ fontSize: '12px', color: '#cbd5e1' }}>No test directories</span>
                   )}
                   {meta?.workflow_files && meta.workflow_files.length > 0 && (
                     <span
@@ -1800,7 +1801,7 @@ export const RepositoriesPage: React.FC = () => {
                           ? '#34d399'
                           : isStageCurrent
                           ? '#00f0ff'
-                          : '#64748b',
+                          : '#cbd5e1',
                         transition: 'all 0.2s ease',
                       }}
                     >
@@ -1811,7 +1812,7 @@ export const RepositoriesPage: React.FC = () => {
                       ) : isStageCurrent ? (
                         <RotateCw size={13} className="animate-spin" color="#00f0ff" />
                       ) : (
-                        <Clock size={13} color="#64748b" />
+                        <Clock size={13} color="#cbd5e1" />
                       )}
                       <span style={{ fontWeight: isStageFailed || isStageCurrent ? 700 : 500 }}>
                         {stg.label}{isStageFailed ? ' (Failed)' : ''}
@@ -2044,10 +2045,10 @@ export const RepositoriesPage: React.FC = () => {
                   {/* Summary Metric Counters */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                     <div className="glass-card" style={{ padding: '16px', textAlign: 'center', borderTop: '2px solid #00f0ff', boxShadow: '0 0 15px rgba(0, 240, 255, 0.1)' }}>
-                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#f8fafc' }}>
+                      <div style={{ fontSize: '24px', fontWeight: 800, color: '#ffffff' }}>
                         {metricsSource.total}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
+                      <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700, textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         Total Findings
                       </div>
                     </div>
@@ -2055,7 +2056,7 @@ export const RepositoriesPage: React.FC = () => {
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#fb7185' }}>
                         {metricsSource.critical}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
+                      <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700, textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         Critical
                       </div>
                     </div>
@@ -2063,7 +2064,7 @@ export const RepositoriesPage: React.FC = () => {
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#fcd34d' }}>
                         {metricsSource.high}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
+                      <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700, textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         High
                       </div>
                     </div>
@@ -2071,7 +2072,7 @@ export const RepositoriesPage: React.FC = () => {
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#7dd3fc' }}>
                         {metricsSource.medium}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
+                      <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700, textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         Medium
                       </div>
                     </div>
@@ -2079,7 +2080,7 @@ export const RepositoriesPage: React.FC = () => {
                       <div style={{ fontSize: '24px', fontWeight: 800, color: '#6ee7b7' }}>
                         {metricsSource.low}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
+                      <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700, textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
                         Low / Info
                       </div>
                     </div>
@@ -2813,11 +2814,11 @@ export const RepositoriesPage: React.FC = () => {
                                                 style={{
                                                   padding: '12px 14px',
                                                   borderRadius: '6px',
-                                                  background: '#ffffff',
-                                                  border: '1px solid #cbd5e1',
+                                                  background: 'rgba(6, 11, 20, 0.95)',
+                                                  border: '1px solid rgba(56, 189, 248, 0.25)',
                                                   fontFamily: 'JetBrains Mono, monospace',
                                                   fontSize: '12px',
-                                                  color: '#0f172a',
+                                                  color: '#f8fafc',
                                                   overflowX: 'auto',
                                                   whiteSpace: 'pre-wrap',
                                                   lineHeight: 1.5,
@@ -2987,12 +2988,12 @@ export const RepositoriesPage: React.FC = () => {
                                                         <div
                                                           style={{
                                                             padding: '8px 12px',
-                                                            background: '#f1f5f9',
-                                                            border: '1px solid #cbd5e1',
+                                                            background: 'rgba(15, 23, 42, 0.85)',
+                                                            border: '1px solid rgba(56, 189, 248, 0.25)',
                                                             borderRadius: '6px',
                                                             fontFamily: 'JetBrains Mono, monospace',
                                                             fontSize: '12px',
-                                                            color: '#0f172a',
+                                                            color: '#00f0ff',
                                                             overflowX: 'auto',
                                                             userSelect: 'all',
                                                           }}
@@ -3570,7 +3571,7 @@ export const RepositoriesPage: React.FC = () => {
 
                                   {sol.cli_command && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>
-                                      <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#0f172a' }}>
+                                      <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '11px', color: '#00f0ff' }}>
                                         $ {sol.cli_command}
                                       </code>
                                       <button

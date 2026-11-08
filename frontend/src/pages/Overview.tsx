@@ -160,7 +160,7 @@ export const OverviewPage: React.FC = () => {
               Current Posture
             </span>
           </div>
-          <p style={{ fontSize: '13px', color: '#94a3b8', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+          <p style={{ fontSize: '13px', color: '#cbd5e1', margin: '4px 0 0 0', lineHeight: 1.4 }}>
             Multi-engine AST security, dependency supply chain, and secret exposure monitor
           </p>
         </div>
@@ -270,14 +270,14 @@ export const OverviewPage: React.FC = () => {
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              background: '#2563eb',
-              boxShadow: '0 0 8px rgba(37,99,235,0.5)',
+              background: '#00f0ff',
+              boxShadow: '0 0 10px rgba(0, 240, 255, 0.7)',
             }}
           />
-          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#1e40af' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#38bdf8' }}>
             Demo Mode Active
           </span>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>
+          <span style={{ fontSize: '12px', color: '#cbd5e1' }}>
             — Direct web app access enabled. Private repositories and credentials remain protected.
           </span>
         </div>
@@ -286,9 +286,9 @@ export const OverviewPage: React.FC = () => {
             style={{
               fontSize: '11px',
               fontWeight: 600,
-              color: '#0d9488',
-              background: '#f0fdfa',
-              border: '1px solid #ccfbf1',
+              color: '#2dd4bf',
+              background: 'rgba(13, 148, 136, 0.2)',
+              border: '1px solid rgba(45, 212, 191, 0.4)',
               borderRadius: '4px',
               padding: '2px 8px',
             }}
@@ -542,10 +542,10 @@ export const OverviewPage: React.FC = () => {
               <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
             </div>
           ) : isError && !summary ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#cbd5e1', textAlign: 'center', padding: '0 16px' }}>
               <ShieldAlert size={32} color="#d97706" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Metrics Unavailable</div>
-              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>Metrics Unavailable</div>
+              <div style={{ fontSize: '12px', color: '#cbd5e1', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
                 {isUnauthorized
                   ? 'Vulnerability distributions require authorized access or active demo workspace scans.'
                   : (error instanceof Error ? error.message : 'Unable to retrieve vulnerability metrics from backend service.')}
@@ -561,14 +561,14 @@ export const OverviewPage: React.FC = () => {
               </button>
             </div>
           ) : !summary || summary.vulnerability_types.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#cbd5e1' }}>
               <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
                 {summary && summary.scans_and_reviews.total_scans > 0
                   ? 'No Findings in Completed Checks'
                   : 'Not Scanned Yet'}
               </div>
-              <div style={{ fontSize: '12px', textAlign: 'center', maxWidth: '280px', marginTop: '4px' }}>
+              <div style={{ fontSize: '12px', textAlign: 'center', maxWidth: '280px', marginTop: '4px', color: '#cbd5e1' }}>
                 {summary && summary.scans_and_reviews.total_scans > 0
                   ? 'Security engines detected zero vulnerabilities in the completed check scope.'
                   : 'Run your first audit to analyze code for AST flaws and vulnerable dependencies.'}
@@ -600,7 +600,7 @@ export const OverviewPage: React.FC = () => {
                                 boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
                               }}
                             >
-                              <div style={{ fontWeight: 700, color: '#f8fafc' }}>{data.name}</div>
+                              <div style={{ fontWeight: 700, color: '#ffffff' }}>{data.name}</div>
                               <div style={{ color: '#00f0ff', fontWeight: 600, marginTop: '2px' }}>
                                 {data.count} issues ({data.percentage}%)
                               </div>
@@ -629,7 +629,7 @@ export const OverviewPage: React.FC = () => {
                 </ResponsiveContainer>
               </div>
 
-              {/* Legend with Black Fonts */}
+              {/* Legend with Crisp White Fonts */}
               <div
                 className="grid grid-cols-2 gap-x-3 gap-y-2 flex-1 w-full sm:pl-3"
               >
@@ -646,10 +646,10 @@ export const OverviewPage: React.FC = () => {
                       }}
                     />
                     <div>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', lineHeight: 1.1 }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#ffffff', lineHeight: 1.1 }}>
                         {vt.short_name}
                       </div>
-                      <div style={{ fontSize: '10.5px', color: '#475569', marginTop: '1px' }}>
+                      <div style={{ fontSize: '10.5px', color: '#00f0ff', marginTop: '1px', fontWeight: 600 }}>
                         {vt.percentage}%
                       </div>
                     </div>
@@ -670,10 +670,10 @@ export const OverviewPage: React.FC = () => {
               <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
             </div>
           ) : isError && !summary ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#cbd5e1', textAlign: 'center', padding: '0 16px' }}>
               <ShieldAlert size={32} color="#d97706" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Severity Breakdown Unavailable</div>
-              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>Severity Breakdown Unavailable</div>
+              <div style={{ fontSize: '12px', color: '#cbd5e1', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
                 {isUnauthorized
                   ? 'Severity metrics require authorized access or active demo workspace scans.'
                   : (error instanceof Error ? error.message : 'Backend service offline or unreachable.')}
@@ -689,14 +689,14 @@ export const OverviewPage: React.FC = () => {
               </button>
             </div>
           ) : !summary || summary.severity_distribution.total === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#cbd5e1' }}>
               <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
                 {summary && summary.scans_and_reviews.total_scans > 0
                   ? 'No Findings Detected'
                   : 'Not Scanned Yet'}
               </div>
-              <div style={{ fontSize: '12px', textAlign: 'center', maxWidth: '280px', marginTop: '4px' }}>
+              <div style={{ fontSize: '12px', textAlign: 'center', maxWidth: '280px', marginTop: '4px', color: '#cbd5e1' }}>
                 {summary && summary.scans_and_reviews.total_scans > 0
                   ? 'No open critical, high, medium, or low findings recorded in latest scan scope.'
                   : 'Start an audit to generate a severity breakdown across your codebase.'}
@@ -711,8 +711,8 @@ export const OverviewPage: React.FC = () => {
                   borderRadius: '6px',
                   overflow: 'hidden',
                   display: 'flex',
-                  background: '#f1f5f9',
-                  border: '1px solid #e2e8f0',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
                   marginBottom: '24px',
                 }}
               >
@@ -768,45 +768,45 @@ export const OverviewPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Severity Legend & Counts with Black Fonts */}
+              {/* Severity Legend & Counts with Crisp White Fonts */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#e11d48' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Critical</div>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.critical}</div>
+                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>Critical</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.critical}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#d97706' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>High</div>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.high}</div>
+                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>High</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.high}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#2563eb' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Medium</div>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.medium}</div>
+                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>Medium</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.medium}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#059669' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Low</div>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.low}</div>
+                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>Low</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.low}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#94a3b8' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Info</div>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>{summary.severity_distribution.info}</div>
+                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>Info</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.info}</div>
                   </div>
                 </div>
               </div>
@@ -841,10 +841,10 @@ export const OverviewPage: React.FC = () => {
               <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%' }} />
             </div>
           ) : isError && !summary ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#cbd5e1', textAlign: 'center', padding: '0 16px' }}>
               <Clock size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Metrics Unavailable</div>
-              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>Metrics Unavailable</div>
+              <div style={{ fontSize: '12px', color: '#cbd5e1', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
                 {error instanceof Error ? error.message : 'Unable to query efficiency and time-saved metrics.'}
               </div>
               <button
@@ -861,21 +861,21 @@ export const OverviewPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', height: '240px', justifyContent: 'space-between', padding: '12px 8px' }}>
               {/* Primary Time Saved Metric */}
               <div style={{ textAlign: 'center', marginTop: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#475569', fontSize: '13px', marginBottom: '4px', fontWeight: 600 }}>
-                  <Clock size={16} color="#2563eb" />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#cbd5e1', fontSize: '13px', marginBottom: '4px', fontWeight: 600 }}>
+                  <Clock size={16} color="#00f0ff" />
                   <span>Total Time Saved</span>
                 </div>
                 <div
                   style={{
                     fontSize: '44px',
                     fontWeight: 800,
-                    color: '#0f172a',
+                    color: '#ffffff',
                     letterSpacing: '-1px',
                     lineHeight: 1.1,
                   }}
                 >
                   {isError ? '—' : `${summary?.metrics.total_time_saved_hours ?? 0}`}
-                  <span style={{ fontSize: '24px', fontWeight: 600, color: '#475569', marginLeft: '4px' }}>h</span>
+                  <span style={{ fontSize: '24px', fontWeight: 600, color: '#00f0ff', marginLeft: '4px' }}>h</span>
                 </div>
               </div>
 
@@ -886,27 +886,27 @@ export const OverviewPage: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'space-around',
                   paddingTop: '16px',
-                  borderTop: '1px solid #e2e8f0',
+                  borderTop: '1px solid rgba(56, 189, 248, 0.2)',
                 }}
               >
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#475569', fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
-                    <Code2 size={13} color="#0d9488" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#cbd5e1', fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
+                    <Code2 size={13} color="#2dd4bf" />
                     <span>Logic</span>
                   </div>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff' }}>
                     {isError ? '—' : `${summary?.metrics.logic_hours ?? 0}h`}
                   </div>
                 </div>
 
-                <div style={{ width: '1px', height: '32px', background: '#e2e8f0' }} />
+                <div style={{ width: '1px', height: '32px', background: 'rgba(56, 189, 248, 0.2)' }} />
 
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#475569', fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
-                    <Cpu size={13} color="#7c3aed" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#cbd5e1', fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
+                    <Cpu size={13} color="#c084fc" />
                     <span>Traditional</span>
                   </div>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff' }}>
                     {isError ? '—' : `${summary?.metrics.traditional_hours ?? 0}h`}
                   </div>
                 </div>
@@ -942,10 +942,10 @@ export const OverviewPage: React.FC = () => {
               ))}
             </div>
           ) : isError && !summary ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#cbd5e1', textAlign: 'center', padding: '0 16px' }}>
               <ShieldAlert size={32} color="#d97706" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Critical Findings Unavailable</div>
-              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>Critical Findings Unavailable</div>
+              <div style={{ fontSize: '12px', color: '#cbd5e1', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
                 {isUnauthorized
                   ? 'Private repository findings are protected. Authorized access required.'
                   : (error instanceof Error ? error.message : 'Unable to query critical security findings.')}
@@ -961,12 +961,12 @@ export const OverviewPage: React.FC = () => {
               </button>
             </div>
           ) : !summary || summary.most_critical_issues.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#cbd5e1' }}>
               <CheckCircle2 size={32} color="#059669" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
                 {summary && summary.scans_and_reviews.total_scans > 0 ? 'No Critical Findings' : 'Not Scanned Yet'}
               </div>
-              <div style={{ fontSize: '12px', textAlign: 'center', maxWidth: '280px', marginTop: '4px' }}>
+              <div style={{ fontSize: '12px', textAlign: 'center', maxWidth: '280px', marginTop: '4px', color: '#cbd5e1' }}>
                 {summary && summary.scans_and_reviews.total_scans > 0
                   ? 'Repositories in current scope have no open critical vulnerabilities.'
                   : 'Run an audit to detect code flaws, secret exposures, and CVEs.'}
@@ -995,7 +995,7 @@ export const OverviewPage: React.FC = () => {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#2563eb',
+                color: '#38bdf8',
                 fontSize: '12px',
                 cursor: 'pointer',
                 fontWeight: 700,
@@ -1008,14 +1008,14 @@ export const OverviewPage: React.FC = () => {
           {isLoading && !summary ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
               {[1, 2].map((i) => (
-                <div key={i} className="animate-pulse" style={{ height: '56px', borderRadius: '8px', background: '#f1f5f9' }} />
+                <div key={i} className="animate-pulse" style={{ height: '56px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.1)' }} />
               ))}
             </div>
           ) : isError && !summary ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b', textAlign: 'center', padding: '0 16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#cbd5e1', textAlign: 'center', padding: '0 16px' }}>
               <GitBranch size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>Repositories Inaccessible</div>
-              <div style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>Repositories Inaccessible</div>
+              <div style={{ fontSize: '12px', color: '#cbd5e1', maxWidth: '280px', marginTop: '4px', marginBottom: '12px' }}>
                 {isUnauthorized
                   ? 'Private repository list is protected. Sign-in required for private audits.'
                   : (error instanceof Error ? error.message : 'Unable to connect to repository registry.')}
@@ -1031,10 +1031,10 @@ export const OverviewPage: React.FC = () => {
               </button>
             </div>
           ) : !summary || summary.issues_by_repository.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#64748b' }}>
-              <GitBranch size={32} color="#2563eb" style={{ marginBottom: '8px' }} />
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>No Repositories Connected</div>
-              <div style={{ fontSize: '12px', marginBottom: '12px' }}>Connect a repository to audit findings.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: '#cbd5e1' }}>
+              <GitBranch size={32} color="#00f0ff" style={{ marginBottom: '8px' }} />
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>No Repositories Connected</div>
+              <div style={{ fontSize: '12px', marginBottom: '12px', color: '#cbd5e1' }}>Connect a repository to audit findings.</div>
               <button onClick={handleNewRepo} className="btn btn-primary" style={{ fontSize: '12px' }}>
                 Connect Repository
               </button>
@@ -1048,26 +1048,26 @@ export const OverviewPage: React.FC = () => {
                   style={{
                     padding: '12px 14px',
                     borderRadius: '8px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    background: 'rgba(10, 18, 32, 0.7)',
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#2563eb';
-                    e.currentTarget.style.background = '#f1f5f9';
+                    e.currentTarget.style.borderColor = '#00f0ff';
+                    e.currentTarget.style.background = 'rgba(15, 25, 45, 0.85)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.background = '#f8fafc';
+                    e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.2)';
+                    e.currentTarget.style.background = 'rgba(10, 18, 32, 0.7)';
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <GitBranch size={14} color="#0d9488" />
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <GitBranch size={14} color="#00f0ff" />
                       <span>{repo.repository_name}</span>
                     </div>
-                    <span style={{ fontSize: '11.5px', color: '#334155', fontWeight: 600, fontFamily: 'JetBrains Mono, monospace' }}>
+                    <span style={{ fontSize: '11.5px', color: '#00f0ff', fontWeight: 600, fontFamily: 'JetBrains Mono, monospace' }}>
                       {repo.total} issues
                     </span>
                   </div>
@@ -1223,19 +1223,19 @@ export const OverviewPage: React.FC = () => {
                 }}
               >
                 <div>
-                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>Scanner Engine</div>
-                  <div style={{ color: '#f8fafc', fontWeight: 700, marginTop: '2px' }}>{selectedIssue.scanner}</div>
+                  <div style={{ color: '#cbd5e1', fontSize: '11px', fontWeight: 600 }}>Scanner Engine</div>
+                  <div style={{ color: '#ffffff', fontWeight: 700, marginTop: '2px' }}>{selectedIssue.scanner}</div>
                 </div>
                 <div>
-                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>Rule ID / CWE</div>
+                  <div style={{ color: '#cbd5e1', fontSize: '11px', fontWeight: 600 }}>Rule ID / CWE</div>
                   <div style={{ color: '#00f0ff', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, marginTop: '2px' }}>
                     {selectedIssue.cwe_or_rule}
                   </div>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <div style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>File & Line Location</div>
+                  <div style={{ color: '#cbd5e1', fontSize: '11px', fontWeight: 600 }}>File & Line Location</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
-                    <div style={{ color: '#f8fafc', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
+                    <div style={{ color: '#ffffff', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
                       {selectedIssue.file_path || 'source_code'}
                     </div>
                     <span

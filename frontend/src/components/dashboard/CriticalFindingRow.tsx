@@ -101,9 +101,9 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize: '13px',
+            fontSize: '13.5px',
             fontWeight: 700,
-            color: '#f8fafc',
+            color: '#ffffff',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -115,7 +115,7 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
         <div
           style={{
             fontSize: '11px',
-            color: '#94a3b8',
+            color: '#cbd5e1',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
@@ -133,7 +133,7 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
               <span style={{ color: '#64748b' }}>·</span>
               <span
                 style={{
-                  color: '#94a3b8',
+                  color: '#cbd5e1',
                   fontFamily: 'JetBrains Mono, monospace',
                   fontSize: '11px',
                 }}

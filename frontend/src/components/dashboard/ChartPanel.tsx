@@ -52,10 +52,10 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <h2
             style={{
-              fontSize: '14px',
+              fontSize: '14.5px',
               fontWeight: 700,
-              color: '#f8fafc',
-              letterSpacing: '-0.1px',
+              color: '#ffffff',
+              letterSpacing: '0.2px',
               margin: 0,
             }}
           >

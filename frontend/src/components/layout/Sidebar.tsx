@@ -199,10 +199,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {!isEffectiveCollapsed && (
               <div
                 style={{
-                  fontSize: '10.5px',
+                  fontSize: '11px',
                   fontWeight: 700,
-                  color: '#64748b',
-                  letterSpacing: '0.8px',
+                  color: '#cbd5e1',
+                  letterSpacing: '1px',
                   padding: '4px 12px',
                   textTransform: 'uppercase',
                   marginBottom: '4px',
@@ -243,20 +243,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         borderRadius: '8px',
                         fontSize: '13px',
                         fontWeight: 500,
-                        color: '#94a3b8',
+                        color: '#e2e8f0',
                         textDecoration: 'none',
                         transition: 'all 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)';
-                        e.currentTarget.style.color = '#f8fafc';
+                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+                        e.currentTarget.style.color = '#ffffff';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#94a3b8';
+                        e.currentTarget.style.color = '#e2e8f0';
                       }}
                     >
-                      <Icon size={16} color="#64748b" className="shrink-0" />
+                      <Icon size={16} color="#cbd5e1" className="shrink-0" />
                       {!isEffectiveCollapsed && <span style={{ lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
                     </a>
                   );
@@ -285,26 +285,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       fontSize: '13px',
                       fontWeight: isActive ? 700 : 500,
                       textDecoration: 'none',
-                      color: isActive ? '#00f0ff' : '#94a3b8',
-                      background: isActive ? 'rgba(0, 240, 255, 0.12)' : 'transparent',
+                      color: isActive ? '#00f0ff' : '#e2e8f0',
+                      background: isActive ? 'rgba(0, 240, 255, 0.14)' : 'transparent',
                       borderLeft: isEffectiveCollapsed ? 'none' : (isActive ? '3px solid #00f0ff' : '3px solid transparent'),
                       transition: 'all 0.15s ease',
                       position: 'relative',
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
-                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.08)';
-                        e.currentTarget.style.color = '#f8fafc';
+                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+                        e.currentTarget.style.color = '#ffffff';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive) {
                         e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#94a3b8';
+                        e.currentTarget.style.color = '#e2e8f0';
                       }
                     }}
                   >
-                    <Icon size={16} color={isActive ? '#00f0ff' : '#64748b'} className="shrink-0" />
+                    <Icon size={16} color={isActive ? '#00f0ff' : '#cbd5e1'} className="shrink-0" />
                     {!isEffectiveCollapsed && <span style={{ lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
                     {item.badge && !isEffectiveCollapsed && (
                       <span
@@ -337,7 +337,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             padding: '12px 14px',
             borderTop: '1px solid rgba(56, 189, 248, 0.18)',
             fontSize: '11px',
-            color: '#64748b',
+            color: '#cbd5e1',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -356,8 +356,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 boxShadow: '0 0 8px #10b981',
               }}
             />
-            <span style={{ color: '#f8fafc', fontWeight: 600 }}>Engines Active</span>
-            <span style={{ color: '#64748b', fontSize: '10px', marginLeft: '2px' }}>v1.0.0</span>
+            <span style={{ color: '#ffffff', fontWeight: 600 }}>Engines Active</span>
+            <span style={{ color: '#94a3b8', fontSize: '10px', marginLeft: '2px' }}>v1.0.0</span>
           </div>
           {!isMobileDrawer && (
             <button
@@ -370,7 +370,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 borderRadius: '4px',
                 border: 'none',
                 background: 'transparent',
-                color: '#64748b',
+                color: '#94a3b8',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -382,7 +382,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#64748b';
+                e.currentTarget.style.color = '#94a3b8';
                 e.currentTarget.style.background = 'transparent';
               }}
             >

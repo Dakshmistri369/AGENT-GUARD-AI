@@ -189,7 +189,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 88 8 L 14 29 L 14 116 C 14 158, 48 188, 88 206"
             fill="none"
-            stroke="#0f172a"
+            stroke="#ffffff"
             strokeWidth="9.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -202,7 +202,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 88 8 L 132 21 M 145 25 L 164 30 L 164 68"
             fill="none"
-            stroke="#0f172a"
+            stroke="#ffffff"
             strokeWidth="9.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -215,7 +215,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 164 104 C 164 135, 148 168, 88 206"
             fill="none"
-            stroke="#0f172a"
+            stroke="#ffffff"
             strokeWidth="9.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -229,7 +229,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 88 38 L 142 142"
             fill="none"
-            stroke="#0f172a"
+            stroke="#ffffff"
             strokeWidth="13"
             strokeLinecap="round"
             initial={shouldAnimateEntrance ? { pathLength: 0, opacity: 0 } : { pathLength: 1, opacity: 1 }}
@@ -241,7 +241,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 88 38 L 65 78"
             fill="none"
-            stroke="#0f172a"
+            stroke="#ffffff"
             strokeWidth="12"
             strokeLinecap="round"
             initial={shouldAnimateEntrance ? { pathLength: 0, opacity: 0 } : { pathLength: 1, opacity: 1 }}
@@ -253,7 +253,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 54 98 L 34 140"
             fill="none"
-            stroke="#0f172a"
+            stroke="#ffffff"
             strokeWidth="8"
             strokeLinecap="round"
             initial={shouldAnimateEntrance ? { pathLength: 0, opacity: 0 } : { pathLength: 1, opacity: 1 }}
@@ -263,7 +263,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 68 98 L 48 140"
             fill="none"
-            stroke="#0f172a"
+            stroke="#ffffff"
             strokeWidth="6"
             strokeLinecap="round"
             initial={shouldAnimateEntrance ? { pathLength: 0, opacity: 0 } : { pathLength: 1, opacity: 1 }}
@@ -276,7 +276,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 96 44 L 110 44 L 118 34 L 136 30 L 142 15"
             fill="none"
-            stroke="#0f172a"
+            stroke="#00f0ff"
             strokeWidth="5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -289,7 +289,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 134 94 L 155 88 L 172 80 L 186 62"
             fill="none"
-            stroke="#0f172a"
+            stroke="#00f0ff"
             strokeWidth="5.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -302,7 +302,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 44 126 L 30 133 L 20 133 L 12 133"
             fill="none"
-            stroke="#0f172a"
+            stroke="#00f0ff"
             strokeWidth="5.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -315,7 +315,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           <motion.path
             d="M 85 185 L 85 160 L 87 128 L 108 112"
             fill="none"
-            stroke="#0f172a"
+            stroke="#00f0ff"
             strokeWidth="5.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -331,14 +331,14 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             cy="62"
             r="7"
             fill="#ffffff"
-            stroke={isScanning ? '#06b6d4' : isHovered ? '#7c3aed' : '#0f172a'}
+            stroke={isScanning ? '#06b6d4' : isHovered ? '#00f0ff' : '#38bdf8'}
             strokeWidth="4.5"
             initial={shouldAnimateEntrance ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }}
             animate={
               isScanning
-                ? { scale: [1, 1.35, 1], stroke: ['#06b6d4', '#8b5cf6', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.1 } }
+                ? { scale: [1, 1.35, 1], stroke: ['#06b6d4', '#00f0ff', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.1 } }
                 : isAnalyzing
-                ? { scale: [1, 1.25, 1], stroke: '#7c3aed', transition: { repeat: Infinity, duration: 1.8 } }
+                ? { scale: [1, 1.25, 1], stroke: '#00f0ff', transition: { repeat: Infinity, duration: 1.8 } }
                 : { scale: 1, opacity: 1 }
             }
             transition={revealTransition(0.8, 0.35)}
@@ -347,7 +347,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             cx="186"
             cy="62"
             r="2.5"
-            fill={isScanning ? '#06b6d4' : isHovered ? '#7c3aed' : '#0f172a'}
+            fill={isScanning ? '#06b6d4' : isHovered ? '#00f0ff' : '#38bdf8'}
             initial={shouldAnimateEntrance ? { scale: 0 } : { scale: 1 }}
             animate={{ scale: 1 }}
             transition={revealTransition(0.82, 0.3)}
@@ -359,12 +359,12 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             cy="94"
             r="5.5"
             fill="#ffffff"
-            stroke={isScanning ? '#06b6d4' : '#0f172a'}
+            stroke={isScanning ? '#06b6d4' : '#00f0ff'}
             strokeWidth="3.5"
             initial={shouldAnimateEntrance ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }}
             animate={
               isScanning
-                ? { scale: [1, 1.3, 1], stroke: ['#06b6d4', '#8b5cf6', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.3 } }
+                ? { scale: [1, 1.3, 1], stroke: ['#06b6d4', '#00f0ff', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.3 } }
                 : { scale: 1, opacity: 1 }
             }
             transition={revealTransition(0.88, 0.3)}
@@ -376,12 +376,12 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             cy="128"
             r="5.5"
             fill="#ffffff"
-            stroke={isScanning ? '#06b6d4' : isHovered ? '#06b6d4' : '#0f172a'}
+            stroke={isScanning ? '#06b6d4' : '#00f0ff'}
             strokeWidth="3.5"
             initial={shouldAnimateEntrance ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }}
             animate={
               isScanning
-                ? { scale: [1, 1.3, 1], stroke: ['#06b6d4', '#8b5cf6', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.5 } }
+                ? { scale: [1, 1.3, 1], stroke: ['#06b6d4', '#00f0ff', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.5 } }
                 : { scale: 1, opacity: 1 }
             }
             transition={revealTransition(0.94, 0.3)}
@@ -393,12 +393,12 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             cy="133"
             r="7"
             fill="#ffffff"
-            stroke={isScanning ? '#06b6d4' : '#0f172a'}
+            stroke={isScanning ? '#06b6d4' : '#00f0ff'}
             strokeWidth="4.5"
             initial={shouldAnimateEntrance ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }}
             animate={
               isScanning
-                ? { scale: [1, 1.35, 1], stroke: ['#06b6d4', '#8b5cf6', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.7 } }
+                ? { scale: [1, 1.35, 1], stroke: ['#06b6d4', '#00f0ff', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.7 } }
                 : { scale: 1, opacity: 1 }
             }
             transition={revealTransition(1.0, 0.3)}
@@ -407,7 +407,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             cx="12"
             cy="133"
             r="2.5"
-            fill={isScanning ? '#06b6d4' : '#0f172a'}
+            fill={isScanning ? '#06b6d4' : '#00f0ff'}
             initial={shouldAnimateEntrance ? { scale: 0 } : { scale: 1 }}
             animate={{ scale: 1 }}
             transition={revealTransition(1.02, 0.3)}
@@ -419,12 +419,12 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             cy="160"
             r="5.5"
             fill="#ffffff"
-            stroke={isScanning ? '#06b6d4' : '#0f172a'}
+            stroke={isScanning ? '#06b6d4' : '#00f0ff'}
             strokeWidth="3.5"
             initial={shouldAnimateEntrance ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }}
             animate={
               isScanning
-                ? { scale: [1, 1.3, 1], stroke: ['#06b6d4', '#8b5cf6', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.9 } }
+                ? { scale: [1, 1.3, 1], stroke: ['#06b6d4', '#00f0ff', '#06b6d4'], transition: { repeat: Infinity, duration: 1.6, delay: 0.9 } }
                 : { scale: 1, opacity: 1 }
             }
             transition={revealTransition(1.06, 0.3)}
@@ -612,7 +612,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
               lineHeight: 1.1,
             }}
           >
-            {/* "AgentGuard" — Black Sans-Serif */}
+            {/* "AgentGuard" — Crisp High-Contrast White Wordmark */}
             <motion.span
               initial={shouldAnimateEntrance ? { opacity: 0, x: -8 } : { opacity: 1, x: 0 }}
               animate={{ opacity: 1, x: 0 }}
@@ -620,34 +620,35 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
               style={{
                 fontSize: dimensions.titleSize,
                 fontWeight: 800,
-                color: '#0f172a',
+                color: '#ffffff',
                 letterSpacing: '-0.035em',
                 fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                textShadow: '0 0 16px rgba(255, 255, 255, 0.2)',
               }}
             >
               AgentGuard
             </motion.span>
 
-            {/* "AI" — Vibrant Purple Lettering */}
+            {/* "AI" — Luminous Cyber Cyan Lettering */}
             <motion.span
               initial={shouldAnimateEntrance ? { opacity: 0, scale: 0.85 } : { opacity: 1, scale: 1 }}
               animate={
                 isHovered
-                  ? { scale: 1.05, filter: 'drop-shadow(0 0 6px rgba(124, 58, 237, 0.4))' }
+                  ? { scale: 1.05, filter: 'drop-shadow(0 0 8px rgba(0, 240, 255, 0.75))' }
                   : isAnalyzing
                   ? {
                       scale: [1, 1.06, 1],
-                      filter: ['drop-shadow(0 0 2px rgba(124, 58, 237, 0.3))', 'drop-shadow(0 0 10px rgba(124, 58, 237, 0.65))', 'drop-shadow(0 0 2px rgba(124, 58, 237, 0.3))'],
+                      filter: ['drop-shadow(0 0 3px rgba(0, 240, 255, 0.4))', 'drop-shadow(0 0 12px rgba(0, 240, 255, 0.9))', 'drop-shadow(0 0 3px rgba(0, 240, 255, 0.4))'],
                       transition: { repeat: Infinity, duration: 2.0 },
                     }
-                  : { opacity: 1, scale: 1, filter: 'none' }
+                  : { opacity: 1, scale: 1, filter: 'drop-shadow(0 0 4px rgba(0, 240, 255, 0.35))' }
               }
               transition={revealTransition(1.1, 0.4)}
               style={{
                 fontSize: dimensions.titleSize,
                 fontWeight: 800,
                 letterSpacing: '-0.02em',
-                background: 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
+                background: 'linear-gradient(135deg, #00f0ff 0%, #38bdf8 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 display: 'inline-block',
@@ -659,7 +660,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
             </motion.span>
           </div>
 
-          {/* Subtitle: "AI POWERED CODE SECURITY" */}
+          {/* Subtitle: "AI POWERED CODE SECURITY" — High Contrast Silver */}
           {showSubtitle && (
             <motion.span
               initial={shouldAnimateEntrance ? { opacity: 0, y: 3 } : { opacity: 1, y: 0 }}
@@ -668,7 +669,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
               style={{
                 fontSize: dimensions.subSize,
                 fontWeight: 700,
-                color: '#64748b',
+                color: '#cbd5e1',
                 letterSpacing: '0.16em',
                 textTransform: 'uppercase',
                 marginTop: '3px',

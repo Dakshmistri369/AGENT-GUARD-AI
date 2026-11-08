@@ -151,11 +151,11 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
         {/* Breadcrumbs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span className="hidden sm:inline" style={{ color: '#64748b', fontWeight: 500 }}>agentguard</span>
-          <ChevronRight size={14} color="#64748b" className="hidden sm:inline" />
+          <span className="hidden sm:inline" style={{ color: '#cbd5e1', fontWeight: 600 }}>agentguard</span>
+          <ChevronRight size={14} color="#94a3b8" className="hidden sm:inline" />
           <span
             style={{
-              color: '#f8fafc',
+              color: '#ffffff',
               fontWeight: 700,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
@@ -408,7 +408,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           rel="noopener noreferrer"
           className="hidden md:flex"
           style={{
-            color: '#94a3b8',
+            color: '#cbd5e1',
             alignItems: 'center',
             justifyContent: 'center',
             width: '36px',
@@ -425,7 +425,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         <Link
           to="/settings"
           style={{
-            color: '#94a3b8',
+            color: '#cbd5e1',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -470,10 +470,10 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               {user.email ? user.email[0] : 'U'}
             </div>
             <div className="hidden sm:block" style={{ lineHeight: 1.1 }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#ffffff' }}>
                 {user.email ? user.email.split('@')[0] : 'User'}
               </div>
-              <div style={{ fontSize: '10px', color: '#64748b' }}>Security Auditor</div>
+              <div style={{ fontSize: '10px', color: '#cbd5e1' }}>Security Auditor</div>
             </div>
             <button
               onClick={() => signOut()}
@@ -483,7 +483,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#94a3b8',
+                color: '#cbd5e1',
                 padding: '6px',
                 display: 'flex',
                 alignItems: 'center',

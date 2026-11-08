@@ -50,10 +50,10 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
         }}
       >
         <AlertCircle size={32} color="#f43f5e" style={{ marginBottom: '8px' }} />
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
           Scanner Health Unavailable
         </div>
-        <div style={{ fontSize: '12px', color: '#94a3b8', maxWidth: '280px', marginTop: '4px' }}>
+        <div style={{ fontSize: '12px', color: '#cbd5e1', maxWidth: '280px', marginTop: '4px' }}>
           {errorMessage || 'Unable to connect to scanner coordinator.'}
         </div>
         {onRetry && (
@@ -79,15 +79,15 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           height: '240px',
-          color: '#64748b',
+          color: '#cbd5e1',
           textAlign: 'center',
         }}
       >
         <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '8px' }} />
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
           Engines Operational
         </div>
-        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+        <div style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '4px' }}>
           Semgrep, Bandit, detect-secrets, and OSV Scanner are active.
         </div>
       </div>
@@ -120,7 +120,7 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
               )}
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
                     {scanner.name}
                   </span>
                   {scanner.version && (
@@ -140,7 +140,7 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
+                <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '1px' }}>
                   {scanner.description}
                 </div>
               </div>

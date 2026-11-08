@@ -81,10 +81,10 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <span
           style={{
-            fontSize: '13px',
-            fontWeight: 600,
-            color: '#94a3b8',
-            letterSpacing: '0.2px',
+            fontSize: '13.5px',
+            fontWeight: 700,
+            color: '#ffffff',
+            letterSpacing: '0.3px',
           }}
         >
           {title}
@@ -113,7 +113,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
           style={{
             fontSize: '36px',
             fontWeight: 800,
-            color: '#f8fafc',
+            color: '#ffffff',
             lineHeight: 1,
             letterSpacing: '-0.8px',
             fontFamily: 'Inter, system-ui, sans-serif',
@@ -138,8 +138,8 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
         <div
           style={{
             fontSize: '12px',
-            color: '#94a3b8',
-            lineHeight: 1.45,
+            color: '#cbd5e1',
+            lineHeight: 1.5,
             maxWidth: '240px',
             flex: 1,
           }}

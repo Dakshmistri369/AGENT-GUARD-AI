@@ -28,10 +28,10 @@
   --accent-rose: #f43f5e;
   --accent-green: #10b981;
 
-  /* Typography */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  /* Typography - High Contrast Crisp White & Cyber Palette */
+  --text-primary: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
 
   /* Borders & Hairlines */
   --border: rgba(56, 189, 248, 0.18);
