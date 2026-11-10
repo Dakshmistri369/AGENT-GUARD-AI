@@ -15,6 +15,10 @@ import type {
   DashboardSummaryResponse,
   DashboardMetricsResponse,
   ScanComparisonResult,
+  AIChatRequest,
+  AIChatResponse,
+  CveLookupResponse,
+  AdvisorySearchResponse,
 } from '../types';
 
 /**
@@ -326,6 +330,72 @@ export const api = {
   compare: {
     scans: (scanA: number, scanB: number): Promise<ScanComparisonResult> =>
       client.get('/api/scans/compare', { params: { scan_a: scanA, scan_b: scanB } }).then(r => r.data),
+  },
+
+  ai: {
+    chat: (payload: AIChatRequest): Promise<AIChatResponse> =>
+      client.post('/api/ai/chat', payload).then(r => r.data),
+
+    lookupCve: (cveId: string): Promise<CveLookupResponse> =>
+      client.get(`/api/ai/cve/${encodeURIComponent(cveId)}`).then(r => r.data),
+
+    searchAdvisories: (packageName: string, ecosystem = 'npm'): Promise<AdvisorySearchResponse> =>
+      client.post('/api/ai/advisory/search', { package_name: packageName, ecosystem }).then(r => r.data),
+
+    status: (): Promise<{
+      provider: string;
+      model: string;
+      configured: boolean;
+      healthy: boolean;
+      latency_ms?: number;
+      detail?: string;
+    }> => client.get('/api/ai/status').then(r => r.data),
+
+    explainFinding: (finding: {
+      title: string;
+      severity: string;
+      scanner: string;
+      rule_id?: string | null;
+      file_path?: string | null;
+      line_number?: number | null;
+      sanitized_evidence?: string | null;
+    }): Promise<{
+      summary: string;
+      root_cause: string;
+      impact: string;
+      remediation: string;
+      fix_example?: string | null;
+      verification_steps: string;
+      model_used: string;
+    }> => client.post('/api/ai/explain-finding', finding).then(r => r.data),
+
+    threatAnalysis: (payload: {
+      context: string;
+      source_code?: string;
+      language?: string;
+      framework?: string;
+    }): Promise<{
+      summary: string;
+      threats: any[];
+      model_used: string;
+    }> => client.post('/api/ai/threat-analysis', payload).then(r => r.data),
+
+    testPlan: (payload: {
+      threat_context: string;
+      target_code?: string;
+      test_type?: string;
+    }): Promise<{
+      overview: string;
+      test_cases: any[];
+      execution_guidelines: string;
+      model_used: string;
+    }> => client.post('/api/ai/test-plan', payload).then(r => r.data),
+
+    audit: (repoMetadata: any, scannerFindings: any[]): Promise<any> =>
+      client.post('/api/ai/audit', {
+        repo_metadata: repoMetadata,
+        scanner_findings: scannerFindings,
+      }).then(r => r.data),
   },
 
   getSessionId: getOrCreateAnonymousSessionId,

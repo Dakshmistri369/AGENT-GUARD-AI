@@ -8,10 +8,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.ai.langgraph_orchestrator import LangGraphSecurityOrchestrator
 from app.ai.service import AIService, get_ai_service
+from app.ai.web_intelligence import search_package_advisories
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.ai import (
+    AdvisorySearchRequest,
+    AdvisorySearchResponse,
+    AIChatRequest,
+    AIChatResponse,
     AIStatusResponse,
+    CveLookupResponse,
     ExplainFindingRequest,
     FindingExplanationResponse,
     MultiAgentAuditRequest,
@@ -115,3 +121,66 @@ async def perform_multi_agent_audit(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"LangGraph multi-agent audit failed: {exc}",
         ) from exc
+
+
+@router.post("/chat", response_model=AIChatResponse)
+async def chat_expert_ai(
+    payload: AIChatRequest,
+    ai_service: AIService = Depends(get_ai_service),
+    current_user: User = Depends(get_current_user),
+) -> AIChatResponse:
+    """
+    Expert AI Conversational Assistant endpoint.
+    Equipped with Generative UI widgets (CVE remediation cards, unified git patch diffs,
+    AST taint flows, live audit HUD) and live web/CVE advisory intelligence.
+    """
+    try:
+        return await ai_service.chat_expert_ai(payload)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI chat analysis failed: {exc}",
+        ) from exc
+
+
+@router.get("/cve/{cve_id}", response_model=CveLookupResponse)
+async def lookup_cve_advisory(
+    cve_id: str,
+    ai_service: AIService = Depends(get_ai_service),
+    current_user: User = Depends(get_current_user),
+) -> CveLookupResponse:
+    """
+    Query live CVE / GHSA advisory from Google OSV and NIST databases.
+    Returns structured CVE details and Generative UI remediation widget data.
+    """
+    try:
+        return await ai_service.lookup_cve(cve_id)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"CVE advisory lookup failed: {exc}",
+        ) from exc
+
+
+@router.post("/advisory/search", response_model=AdvisorySearchResponse)
+async def search_advisories(
+    payload: AdvisorySearchRequest,
+    current_user: User = Depends(get_current_user),
+) -> AdvisorySearchResponse:
+    """
+    Search for vulnerabilities in a package from Google OSV and return remediation widgets.
+    """
+    try:
+        vulns = await search_package_advisories(payload.package_name, payload.ecosystem)
+        return AdvisorySearchResponse(
+            package_name=payload.package_name,
+            ecosystem=payload.ecosystem,
+            vulnerabilities=vulns,
+            total_found=len(vulns),
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Advisory search failed: {exc}",
+        ) from exc
+

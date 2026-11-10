@@ -402,3 +402,130 @@ export interface ScanComparisonResult {
   delta: number;
 }
 
+// ── Generative UI & AI Security Intelligence Types ─────────────────────────
+
+export interface CveRemediationWidgetData {
+  cve_id: string;
+  title: string;
+  cvss_score: number;
+  cvss_vector?: string | null;
+  severity: SeverityLevel;
+  ecosystem: string;
+  package_name: string;
+  vulnerable_range: string;
+  fixed_version: string;
+  cwe?: string | null;
+  epss_score?: number | null;
+  summary: string;
+  mitigation_steps: string[];
+  references: string[];
+}
+
+export interface PatchDiffWidgetData {
+  file_path: string;
+  language: string;
+  diff_unified: string;
+  original_snippet: string;
+  fixed_snippet: string;
+  line_start: number;
+  explanation: string;
+  verification_cmd?: string | null;
+}
+
+export interface AstTaintStep {
+  step_number: number;
+  title: string;
+  description: string;
+  code_snippet: string;
+  node_type: string;
+  is_tainted: boolean;
+}
+
+export interface AstTaintFlowWidgetData {
+  vulnerability_type: string;
+  cwe_id: string;
+  source_node: {
+    name?: string;
+    ast_type: string;
+    file?: string;
+    line?: number;
+    label?: string;
+  };
+  taint_steps: AstTaintStep[];
+  sink_node: {
+    name?: string;
+    ast_type: string;
+    file?: string;
+    line?: number;
+    dangerous_call?: string;
+  };
+  sanitizer_recommendation: {
+    fix_location_line?: number;
+    recommended_code?: string;
+    rule_name?: string;
+  };
+}
+
+export interface AuditAgentStatus {
+  name: string;
+  status: 'completed' | 'running' | 'verified' | 'fallback' | 'pending';
+  details: string;
+  execution_time_ms: number;
+}
+
+export interface AuditHudWidgetData {
+  repo_name?: string | null;
+  active_agents: AuditAgentStatus[];
+  confidence_score: number;
+  scanner_coverage: Record<string, string>;
+  threat_tally: Record<string, number>;
+  recommendation_count: number;
+}
+
+export interface GenerativeWidgetPayload {
+  widget_type: 'cve_remediation' | 'patch_diff' | 'ast_taint_flow' | 'audit_hud' | 'none';
+  cve_remediation?: CveRemediationWidgetData | null;
+  patch_diff?: PatchDiffWidgetData | null;
+  ast_taint_flow?: AstTaintFlowWidgetData | null;
+  audit_hud?: AuditHudWidgetData | null;
+}
+
+export interface AIChatRequest {
+  message: string;
+  repo_id?: number | null;
+  repo_name?: string | null;
+  finding_id?: number | null;
+  history?: { role: string; content: string }[];
+  enable_web_intel?: boolean;
+}
+
+export interface AIChatResponse {
+  reply: string;
+  widget?: GenerativeWidgetPayload | null;
+  model_used: string;
+  web_intel_sources: string[];
+  suggested_prompts: string[];
+}
+
+export interface CveLookupResponse {
+  cve_id: string;
+  found: boolean;
+  summary: string;
+  severity: string;
+  cvss_score?: number | null;
+  cvss_vector?: string | null;
+  details: string;
+  affected_packages: { name: string; ecosystem: string }[];
+  references: string[];
+  fix_guidance: string;
+  remediation_widget?: CveRemediationWidgetData | null;
+}
+
+export interface AdvisorySearchResponse {
+  package_name: string;
+  ecosystem: string;
+  vulnerabilities: CveRemediationWidgetData[];
+  total_found: number;
+}
+
+
