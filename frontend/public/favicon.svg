@@ -1,27 +1,366 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 215" width="64" height="64" fill="none">
-  <!-- Shield Outline -->
-  <path d="M 88 8 L 14 29 L 14 116 C 14 158, 48 188, 88 206" stroke="#0f172a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M 88 8 L 132 21 M 145 25 L 164 30 L 164 68" stroke="#0f172a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M 164 104 C 164 135, 148 168, 88 206" stroke="#0f172a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Background Glows -->
+    <filter id="ag-cyan-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="ag-coral-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="ag-core-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.85" />
+    </filter>
 
-  <!-- Central 'A' -->
-  <path d="M 88 38 L 142 142" stroke="#0f172a" stroke-width="16" stroke-linecap="round" />
-  <path d="M 88 38 L 65 78" stroke="#0f172a" stroke-width="14" stroke-linecap="round" />
-  <path d="M 54 98 L 34 140" stroke="#0f172a" stroke-width="10" stroke-linecap="round" />
-  <path d="M 68 98 L 48 140" stroke="#0f172a" stroke-width="8" stroke-linecap="round" />
+    <!-- Gradients: Left Cyan Hemisphere -->
+    <linearGradient id="ag-grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d6ffff" />
+      <stop offset="40%" stop-color="#5eedee" />
+      <stop offset="80%" stop-color="#00b4d8" />
+      <stop offset="100%" stop-color="#0077b6" />
+    </linearGradient>
 
-  <!-- Circuit paths -->
-  <path d="M 96 44 L 110 44 L 118 34 L 136 30 L 142 15" stroke="#7c3aed" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M 134 94 L 155 88 L 172 80 L 186 62" stroke="#7c3aed" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M 44 126 L 30 133 L 20 133 L 12 133" stroke="#7c3aed" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M 85 185 L 85 160 L 87 128 L 108 112" stroke="#7c3aed" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+    <linearGradient id="ag-grad-cyan-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#144d57" />
+      <stop offset="100%" stop-color="#061c22" />
+    </linearGradient>
 
-  <!-- Nodes -->
-  <circle cx="186" cy="62" r="8" fill="#ffffff" stroke="#7c3aed" stroke-width="5" />
-  <circle cx="186" cy="62" r="3" fill="#7c3aed" />
-  <circle cx="150" cy="94" r="6" fill="#ffffff" stroke="#0f172a" stroke-width="4" />
-  <circle cx="87" cy="128" r="6" fill="#ffffff" stroke="#7c3aed" stroke-width="4" />
-  <circle cx="12" cy="133" r="8" fill="#ffffff" stroke="#7c3aed" stroke-width="5" />
-  <circle cx="12" cy="133" r="3" fill="#7c3aed" />
-  <circle cx="85" cy="160" r="6" fill="#ffffff" stroke="#0f172a" stroke-width="4" />
+    <!-- Gradients: Right Coral/Crimson Hemisphere -->
+    <linearGradient id="ag-grad-coral" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff0ec" />
+      <stop offset="35%" stop-color="#ff9080" />
+      <stop offset="70%" stop-color="#e63946" />
+      <stop offset="100%" stop-color="#9b111e" />
+    </linearGradient>
+
+    <linearGradient id="ag-grad-coral-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5c1d1d" />
+      <stop offset="100%" stop-color="#1e0808" />
+    </linearGradient>
+
+    <!-- Gradients: Shackle Lock Top Arc -->
+    <linearGradient id="ag-grad-shackle" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00e5ff" />
+      <stop offset="45%" stop-color="#99f6ff" />
+      <stop offset="55%" stop-color="#ffd4cc" />
+      <stop offset="100%" stop-color="#ff4d4d" />
+    </linearGradient>
+
+    <!-- Gradients: Center Ruby Core Triangle -->
+    <linearGradient id="ag-grad-ruby" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ff5252" />
+      <stop offset="50%" stop-color="#c62828" />
+      <stop offset="100%" stop-color="#5f0909" />
+    </linearGradient>
+
+    <!-- Metallic Facet Highlights -->
+    <linearGradient id="ag-grad-metallic-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="60%" stop-color="#c7d5df" />
+      <stop offset="100%" stop-color="#8ba1b0" />
+    </linearGradient>
+
+    <linearGradient id="ag-grad-metallic-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#708290" />
+      <stop offset="100%" stop-color="#243038" />
+    </linearGradient>
+  </defs>
+
+  <!-- ── 01. TACTICAL HUD BACKGROUND FRAMING ── -->
+  <g opacity="0.45">
+    <!-- Orbital Guide Rings -->
+    <circle cx="256" cy="256" r="204" stroke="rgba(139, 223, 221, 0.15)" stroke-width="1.2" stroke-dasharray="3 6" />
+    <circle cx="256" cy="256" r="172" stroke="rgba(255, 180, 166, 0.12)" stroke-width="1" />
+
+    <!-- Crosshair Ticks -->
+    <line x1="88" y1="256" x2="114" y2="256" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round" />
+    <line x1="398" y1="256" x2="424" y2="256" stroke="#ff5252" stroke-width="1.5" stroke-linecap="round" />
+    <line x1="256" y1="446" x2="256" y2="468" stroke="rgba(227, 226, 230, 0.6)" stroke-width="1.5" stroke-linecap="round" />
+
+    <!-- Corner Brackets -->
+    <!-- Top-Left Bracket -->
+    <path d="M 124 160 L 124 124 L 160 124" fill="none" stroke="#5eedee" stroke-width="2" stroke-linecap="square" />
+    <line x1="132" y1="132" x2="148" y2="132" stroke="rgba(94, 237, 238, 0.4)" stroke-width="1" />
+    <!-- Top-Right Bracket -->
+    <path d="M 388 160 L 388 124 L 352 124" fill="none" stroke="#ff9080" stroke-width="2" stroke-linecap="square" />
+    <!-- Bottom-Left Bracket -->
+    <path d="M 124 352 L 124 388 L 160 388" fill="none" stroke="#5eedee" stroke-width="2" stroke-linecap="square" />
+    <!-- Bottom-Right Bracket -->
+    <path d="M 388 352 L 388 388 L 352 388" fill="none" stroke="#ff9080" stroke-width="2" stroke-linecap="square" />
+
+    <!-- Subtle Particle Constellation Nodes -->
+    <circle cx="140" cy="216" r="2" fill="#5eedee" opacity="0.8" />
+    <circle cx="168" cy="148" r="1.5" fill="#5eedee" opacity="0.6" />
+    <circle cx="372" cy="216" r="2.5" fill="#ff5252" opacity="0.8" />
+    <circle cx="344" cy="148" r="1.5" fill="#ff7b6b" opacity="0.6" />
+    <circle cx="148" cy="360" r="2.5" fill="#00e5ff" opacity="0.7" />
+    <circle cx="364" cy="360" r="2" fill="#ff3b30" opacity="0.7" />
+  </g>
+
+  <!-- ── 02. PADLOCK SHACKLE (CYBER ARCH ON TOP) ── -->
+  <g filter="url(#ag-core-shadow)">
+    <!-- Shackle Outer & Inner Tube -->
+    <path
+      d="M 204 154
+         C 204 110, 222 84, 256 84
+         C 290 84, 308 110, 308 154
+         L 292 154
+         C 292 118, 278 100, 256 100
+         C 234 100, 220 118, 220 154
+         Z"
+      fill="url(#ag-grad-shackle)"
+    />
+    <!-- Shackle Highlights & Rim Bevel -->
+    <path
+      d="M 204 154
+         C 204 110, 222 84, 256 84"
+      fill="none"
+      stroke="#d6ffff"
+      stroke-width="2.5"
+      stroke-linecap="round"
+    />
+    <path
+      d="M 256 84
+         C 290 84, 308 110, 308 154"
+      fill="none"
+      stroke="#ff9080"
+      stroke-width="2.5"
+      stroke-linecap="round"
+    />
+  </g>
+
+  <!-- ── 03. OUTER SHIELD BASE & GLOW BEZEL ── -->
+  <!-- Outer Shield Aura / Perimeter Glow -->
+  <path
+    d="M 152 176
+       L 256 138
+       L 360 176
+       C 360 256, 332 350, 256 414
+       C 180 350, 152 256, 152 176
+       Z"
+    fill="#08090c"
+    stroke="#1b1f28"
+    stroke-width="12"
+    filter="url(#ag-core-shadow)"
+  />
+
+  <!-- Dual Split Outer Shield Frame: Left Cyan, Right Coral -->
+  <!-- Left Outer Shield Frame Half -->
+  <path
+    d="M 256 138
+       L 152 176
+       C 152 256, 180 350, 256 414
+       L 256 398
+       C 192 340, 168 254, 168 184
+       L 256 150
+       Z"
+    fill="url(#ag-grad-cyan)"
+    filter="url(#ag-cyan-glow)"
+  />
+
+  <!-- Right Outer Shield Frame Half -->
+  <path
+    d="M 256 138
+       L 360 176
+       C 360 256, 332 350, 256 414
+       L 256 398
+       C 320 340, 344 254, 344 184
+       L 256 150
+       Z"
+    fill="url(#ag-grad-coral)"
+    filter="url(#ag-coral-glow)"
+  />
+
+  <!-- Shield Interior Obsidian Chamber -->
+  <path
+    d="M 256 152
+       L 170 184
+       C 170 252, 194 336, 256 394
+       C 318 336, 342 252, 342 184
+       Z"
+    fill="#0d1017"
+  />
+
+  <!-- ── 04. CIRCUIT BOARD TRACES IN LOWER SHIELD INTERIOR ── -->
+  <g opacity="0.85">
+    <!-- Central Vertical Trace -->
+    <line x1="256" y1="298" x2="256" y2="348" stroke="#ff4d4d" stroke-width="2.5" />
+    <circle cx="256" cy="304" r="4.5" fill="#ff5252" stroke="#ffffff" stroke-width="1.2" />
+
+    <!-- Left Cyan Circuit Traces -->
+    <path d="M 250 318 L 230 318 L 222 304 L 198 304" fill="none" stroke="#00e5ff" stroke-width="2" />
+    <circle cx="198" cy="304" r="3" fill="#5eedee" />
+    <path d="M 248 334 L 234 334 L 220 348 L 208 348" fill="none" stroke="#00e5ff" stroke-width="1.8" />
+    <circle cx="208" cy="348" r="2.5" fill="#5eedee" />
+
+    <!-- Right Coral Circuit Traces -->
+    <path d="M 262 318 L 282 318 L 290 304 L 314 304" fill="none" stroke="#ff7b6b" stroke-width="2" />
+    <circle cx="314" cy="304" r="3" fill="#ff7b6b" />
+    <path d="M 264 334 L 278 334 L 292 348 L 304 348" fill="none" stroke="#ff7b6b" stroke-width="1.8" />
+    <circle cx="304" cy="348" r="2.5" fill="#ff7b6b" />
+
+    <!-- Concentric Lower Shield V-Chevrons -->
+    <!-- Crimson Outer Chevron -->
+    <path
+      d="M 202 338
+         L 256 384
+         L 310 338
+         L 302 332
+         L 256 372
+         L 210 332
+         Z"
+      fill="#830000"
+      stroke="#ff3b30"
+      stroke-width="1.2"
+    />
+    <!-- White / Cream Inner Chevron -->
+    <path
+      d="M 218 344
+         L 256 376
+         L 294 344
+         L 290 338
+         L 256 366
+         L 222 338
+         Z"
+      fill="#fff0ec"
+    />
+  </g>
+
+  <!-- ── 05. HERO MONOGRAM: FUSED "A" AND "G" EMBLEM ── -->
+  <g filter="url(#ag-core-shadow)">
+    <!-- ── LEFT ARM OF "A" (CYBER CYAN FACETED WING) ── -->
+    <!-- Main Left Diagonal Pillar of "A" -->
+    <path
+      d="M 256 154
+         L 236 154
+         L 174 316
+         L 196 324
+         L 230 236
+         L 256 236
+         Z"
+      fill="url(#ag-grad-cyan)"
+    />
+    <!-- Inner Diagonal Shadow/Facet of Left Arm -->
+    <path
+      d="M 256 154
+         L 248 154
+         L 192 300
+         L 204 304
+         L 236 226
+         L 256 226
+         Z"
+      fill="url(#ag-grad-cyan-dark)"
+      opacity="0.5"
+    />
+    <!-- Left Outer Edge Gleam -->
+    <path
+      d="M 256 154
+         L 174 316
+         L 196 324"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="1.8"
+      stroke-linejoin="miter"
+    />
+
+    <!-- Circuit trace embossed along the left leg of A -->
+    <line x1="188" y1="294" x2="218" y2="216" stroke="#00e5ff" stroke-width="1.6" stroke-linecap="round" />
+    <circle cx="188" cy="294" r="2.8" fill="#5eedee" />
+    <circle cx="218" cy="216" r="2.8" fill="#5eedee" />
+
+    <!-- ── HORIZONTAL CROSSBAR OF "A" CONNECTING INTO "G" ── -->
+    <path
+      d="M 210 248
+         L 272 248
+         L 264 266
+         L 220 266
+         Z"
+      fill="url(#ag-grad-metallic-light)"
+    />
+
+    <!-- ── LUMINOUS RUBY PYRAMID IN APEX OF "A" ── -->
+    <polygon
+      points="256,192 238,236 274,236"
+      fill="url(#ag-grad-ruby)"
+      stroke="#ff8a80"
+      stroke-width="1.5"
+      stroke-linejoin="round"
+    />
+    <!-- Pyramid Internal Facet Line -->
+    <line x1="256" y1="192" x2="256" y2="236" stroke="#ffcdd2" stroke-width="1" />
+
+    <!-- ── RIGHT "G" ARM & CROSS-WING (METALLIC CORAL & CREAM) ── -->
+    <!-- Top Horizontal Cross-Arm of "G" -->
+    <path
+      d="M 270 166
+         L 336 182
+         L 336 214
+         L 316 214
+         L 316 196
+         L 262 182
+         Z"
+      fill="url(#ag-grad-coral)"
+    />
+    <path
+      d="M 270 166
+         L 336 182
+         L 336 214"
+      fill="none"
+      stroke="#fff0ec"
+      stroke-width="1.6"
+    />
+
+    <!-- Center/Lower Inward Hook & Spur of "G" -->
+    <path
+      d="M 258 248
+         L 334 248
+         L 334 274
+         L 302 334
+         L 278 334
+         L 314 274
+         L 258 274
+         Z"
+      fill="url(#ag-grad-metallic-light)"
+    />
+    <!-- 3D Bevel Edge on "G" Spur -->
+    <path
+      d="M 334 248
+         L 334 274
+         L 302 334
+         L 290 334
+         L 322 274
+         L 322 248
+         Z"
+      fill="url(#ag-grad-metallic-dark)"
+    />
+    <!-- "G" Spur Outer Accent Highlight -->
+    <polyline
+      points="258,248 334,248 334,274 302,334"
+      fill="none"
+      stroke="#ffffff"
+      stroke-width="1.6"
+      stroke-linejoin="miter"
+    />
+
+    <!-- Floating Chevron Guard Accent on Right of G -->
+    <path
+      d="M 326 214
+         L 344 214
+         L 344 240
+         L 326 240
+         Z"
+      fill="#ff5252"
+      opacity="0.9"
+    />
+  </g>
+
+  <!-- ── 06. CENTRAL VERTICAL BEVEL LIGHT SPINE ── -->
+  <line x1="256" y1="138" x2="256" y2="414" stroke="#ffffff" stroke-width="1.2" opacity="0.35" />
 </svg>

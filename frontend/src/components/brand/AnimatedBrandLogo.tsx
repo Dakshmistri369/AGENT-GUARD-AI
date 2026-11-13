@@ -29,10 +29,309 @@ export interface AnimatedBrandLogoProps {
   className?: string;
   onClick?: () => void;
   showSubtitle?: boolean;
+  /** Render mode: 'svg' for infinite resolution vector paths, 'image' for raster PNG */
+  renderMode?: 'svg' | 'image';
 }
 
 const FALLBACK_LOGO_URL =
   'https://lh3.googleusercontent.com/aida/ALJJyrC3RLEPBOl36-hB8LBeir8ojnx7d30ejKvUnP-NE8gpCmgJiqeLU7ZEsfPrHPNwzx9qcdVH2aqdK11Ln4ku9SwEMFHEr-RFCouRDnwHrUoeaWdaLkbtY84kAwJvdx6My3QkwXEM24pIkeqFU_RO3YSFL42948oT8OhvmePtuD1TE4UlM6sC3P2qkC3kPBat6QPAGeLby7qRordexFTk3zdRPoeSyjwUqPYK7jRcPA2Tog';
+
+/**
+ * High-End Minimalist Modern Vector Mark for AgentGuard AI
+ * Recreated from high_end_minimalist_modern_app_favicon_for_agentguard_ai_cybersecurity.png
+ */
+export const AgentGuardVectorMark: React.FC<{
+  size?: number;
+  className?: string;
+  isScanning?: boolean;
+  isAnalyzing?: boolean;
+}> = ({ size = 40, className = '', isScanning = false, isAnalyzing = false }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      width={size}
+      height={size}
+      className={className}
+      fill="none"
+      style={{ overflow: 'visible', display: 'block' }}
+      aria-hidden="true"
+    >
+      <defs>
+        {/* Gradients: Left Cyan Hemisphere */}
+        <linearGradient id="ag-svg-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#d6ffff" />
+          <stop offset="40%" stopColor="#5eedee" />
+          <stop offset="80%" stopColor="#00b4d8" />
+          <stop offset="100%" stopColor="#0077b6" />
+        </linearGradient>
+
+        <linearGradient id="ag-svg-cyan-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#144d57" />
+          <stop offset="100%" stopColor="#061c22" />
+        </linearGradient>
+
+        {/* Gradients: Right Coral/Crimson Hemisphere */}
+        <linearGradient id="ag-svg-coral" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#fff0ec" />
+          <stop offset="35%" stopColor="#ff9080" />
+          <stop offset="70%" stopColor="#e63946" />
+          <stop offset="100%" stopColor="#9b111e" />
+        </linearGradient>
+
+        <linearGradient id="ag-svg-coral-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#5c1d1d" />
+          <stop offset="100%" stopColor="#1e0808" />
+        </linearGradient>
+
+        {/* Gradients: Shackle Lock Top Arc */}
+        <linearGradient id="ag-svg-shackle" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#00e5ff" />
+          <stop offset="45%" stopColor="#99f6ff" />
+          <stop offset="55%" stopColor="#ffd4cc" />
+          <stop offset="100%" stopColor="#ff4d4d" />
+        </linearGradient>
+
+        {/* Gradients: Center Ruby Core Triangle */}
+        <linearGradient id="ag-svg-ruby" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stopColor="#ff5252" />
+          <stop offset="50%" stopColor="#c62828" />
+          <stop offset="100%" stopColor="#5f0909" />
+        </linearGradient>
+
+        {/* Metallic Highlights */}
+        <linearGradient id="ag-svg-metal-light" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="60%" stopColor="#c7d5df" />
+          <stop offset="100%" stopColor="#8ba1b0" />
+        </linearGradient>
+
+        <linearGradient id="ag-svg-metal-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#708290" />
+          <stop offset="100%" stopColor="#243038" />
+        </linearGradient>
+
+        {/* Dynamic Filter for Scanning & Analysis */}
+        <filter id="ag-svg-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* ── 01. TACTICAL HUD BACKGROUND FRAMING ── */}
+      <g opacity="0.6">
+        <circle cx="256" cy="256" r="204" stroke="rgba(139, 223, 221, 0.18)" strokeWidth="1.2" strokeDasharray="3 6" />
+        <circle cx="256" cy="256" r="172" stroke="rgba(255, 180, 166, 0.15)" strokeWidth="1" />
+        <line x1="88" y1="256" x2="114" y2="256" stroke="#00e5ff" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="398" y1="256" x2="424" y2="256" stroke="#ff5252" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="256" y1="446" x2="256" y2="468" stroke="rgba(227, 226, 230, 0.6)" strokeWidth="1.5" strokeLinecap="round" />
+
+        {/* Tactical Corner Brackets */}
+        <path d="M 124 160 L 124 124 L 160 124" fill="none" stroke="#5eedee" strokeWidth="2" strokeLinecap="square" />
+        <path d="M 388 160 L 388 124 L 352 124" fill="none" stroke="#ff9080" strokeWidth="2" strokeLinecap="square" />
+        <path d="M 124 352 L 124 388 L 160 388" fill="none" stroke="#5eedee" strokeWidth="2" strokeLinecap="square" />
+        <path d="M 388 352 L 388 388 L 352 388" fill="none" stroke="#ff9080" strokeWidth="2" strokeLinecap="square" />
+
+        {/* Ambient Stippled Particles */}
+        <circle cx="140" cy="216" r="2.2" fill="#5eedee" opacity="0.8" />
+        <circle cx="372" cy="216" r="2.5" fill="#ff5252" opacity="0.8" />
+        <circle cx="148" cy="360" r="2.5" fill="#00e5ff" opacity="0.7" />
+        <circle cx="364" cy="360" r="2" fill="#ff3b30" opacity="0.7" />
+      </g>
+
+      {/* ── 02. PADLOCK SHACKLE (CYBER ARCH ON TOP) ── */}
+      <g>
+        <path
+          d="M 204 154
+             C 204 110, 222 84, 256 84
+             C 290 84, 308 110, 308 154
+             L 292 154
+             C 292 118, 278 100, 256 100
+             C 234 100, 220 118, 220 154
+             Z"
+          fill="url(#ag-svg-shackle)"
+        />
+        <path
+          d="M 204 154 C 204 110, 222 84, 256 84"
+          fill="none"
+          stroke="#d6ffff"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M 256 84 C 290 84, 308 110, 308 154"
+          fill="none"
+          stroke="#ff9080"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+      </g>
+
+      {/* ── 03. OUTER SHIELD BASE & DUAL SPLIT BEZEL ── */}
+      {/* Outer Chamber Dark Base */}
+      <path
+        d="M 152 176
+           L 256 138
+           L 360 176
+           C 360 256, 332 350, 256 414
+           C 180 350, 152 256, 152 176
+           Z"
+        fill="#08090c"
+        stroke="#1a1e26"
+        strokeWidth="10"
+      />
+
+      {/* Left Outer Shield Half: Cyan Luminous Stroke */}
+      <path
+        d="M 256 138
+           L 152 176
+           C 152 256, 180 350, 256 414
+           L 256 398
+           C 192 340, 168 254, 168 184
+           L 256 150
+           Z"
+        fill="url(#ag-svg-cyan)"
+        filter={isScanning ? 'url(#ag-svg-glow)' : undefined}
+      />
+
+      {/* Right Outer Shield Half: Coral/Crimson Luminous Stroke */}
+      <path
+        d="M 256 138
+           L 360 176
+           C 360 256, 332 350, 256 414
+           L 256 398
+           C 320 340, 344 254, 344 184
+           L 256 150
+           Z"
+        fill="url(#ag-svg-coral)"
+        filter={isAnalyzing ? 'url(#ag-svg-glow)' : undefined}
+      />
+
+      {/* Shield Chamber Floor */}
+      <path
+        d="M 256 152
+           L 170 184
+           C 170 252, 194 336, 256 394
+           C 318 336, 342 252, 342 184
+           Z"
+        fill="#0d1017"
+      />
+
+      {/* ── 04. LOWER CIRCUIT TRACES & V-CHEVRONS ── */}
+      <g opacity="0.85">
+        <line x1="256" y1="298" x2="256" y2="348" stroke="#ff4d4d" strokeWidth="2.5" />
+        <circle cx="256" cy="304" r="4" fill="#ff5252" stroke="#ffffff" strokeWidth="1.2" />
+
+        {/* Left Traces */}
+        <path d="M 250 318 L 230 318 L 222 304 L 198 304" fill="none" stroke="#00e5ff" strokeWidth="2" />
+        <circle cx="198" cy="304" r="3" fill="#5eedee" />
+        <path d="M 248 334 L 234 334 L 220 348 L 208 348" fill="none" stroke="#00e5ff" strokeWidth="1.8" />
+        <circle cx="208" cy="348" r="2.5" fill="#5eedee" />
+
+        {/* Right Traces */}
+        <path d="M 262 318 L 282 318 L 290 304 L 314 304" fill="none" stroke="#ff7b6b" strokeWidth="2" />
+        <circle cx="314" cy="304" r="3" fill="#ff7b6b" />
+        <path d="M 264 334 L 278 334 L 292 348 L 304 348" fill="none" stroke="#ff7b6b" strokeWidth="1.8" />
+        <circle cx="304" cy="348" r="2.5" fill="#ff7b6b" />
+
+        {/* Concentric Lower V-Chevrons */}
+        <path
+          d="M 202 338 L 256 384 L 310 338 L 302 332 L 256 372 L 210 332 Z"
+          fill="#830000"
+          stroke="#ff3b30"
+          strokeWidth="1.2"
+        />
+        <path
+          d="M 218 344 L 256 376 L 294 344 L 290 338 L 256 366 L 222 338 Z"
+          fill="#fff0ec"
+        />
+      </g>
+
+      {/* ── 05. HERO MONOGRAM: FUSED "A" AND "G" EMBLEM ── */}
+      <g>
+        {/* Left Diagonal Arm of "A" */}
+        <path
+          d="M 256 154
+             L 236 154
+             L 174 316
+             L 196 324
+             L 230 236
+             L 256 236
+             Z"
+          fill="url(#ag-svg-cyan)"
+        />
+        <path
+          d="M 256 154
+             L 248 154
+             L 192 300
+             L 204 304
+             L 236 226
+             L 256 226
+             Z"
+          fill="url(#ag-svg-cyan-dark)"
+          opacity="0.45"
+        />
+        <path
+          d="M 256 154 L 174 316 L 196 324"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="1.8"
+        />
+        <line x1="188" y1="294" x2="218" y2="216" stroke="#00e5ff" strokeWidth="1.6" strokeLinecap="round" />
+        <circle cx="188" cy="294" r="2.8" fill="#5eedee" />
+        <circle cx="218" cy="216" r="2.8" fill="#5eedee" />
+
+        {/* Crossbar of "A" connecting into "G" */}
+        <path
+          d="M 210 248 L 272 248 L 264 266 L 220 266 Z"
+          fill="url(#ag-svg-metal-light)"
+        />
+
+        {/* Luminous Ruby Core Triangle in Apex of "A" */}
+        <polygon
+          points="256,192 238,236 274,236"
+          fill="url(#ag-svg-ruby)"
+          stroke="#ff8a80"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <line x1="256" y1="192" x2="256" y2="236" stroke="#ffcdd2" strokeWidth="1" />
+
+        {/* Top Arm of "G" */}
+        <path
+          d="M 270 166 L 336 182 L 336 214 L 316 214 L 316 196 L 262 182 Z"
+          fill="url(#ag-svg-coral)"
+        />
+        <path d="M 270 166 L 336 182 L 336 214" fill="none" stroke="#fff0ec" strokeWidth="1.6" />
+
+        {/* Inward Spur & Hook of "G" */}
+        <path
+          d="M 258 248 L 334 248 L 334 274 L 302 334 L 278 334 L 314 274 L 258 274 Z"
+          fill="url(#ag-svg-metal-light)"
+        />
+        <path
+          d="M 334 248 L 334 274 L 302 334 L 290 334 L 322 274 L 322 248 Z"
+          fill="url(#ag-svg-metal-dark)"
+        />
+        <polyline
+          points="258,248 334,248 334,274 302,334"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="1.6"
+        />
+
+        {/* Floating Right Chevron Guard */}
+        <path d="M 326 214 L 344 214 L 344 240 L 326 240 Z" fill="#ff5252" opacity="0.9" />
+      </g>
+
+      {/* Central Bevel Highlight Line */}
+      <line x1="256" y1="138" x2="256" y2="414" stroke="#ffffff" strokeWidth="1.2" opacity="0.35" />
+    </svg>
+  );
+};
 
 export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
   variant = 'full',
@@ -45,6 +344,7 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
   className = '',
   onClick,
   showSubtitle = true,
+  renderMode = 'svg',
 }) => {
   const currentStatus: LogoStatus = status || scanState || 'idle';
   const systemReducedMotion = useReducedMotion();
@@ -118,21 +418,29 @@ export const AnimatedBrandLogo: React.FC<AnimatedBrandLogoProps> = ({
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
         }}
       >
-        <img
-          src={imgSrc}
-          alt="AgentGuard AI Cyber Shield Insignia with futuristic glowing cyan and crimson lock emblem"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
-            display: 'block',
-          }}
-          onError={() => {
-            if (imgSrc !== FALLBACK_LOGO_URL) {
-              setImgSrc(FALLBACK_LOGO_URL);
-            }
-          }}
-        />
+        {renderMode === 'svg' ? (
+          <AgentGuardVectorMark
+            size={dimensions.iconSize - 4}
+            isScanning={isScanning}
+            isAnalyzing={isAnalyzing}
+          />
+        ) : (
+          <img
+            src={imgSrc}
+            alt="AgentGuard AI Cyber Shield Insignia with futuristic glowing cyan and crimson lock emblem"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+            onError={() => {
+              if (imgSrc !== FALLBACK_LOGO_URL) {
+                setImgSrc(FALLBACK_LOGO_URL);
+              }
+            }}
+          />
+        )}
 
         {/* Tactical sweep pulse when scanning / analyzing */}
         {(isScanning || isAnalyzing) && (
