@@ -25,15 +25,13 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
       style={{
-        background: 'rgba(10, 18, 32, 0.88)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(0, 240, 255, 0.22)',
-        borderRadius: '10px',
-        padding: '20px 22px',
+        background: '#1b1b1f',
+        border: '1px solid rgba(62, 73, 72, 0.45)',
+        borderRadius: '4px',
+        padding: '18px 20px',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 4px 24px -2px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 240, 255, 0.06)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
         minHeight,
         height: '100%',
         position: 'relative',
@@ -46,16 +44,17 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '18px',
+          marginBottom: '16px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <h2
             style={{
               fontSize: '14.5px',
-              fontWeight: 700,
-              color: '#ffffff',
-              letterSpacing: '0.2px',
+              fontWeight: 600,
+              color: '#FAF0E6',
+              letterSpacing: '0.01em',
+              fontFamily: "'Space Grotesk', system-ui, sans-serif",
               margin: 0,
             }}
           >
@@ -66,14 +65,14 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
               title={infoTooltip}
               style={{
                 display: 'inline-flex',
-                color: '#64748b',
+                color: '#889392',
                 cursor: 'help',
                 padding: '2px',
                 borderRadius: '4px',
                 transition: 'color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#00f0ff')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#8bdfdd')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#889392')}
               aria-label={infoTooltip}
             >
               <Info size={14} />

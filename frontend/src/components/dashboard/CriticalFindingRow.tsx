@@ -73,10 +73,10 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
   const cvssNum = parseFloat(cvssScore);
 
   const getScoreColor = (cvss: number) => {
-    if (cvss >= 9.0) return { bg: 'rgba(244, 63, 94, 0.15)', text: '#fb7185', border: 'rgba(244, 63, 94, 0.4)' };
-    if (cvss >= 7.0) return { bg: 'rgba(245, 158, 11, 0.15)', text: '#fcd34d', border: 'rgba(245, 158, 11, 0.4)' };
-    if (cvss >= 4.0) return { bg: 'rgba(56, 189, 248, 0.15)', text: '#7dd3fc', border: 'rgba(56, 189, 248, 0.4)' };
-    return { bg: 'rgba(16, 185, 129, 0.15)', text: '#6ee7b7', border: 'rgba(16, 185, 129, 0.4)' };
+    if (cvss >= 9.0) return { bg: 'rgba(147, 0, 10, 0.25)', text: '#ffb4ab', border: 'rgba(255, 180, 171, 0.4)' };
+    if (cvss >= 7.0) return { bg: 'rgba(143, 17, 3, 0.2)', text: '#ffb4a6', border: 'rgba(255, 180, 166, 0.4)' };
+    if (cvss >= 4.0) return { bg: 'rgba(139, 223, 221, 0.1)', text: '#8bdfdd', border: 'rgba(139, 223, 221, 0.3)' };
+    return { bg: 'rgba(139, 223, 221, 0.08)', text: '#a7fcfa', border: 'rgba(139, 223, 221, 0.25)' };
   };
 
   const scoreBadge = getScoreColor(cvssNum);
@@ -91,20 +91,20 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
         alignItems: 'center',
         gap: '12px',
         padding: '12px 14px',
-        borderRadius: '8px',
-        background: 'rgba(10, 18, 32, 0.7)',
-        border: '1px solid rgba(56, 189, 248, 0.18)',
+        borderRadius: '4px',
+        background: '#1f1f23',
+        border: '1px solid rgba(62, 73, 72, 0.4)',
         cursor: 'pointer',
         transition: 'all 0.15s ease',
         marginBottom: '8px',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(15, 25, 45, 0.85)';
-        e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.35)';
+        e.currentTarget.style.background = '#292a2d';
+        e.currentTarget.style.borderColor = 'rgba(139, 223, 221, 0.35)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'rgba(10, 18, 32, 0.7)';
-        e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.18)';
+        e.currentTarget.style.background = '#1f1f23';
+        e.currentTarget.style.borderColor = 'rgba(62, 73, 72, 0.4)';
       }}
       role="button"
       tabIndex={0}
@@ -121,9 +121,9 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
         style={{
           width: '32px',
           height: '32px',
-          borderRadius: '8px',
-          background: 'rgba(15, 23, 42, 0.8)',
-          border: '1px solid rgba(56, 189, 248, 0.2)',
+          borderRadius: '4px',
+          background: '#1b1b1f',
+          border: '1px solid rgba(62, 73, 72, 0.45)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -139,11 +139,12 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
         <div
           style={{
             fontSize: '13.5px',
-            fontWeight: 700,
-            color: '#ffffff',
+            fontWeight: 600,
+            color: '#e3e2e6',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
+            fontFamily: "'Space Grotesk', sans-serif",
           }}
           title={issue.title}
         >
@@ -152,12 +153,13 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
         <div
           style={{
             fontSize: '11px',
-            color: '#cbd5e1',
+            color: '#bdc9c8',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
             marginTop: '2px',
             whiteSpace: 'nowrap',
+            fontFamily: "'Inter', sans-serif",
             overflow: 'hidden',
             textOverflow: 'ellipsis',
           }}

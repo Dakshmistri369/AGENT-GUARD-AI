@@ -75,10 +75,10 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
       className="pt-safe"
       style={{
         height: '56px',
-        background: 'rgba(6, 11, 20, 0.92)',
+        background: 'rgba(13, 14, 17, 0.95)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(56, 189, 248, 0.18)',
+        borderBottom: '1px solid rgba(62, 73, 72, 0.35)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -100,10 +100,10 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               justifyContent: 'center',
               width: '40px',
               height: '40px',
-              borderRadius: '8px',
+              borderRadius: '4px',
               border: 'none',
               background: 'transparent',
-              color: '#94a3b8',
+              color: '#889392',
               cursor: 'pointer',
               marginLeft: '-4px',
               flexShrink: 0,
@@ -126,22 +126,24 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               justifyContent: 'center',
               width: '32px',
               height: '32px',
-              borderRadius: '6px',
-              border: '1px solid rgba(56, 189, 248, 0.22)',
-              background: isSidebarCollapsed ? 'rgba(0, 240, 255, 0.12)' : 'rgba(15, 23, 42, 0.8)',
-              color: isSidebarCollapsed ? '#00f0ff' : '#94a3b8',
+              borderRadius: '4px',
+              border: '1px solid rgba(62, 73, 72, 0.45)',
+              background: isSidebarCollapsed ? 'rgba(139, 223, 221, 0.12)' : '#1b1b1f',
+              color: isSidebarCollapsed ? '#a7fcfa' : '#889392',
               cursor: 'pointer',
               marginRight: '6px',
               transition: 'all 0.15s ease',
               flexShrink: 0,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = isSidebarCollapsed ? 'rgba(0, 240, 255, 0.2)' : 'rgba(30, 41, 59, 0.9)';
-              e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+              e.currentTarget.style.background = isSidebarCollapsed ? 'rgba(139, 223, 221, 0.2)' : '#292a2d';
+              e.currentTarget.style.borderColor = 'rgba(139, 223, 221, 0.4)';
+              e.currentTarget.style.color = '#a7fcfa';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = isSidebarCollapsed ? 'rgba(0, 240, 255, 0.12)' : 'rgba(15, 23, 42, 0.8)';
-              e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.22)';
+              e.currentTarget.style.background = isSidebarCollapsed ? 'rgba(139, 223, 221, 0.12)' : '#1b1b1f';
+              e.currentTarget.style.borderColor = 'rgba(62, 73, 72, 0.45)';
+              e.currentTarget.style.color = isSidebarCollapsed ? '#a7fcfa' : '#889392';
             }}
           >
             {isSidebarCollapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
@@ -149,20 +151,22 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         )}
 
         {/* Cyber Breadcrumbs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span className="hidden sm:inline" style={{ color: '#00f0ff', fontWeight: 700, letterSpacing: '0.4px', fontSize: '12px' }}>
-            AGENTGUARD AI
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, fontFamily: "'JetBrains Mono', monospace" }}>
+          <span className="hidden sm:inline" style={{ color: '#889392', fontWeight: 600, letterSpacing: '0.06em', fontSize: '11px', textTransform: 'uppercase' }}>
+            agentguard
           </span>
-          <span style={{ color: 'rgba(0, 240, 255, 0.4)', fontWeight: 600, fontSize: '12px' }}>//</span>
+          <span style={{ color: 'rgba(62, 73, 72, 0.8)', fontWeight: 600, fontSize: '12px' }}>/</span>
           <span
             style={{
-              color: '#ffffff',
-              fontWeight: 700,
+              color: '#e3e2e6',
+              fontWeight: 600,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              maxWidth: '120px',
-              letterSpacing: '0.2px',
+              maxWidth: '140px',
+              letterSpacing: '0.02em',
+              fontFamily: "'Space Grotesk', system-ui, sans-serif",
+              fontSize: '13px',
             }}
             className="sm:max-w-none"
           >
@@ -173,30 +177,31 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         {/* Repository context selector pill */}
         {repositories.length > 0 && onSelectRepo && (
           <div className="hidden md:flex" style={{ marginLeft: '12px', alignItems: 'center', gap: '6px' }}>
-            <span style={{ color: 'rgba(56, 189, 248, 0.3)', fontSize: '12px' }}>|</span>
-            <GitBranch size={13} color="#00f0ff" />
+            <span style={{ color: 'rgba(62, 73, 72, 0.6)', fontSize: '12px' }}>|</span>
+            <GitBranch size={13} color="#8bdfdd" />
             <select
               value={selectedRepoId || ''}
               onChange={(e) => onSelectRepo(Number(e.target.value))}
               style={{
-                background: 'rgba(10, 18, 32, 0.85)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                borderRadius: '6px',
-                color: '#f8fafc',
+                background: '#1b1b1f',
+                border: '1px solid rgba(62, 73, 72, 0.5)',
+                borderRadius: '4px',
+                color: '#e3e2e6',
                 fontSize: '12px',
                 fontWeight: 600,
                 padding: '4px 8px',
                 cursor: 'pointer',
                 outline: 'none',
                 maxWidth: '180px',
+                fontFamily: "'Inter', sans-serif",
               }}
               aria-label="Filter context by connected repository"
             >
-              <option value="" style={{ background: '#0a1220', color: '#94a3b8' }}>
+              <option value="" style={{ background: '#1b1b1f', color: '#bdc9c8' }}>
                 All Repositories ({repositories.length})
               </option>
               {repositories.map((repo) => (
-                <option key={repo.id} value={repo.id} style={{ background: '#0a1220', color: '#f8fafc' }}>
+                <option key={repo.id} value={repo.id} style={{ background: '#1b1b1f', color: '#e3e2e6' }}>
                   {repo.full_name}
                 </option>
               ))}
@@ -214,15 +219,16 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               gap: '6px',
               fontSize: '11px',
               fontWeight: 600,
-              color: '#34d399',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
+              color: '#a7fcfa',
+              background: 'rgba(139, 223, 221, 0.12)',
+              border: '1px solid rgba(139, 223, 221, 0.35)',
               padding: '2px 8px',
-              borderRadius: '9999px',
+              borderRadius: '4px',
               whiteSpace: 'nowrap',
+              fontFamily: "'JetBrains Mono', monospace",
             }}
           >
-            <RefreshCw size={11} className="animate-spin" />
+            <RefreshCw size={11} className="animate-spin text-[#8bdfdd]" />
             <span className="hidden sm:inline">Auditing {activeScanRepoName || 'Repository'}…</span>
             <span className="sm:hidden">Scanning…</span>
           </div>
@@ -249,28 +255,31 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: '12px',
+            fontSize: '11.5px',
             fontWeight: 600,
-            color: '#38bdf8',
-            background: 'rgba(56, 189, 248, 0.12)',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            borderRadius: '6px',
-            padding: '5px 11px',
+            color: '#e3e2e6',
+            background: '#1b1b1f',
+            border: '1px solid rgba(62, 73, 72, 0.45)',
+            borderRadius: '4px',
+            padding: '5px 10px',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
+            fontFamily: "'JetBrains Mono', monospace",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.22)';
-            e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+            e.currentTarget.style.background = '#292a2d';
+            e.currentTarget.style.borderColor = 'rgba(255, 180, 166, 0.5)';
+            e.currentTarget.style.color = '#ffb4a6';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
-            e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+            e.currentTarget.style.background = '#1b1b1f';
+            e.currentTarget.style.borderColor = 'rgba(62, 73, 72, 0.45)';
+            e.currentTarget.style.color = '#e3e2e6';
           }}
           title="Play Cinematic Logo & Cybersecurity Animation"
           aria-label="Play Cinematic Logo & Cybersecurity Animation"
         >
-          <Play size={12} color="#38bdf8" fill="#38bdf8" />
+          <Play size={12} color="#ffb4a6" fill="#ffb4a6" />
           <span className="hidden sm:inline">Intro</span>
         </button>
 
@@ -287,31 +296,33 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               );
             }
           }}
+          className="pulse-glow-cyan"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: '12px',
-            fontWeight: 700,
-            color: '#00f0ff',
-            background: 'rgba(0, 240, 255, 0.12)',
-            border: '1px solid rgba(0, 240, 255, 0.35)',
-            borderRadius: '6px',
-            padding: '6px 11px',
+            fontSize: '11.5px',
+            fontWeight: 600,
+            color: '#a7fcfa',
+            background: 'rgba(139, 223, 221, 0.1)',
+            border: '1px solid rgba(139, 223, 221, 0.35)',
+            borderRadius: '4px',
+            padding: '5px 10px',
             cursor: 'pointer',
-            minHeight: '36px',
-            boxShadow: '0 0 12px rgba(0, 240, 255, 0.15)',
+            minHeight: '34px',
+            boxShadow: '0 0 12px rgba(139, 223, 221, 0.15)',
             transition: 'all 0.15s ease',
+            fontFamily: "'JetBrains Mono', monospace",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(0, 240, 255, 0.22)';
-            e.currentTarget.style.borderColor = '#00f0ff';
-            e.currentTarget.style.boxShadow = '0 0 18px rgba(0, 240, 255, 0.35)';
+            e.currentTarget.style.background = 'rgba(139, 223, 221, 0.2)';
+            e.currentTarget.style.borderColor = '#8bdfdd';
+            e.currentTarget.style.boxShadow = '0 0 16px rgba(139, 223, 221, 0.3)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(0, 240, 255, 0.12)';
-            e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.35)';
-            e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 240, 255, 0.15)';
+            e.currentTarget.style.background = 'rgba(139, 223, 221, 0.1)';
+            e.currentTarget.style.borderColor = 'rgba(139, 223, 221, 0.35)';
+            e.currentTarget.style.boxShadow = '0 0 12px rgba(139, 223, 221, 0.15)';
           }}
           title="Open Live Cyber Scan Radar Visualizer with Sound Effects"
           aria-label="Open Live Cyber Scan Radar"
@@ -321,12 +332,11 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              background: '#10b981',
-              boxShadow: '0 0 8px #10b981',
-              animation: 'pulse 1.5s infinite',
+              background: '#8bdfdd',
+              boxShadow: '0 0 6px rgba(139, 223, 221, 0.8)',
             }}
           />
-          <Radio size={13} color="#00f0ff" />
+          <Radio size={13} color="#a7fcfa" />
           <span className="hidden sm:inline">Cyber Radar</span>
         </button>
 
@@ -347,12 +357,12 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '36px',
-            height: '36px',
-            borderRadius: '6px',
-            border: isCyberSoundActive ? '1px solid rgba(16, 185, 129, 0.55)' : '1px solid rgba(56, 189, 248, 0.2)',
-            background: isCyberSoundActive ? 'rgba(16, 185, 129, 0.18)' : 'rgba(15, 23, 42, 0.6)',
-            color: isCyberSoundActive ? '#34d399' : '#64748b',
+            width: '34px',
+            height: '34px',
+            borderRadius: '4px',
+            border: isCyberSoundActive ? '1px solid rgba(139, 223, 221, 0.45)' : '1px solid rgba(62, 73, 72, 0.45)',
+            background: isCyberSoundActive ? 'rgba(139, 223, 221, 0.14)' : '#1b1b1f',
+            color: isCyberSoundActive ? '#a7fcfa' : '#889392',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
@@ -377,29 +387,32 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-            fontSize: '12px',
+            fontSize: '11.5px',
             fontWeight: 600,
-            color: '#38bdf8',
-            background: 'rgba(56, 189, 248, 0.12)',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            borderRadius: '6px',
-            padding: '6px 10px',
+            color: '#e3e2e6',
+            background: '#1f1f23',
+            border: '1px solid rgba(62, 73, 72, 0.5)',
+            borderRadius: '4px',
+            padding: '5px 10px',
             cursor: 'pointer',
-            minHeight: '36px',
+            minHeight: '34px',
             transition: 'all 0.15s ease',
+            fontFamily: "'JetBrains Mono', monospace",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.22)';
-            e.currentTarget.style.borderColor = '#38bdf8';
+            e.currentTarget.style.background = '#292a2d';
+            e.currentTarget.style.borderColor = 'rgba(139, 223, 221, 0.5)';
+            e.currentTarget.style.color = '#a7fcfa';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
-            e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+            e.currentTarget.style.background = '#1f1f23';
+            e.currentTarget.style.borderColor = 'rgba(62, 73, 72, 0.5)';
+            e.currentTarget.style.color = '#e3e2e6';
           }}
           title="Open AI Security Assistant (Nemotron & LangGraph)"
           aria-label="Open AI Security Assistant"
         >
-          <Sparkles size={13} color="#38bdf8" />
+          <Sparkles size={13} color="#8bdfdd" />
           <span className="hidden sm:inline">AI Assistant</span>
         </button>
 
@@ -410,13 +423,15 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           rel="noopener noreferrer"
           className="hidden md:flex"
           style={{
-            color: '#cbd5e1',
+            color: '#889392',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '36px',
-            height: '36px',
-            borderRadius: '6px',
+            width: '34px',
+            height: '34px',
+            borderRadius: '4px',
             textDecoration: 'none',
+            border: '1px solid rgba(62, 73, 72, 0.35)',
+            background: '#1b1b1f',
           }}
           title="Open FastAPI Swagger Documentation"
         >
@@ -427,14 +442,16 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         <Link
           to="/settings"
           style={{
-            color: '#cbd5e1',
+            color: '#889392',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '36px',
-            height: '36px',
-            borderRadius: '6px',
+            width: '34px',
+            height: '34px',
+            borderRadius: '4px',
             textDecoration: 'none',
+            border: '1px solid rgba(62, 73, 72, 0.35)',
+            background: '#1b1b1f',
           }}
           title="Settings & Configurations"
         >
@@ -449,33 +466,34 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               alignItems: 'center',
               gap: '6px',
               padding: '4px 8px',
-              borderRadius: '8px',
-              background: 'rgba(15, 23, 42, 0.8)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
+              borderRadius: '4px',
+              background: '#1b1b1f',
+              border: '1px solid rgba(62, 73, 72, 0.5)',
             }}
           >
             <div
               style={{
                 width: '24px',
                 height: '24px',
-                borderRadius: '6px',
-                background: 'linear-gradient(135deg, #0284c7 0%, #10b981 100%)',
+                borderRadius: '4px',
+                background: 'linear-gradient(135deg, #00504f 0%, #81d5d3 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#ffffff',
+                color: '#00201f',
                 fontSize: '11px',
                 fontWeight: 700,
                 textTransform: 'uppercase',
+                fontFamily: "'Space Grotesk', sans-serif",
               }}
             >
               {user.email ? user.email[0] : 'U'}
             </div>
             <div className="hidden sm:block" style={{ lineHeight: 1.1 }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#ffffff' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#e3e2e6' }}>
                 {user.email ? user.email.split('@')[0] : 'User'}
               </div>
-              <div style={{ fontSize: '10px', color: '#cbd5e1' }}>Security Auditor</div>
+              <div style={{ fontSize: '10px', color: '#889392', fontFamily: "'JetBrains Mono', monospace" }}>Security Auditor</div>
             </div>
             <button
               onClick={() => signOut()}
@@ -485,14 +503,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#cbd5e1',
+                color: '#889392',
                 padding: '6px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#ffb4ab')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#889392')}
             >
               <LogOut size={14} />
             </button>
@@ -505,13 +523,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                 alignItems: 'center',
                 gap: '5px',
                 padding: '4px 8px',
-                borderRadius: '6px',
-                background: 'rgba(0, 240, 255, 0.1)',
-                border: '1px solid rgba(0, 240, 255, 0.28)',
-                color: '#00f0ff',
+                borderRadius: '4px',
+                background: 'rgba(143, 17, 3, 0.25)',
+                border: '1px solid rgba(255, 180, 166, 0.35)',
+                color: '#ffb4a6',
                 fontSize: '11px',
-                fontWeight: 700,
-                letterSpacing: '0.2px',
+                fontWeight: 600,
+                letterSpacing: '0.04em',
+                fontFamily: "'JetBrains Mono', monospace",
                 whiteSpace: 'nowrap',
               }}
               title="AgentGuard AI is running in Demo Mode"
@@ -521,11 +540,11 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   width: '6px',
                   height: '6px',
                   borderRadius: '50%',
-                  background: '#10b981',
-                  boxShadow: '0 0 6px #10b981',
+                  background: '#ffb4a6',
+                  boxShadow: '0 0 6px rgba(255, 180, 166, 0.8)',
                 }}
               />
-              Demo
+              Demo Mode
             </div>
             {SHOW_SIGN_IN_BUTTON && (
               <Link
@@ -535,13 +554,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   alignItems: 'center',
                   gap: '4px',
                   padding: '5px 10px',
-                  borderRadius: '6px',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                  color: '#ffffff',
+                  borderRadius: '4px',
+                  background: '#8bdfdd',
+                  color: '#003736',
                   fontSize: '12px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   textDecoration: 'none',
-                  boxShadow: '0 2px 4px rgba(2, 132, 199, 0.3)',
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  boxShadow: '0 0 10px rgba(139, 223, 221, 0.3)',
                   whiteSpace: 'nowrap',
                 }}
               >

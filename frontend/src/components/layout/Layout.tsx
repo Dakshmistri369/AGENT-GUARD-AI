@@ -136,9 +136,18 @@ export const Layout: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#060b13', position: 'relative' }}>
+    <div
+      className="tactical-grid-bg"
+      style={{
+        display: 'flex',
+        height: '100vh',
+        overflow: 'hidden',
+        background: '#0d0e11',
+        position: 'relative',
+      }}
+    >
       {/* Dynamic Cyber Video Background (with hardware acceleration & idle pause) */}
-      <CyberScanBackground opacity={0.16} />
+      <CyberScanBackground opacity={0.14} />
 
       {/* Permanent Desktop Sidebar (Hidden below lg breakpoint) */}
       <div className="hidden lg:flex">
@@ -165,7 +174,7 @@ export const Layout: React.FC = () => {
           />
 
           {/* Slide-over Drawer with Safe-area padding */}
-          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] h-full bg-[#070d18] border-r border-[rgba(56,189,248,0.2)] shadow-2xl flex flex-col z-10 animate-slide-in pt-safe pb-safe">
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] h-full bg-[#0d0e11] border-r border-[rgba(62,73,72,0.4)] shadow-2xl flex flex-col z-10 animate-slide-in pt-safe pb-safe">
             <Sidebar
               isMobileDrawer
               onCloseMobileDrawer={() => setIsMobileNavOpen(false)}

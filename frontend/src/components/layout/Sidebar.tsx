@@ -86,10 +86,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         width: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '256px',
         minWidth: isMobileDrawer ? '100%' : isEffectiveCollapsed ? '68px' : '256px',
         maxWidth: isMobileDrawer ? '100%' : undefined,
-        background: 'rgba(6, 11, 20, 0.95)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderRight: isMobileDrawer ? 'none' : '1px solid rgba(56, 189, 248, 0.18)',
+        background: '#0d0e11',
+        borderRight: isMobileDrawer ? 'none' : '1px solid rgba(62, 73, 72, 0.4)',
         display: 'flex',
         flexDirection: 'column',
         transition: 'width 0.2s ease, min-width 0.2s ease',
@@ -102,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div
         style={{
           padding: isEffectiveCollapsed ? '10px 8px' : '10px 16px',
-          borderBottom: '1px solid rgba(56, 189, 248, 0.18)',
+          borderBottom: '1px solid rgba(62, 73, 72, 0.35)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: isEffectiveCollapsed ? 'center' : 'space-between',
@@ -201,10 +199,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {!isEffectiveCollapsed && (
               <div
                 style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: '#cbd5e1',
-                  letterSpacing: '1px',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  color: '#889392',
+                  letterSpacing: '0.08em',
+                  fontFamily: "'JetBrains Mono', monospace",
                   padding: '4px 12px',
                   textTransform: 'uppercase',
                   marginBottom: '4px',
@@ -239,26 +238,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         alignItems: 'center',
                         justifyContent: isEffectiveCollapsed ? 'center' : 'flex-start',
                         gap: isEffectiveCollapsed ? '0' : '12px',
-                        padding: isEffectiveCollapsed ? '10px 0' : '10px 14px',
-                        minHeight: '40px',
-                        height: '40px',
-                        borderRadius: '8px',
+                        padding: isEffectiveCollapsed ? '10px 0' : '9px 12px',
+                        minHeight: '38px',
+                        height: '38px',
+                        borderRadius: '4px',
                         fontSize: '13px',
                         fontWeight: 500,
-                        color: '#e2e8f0',
+                        color: '#bdc9c8',
                         textDecoration: 'none',
                         transition: 'all 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
-                        e.currentTarget.style.color = '#ffffff';
+                        e.currentTarget.style.background = '#1b1b1f';
+                        e.currentTarget.style.color = '#e3e2e6';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#e2e8f0';
+                        e.currentTarget.style.color = '#bdc9c8';
                       }}
                     >
-                      <Icon size={16} color="#cbd5e1" className="shrink-0" />
+                      <Icon size={16} color="#889392" className="shrink-0" />
                       {!isEffectiveCollapsed && <span style={{ lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
                     </a>
                   );
@@ -280,45 +279,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       alignItems: 'center',
                       justifyContent: isEffectiveCollapsed ? 'center' : 'flex-start',
                       gap: isEffectiveCollapsed ? '0' : '12px',
-                      padding: isEffectiveCollapsed ? '10px 0' : '10px 14px',
-                      minHeight: '40px',
-                      height: '40px',
-                      borderRadius: '8px',
+                      padding: isEffectiveCollapsed ? '10px 0' : '9px 12px',
+                      minHeight: '38px',
+                      height: '38px',
+                      borderRadius: '4px',
                       fontSize: '13px',
-                      fontWeight: isActive ? 700 : 500,
+                      fontWeight: isActive ? 600 : 500,
                       textDecoration: 'none',
-                      color: isActive ? '#00f0ff' : '#e2e8f0',
-                      background: isActive ? 'rgba(0, 240, 255, 0.14)' : 'transparent',
-                      borderLeft: isEffectiveCollapsed ? 'none' : (isActive ? '3px solid #00f0ff' : '3px solid transparent'),
+                      color: isActive ? '#a7fcfa' : '#bdc9c8',
+                      background: isActive ? 'rgba(139, 223, 221, 0.1)' : 'transparent',
+                      borderLeft: isEffectiveCollapsed ? 'none' : (isActive ? '2px solid #a7fcfa' : '2px solid transparent'),
                       transition: 'all 0.15s ease',
                       position: 'relative',
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
-                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
-                        e.currentTarget.style.color = '#ffffff';
+                        e.currentTarget.style.background = '#1b1b1f';
+                        e.currentTarget.style.color = '#e3e2e6';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive) {
                         e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = '#e2e8f0';
+                        e.currentTarget.style.color = '#bdc9c8';
                       }
                     }}
                   >
-                    <Icon size={16} color={isActive ? '#00f0ff' : '#cbd5e1'} className="shrink-0" />
+                    <Icon size={16} color={isActive ? '#a7fcfa' : '#889392'} className="shrink-0" />
                     {!isEffectiveCollapsed && <span style={{ lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
-                    {item.badge && !isEffectiveCollapsed && (
+                    {isActive && !isEffectiveCollapsed && (
+                      <span className="pulse-glow-cyan" style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: '#a7fcfa' }} />
+                    )}
+                    {item.badge && !isEffectiveCollapsed && !isActive && (
                       <span
                         style={{
                           marginLeft: 'auto',
                           fontSize: '10px',
                           padding: '1px 6px',
                           borderRadius: '4px',
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          color: '#34d399',
+                          background: 'rgba(139, 223, 221, 0.12)',
+                          color: '#8bdfdd',
                           fontWeight: 600,
-                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          border: '1px solid rgba(139, 223, 221, 0.3)',
                         }}
                       >
                         {item.badge}
@@ -337,9 +339,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
           style={{
             padding: '12px 14px',
-            borderTop: '1px solid rgba(56, 189, 248, 0.18)',
+            borderTop: '1px solid rgba(62, 73, 72, 0.35)',
             fontSize: '11px',
-            color: '#cbd5e1',
+            color: '#bdc9c8',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -349,17 +351,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span
+              className="pulse-glow-cyan"
               style={{
                 display: 'inline-block',
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: '#10b981',
-                boxShadow: '0 0 8px #10b981',
+                background: '#8bdfdd',
+                boxShadow: '0 0 8px rgba(139, 223, 221, 0.6)',
               }}
             />
-            <span style={{ color: '#ffffff', fontWeight: 600 }}>Engines Active</span>
-            <span style={{ color: '#94a3b8', fontSize: '10px', marginLeft: '2px' }}>v1.0.0</span>
+            <span style={{ color: '#e3e2e6', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>Engines Active</span>
+            <span style={{ color: '#889392', fontSize: '10px', marginLeft: '2px', fontFamily: "'JetBrains Mono', monospace" }}>v1.0.0</span>
           </div>
           {!isMobileDrawer && (
             <button
@@ -372,7 +375,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 borderRadius: '4px',
                 border: 'none',
                 background: 'transparent',
-                color: '#94a3b8',
+                color: '#889392',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -380,11 +383,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#00f0ff';
-                e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+                e.currentTarget.style.color = '#a7fcfa';
+                e.currentTarget.style.background = '#1b1b1f';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#94a3b8';
+                e.currentTarget.style.color = '#889392';
                 e.currentTarget.style.background = 'transparent';
               }}
             >
@@ -397,7 +400,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div
             style={{
               padding: '10px 8px',
-              borderTop: '1px solid rgba(56, 189, 248, 0.18)',
+              borderTop: '1px solid rgba(62, 73, 72, 0.35)',
               display: 'flex',
               justifyContent: 'center',
               background: 'transparent',
@@ -411,26 +414,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
               style={{
                 width: '36px',
                 height: '36px',
-                borderRadius: '8px',
-                background: 'rgba(15, 23, 42, 0.8)',
-                border: '1px solid rgba(56, 189, 248, 0.22)',
+                borderRadius: '4px',
+                background: '#1b1b1f',
+                border: '1px solid rgba(62, 73, 72, 0.5)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#94a3b8',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                color: '#bdc9c8',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(30, 41, 59, 0.9)';
-                e.currentTarget.style.color = '#00f0ff';
-                e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+                e.currentTarget.style.background = '#292a2d';
+                e.currentTarget.style.color = '#a7fcfa';
+                e.currentTarget.style.borderColor = 'rgba(139, 223, 221, 0.5)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(15, 23, 42, 0.8)';
-                e.currentTarget.style.color = '#94a3b8';
-                e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.22)';
+                e.currentTarget.style.background = '#1b1b1f';
+                e.currentTarget.style.color = '#bdc9c8';
+                e.currentTarget.style.borderColor = 'rgba(62, 73, 72, 0.5)';
               }}
             >
               <ChevronRight size={18} />

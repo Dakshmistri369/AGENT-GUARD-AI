@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AgentGuard AI - GitHub Security Auditor</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Space Grotesk, JetBrains Mono, Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration Verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-dim": "#121316",
+            "surface-container-high": "#292a2d",
+            "on-surface": "#e3e2e6",
+            "on-primary-fixed": "#00201f",
+            "on-secondary": "#670600",
+            "surface-container-lowest": "#0d0e11",
+            "surface-container-low": "#1b1b1f",
+            "on-secondary-fixed-variant": "#8f1103",
+            "primary-container": "#8bdfdd",
+            "surface-bright": "#38393d",
+            "surface-container": "#1f1f23",
+            "on-error": "#690005",
+            "on-background": "#e3e2e6",
+            "primary-fixed-dim": "#81d5d3",
+            "on-secondary-fixed": "#400200",
+            "on-primary-container": "#006463",
+            "inverse-primary": "#006a69",
+            "secondary": "#ffb4a6",
+            "on-tertiary-fixed": "#410000",
+            "secondary-fixed-dim": "#ffb4a6",
+            "surface": "#121316",
+            "tertiary-fixed-dim": "#ffb4a8",
+            "on-primary-fixed-variant": "#00504f",
+            "primary": "#a7fcfa",
+            "inverse-surface": "#e3e2e6",
+            "on-tertiary": "#690000",
+            "tertiary": "#ffe8e4",
+            "on-tertiary-fixed-variant": "#900d06",
+            "on-tertiary-container": "#ab2417",
+            "error": "#ffb4ab",
+            "primary-fixed": "#9df1ef",
+            "surface-tint": "#81d5d3",
+            "secondary-fixed": "#ffdad4",
+            "background": "#121316",
+            "surface-variant": "#343538",
+            "inverse-on-surface": "#2f3034",
+            "on-surface-variant": "#bdc9c8",
+            "on-error-container": "#ffdad6",
+            "on-primary": "#003736",
+            "outline": "#889392",
+            "on-secondary-container": "#ff9a88",
+            "outline-variant": "#3e4948",
+            "error-container": "#93000a",
+            "surface-container-highest": "#343538",
+            "secondary-container": "#8f1103",
+            "tertiary-fixed": "#ffdad4",
+            "tertiary-container": "#ffc2b8"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "gutter": "0.75rem",
+            "space-xs": "0.25rem",
+            "gutter-lg": "1rem",
+            "space-md": "0.75rem",
+            "space-lg": "1.25rem",
+            "margin-lg": "1.5rem",
+            "space-xl": "1.75rem",
+            "margin": "1rem"
+          },
+          "fontFamily": {
+            "body-sm": ["Inter"],
+            "label-sm": ["JetBrains Mono"],
+            "label-md": ["JetBrains Mono"],
+            "body-md": ["Inter"],
+            "display-lg": ["Space Grotesk"],
+            "code-sm": ["JetBrains Mono"],
+            "headline-lg-mobile": ["Space Grotesk"],
+            "body-lg": ["Inter"],
+            "headline-md": ["Space Grotesk"],
+            "headline-lg": ["Space Grotesk"],
+            "title-md": ["Space Grotesk"],
+            "code-md": ["JetBrains Mono"]
+          },
+          "fontSize": {
+            "body-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.08em", "fontWeight": "600" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.06em", "fontWeight": "600" }],
+            "body-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "code-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-lg": ["15px", { "lineHeight": "22px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "0em", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "title-md": ["16px", { "lineHeight": "22px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "code-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    /* Cyber tactical scan radar ring animation */
+    @keyframes radar-sweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-radar {
+      animation: radar-sweep 8s linear infinite;
+    }
+
+    @keyframes pulse-cyan {
+      0%, 100% { opacity: 0.9; box-shadow: 0 0 10px rgba(139, 223, 221, 0.5); }
+      50% { opacity: 0.4; box-shadow: 0 0 2px rgba(139, 223, 221, 0.2); }
+    }
+    .pulse-glow-cyan {
+      animation: pulse-cyan 2.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse-crimson {
+      0%, 100% { opacity: 1; box-shadow: 0 0 14px rgba(240, 89, 65, 0.7); }
+      50% { opacity: 0.4; box-shadow: 0 0 4px rgba(240, 89, 65, 0.2); }
+    }
+    .pulse-glow-crimson {
+      animation: pulse-crimson 1.8s ease-in-out infinite;
+    }
+
+    /* Subtle fine micro-grid tactical canvas */
+    .tactical-grid-bg {
+      background-size: 28px 28px;
+      background-image: 
+        linear-gradient(to right, rgba(139, 223, 221, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(139, 223, 221, 0.025) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-md antialiased overflow-x-hidden selection:bg-primary selection:text-on-primary min-h-screen flex">
+<!-- PERSISTENT SIDE NAVIGATION SHELL (Shared Components JSON Anchor) -->
+<aside class="fixed left-0 top-0 bottom-0 z-40 w-64 flex flex-col justify-between py-4 px-3 bg-surface-container-lowest border-r border-outline-variant/40 shrink-0">
+<!-- Header with Cyber Shield Brand -->
+<div class="flex flex-col space-y-4">
+<div class="flex items-center space-x-3 px-2 py-1">
+<div class="relative w-10 h-10 rounded border border-outline-variant/50 p-0.5 bg-surface-container-low shrink-0 flex items-center justify-center overflow-hidden">
+<img alt="AgentGuard AI Cyber Shield Insignia with futuristic glowing cyan and crimson lock emblem" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida/ALJJyrC3RLEPBOl36-hB8LBeir8ojnx7d30ejKvUnP-NE8gpCmgJiqeLU7ZEsfPrHPNwzx9qcdVH2aqdK11Ln4ku9SwEMFHEr-RFCouRDnwHrUoeaWdaLkbtY84kAwJvdx6My3QkwXEM24pIkeqFU_RO3YSFL42948oT8OhvmePtuD1TE4UlM6sC3P2qkC3kPBat6QPAGeLby7qRordexFTk3zdRPoeSyjwUqPYK7jRcPA2Tog"/>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-title-md font-bold tracking-tight text-on-surface">AgentGuard AI</span>
+<span class="font-code-sm text-code-sm text-primary tracking-widest uppercase">// AUTONOMOUS SECURITY</span>
+</div>
+</div>
+<!-- Navigation Tabs Cluster -->
+<nav class="flex flex-col space-y-1 mt-4">
+<!-- Tab 1: Overview -->
+<a class="flex items-center space-x-3 px-3 py-2 text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 rounded active:scale-[0.99]" href="#overview">
+<span class="material-symbols-outlined text-outline text-[18px]">dashboard</span>
+<span class="font-label-md text-label-md">Overview</span>
+</a>
+<!-- Tab 2: Repositories (ACTIVE MATCH: GitHub Security Auditor) -->
+<a class="flex items-center space-x-3 px-3 py-2 text-primary bg-primary-container/10 border-l-2 border-primary font-semibold rounded active:scale-[0.99]" href="#repositories">
+<span class="material-symbols-outlined text-primary text-[18px]">emoji_symbols</span>
+<span class="font-label-md text-label-md">Repositories</span>
+<span class="ml-auto w-1.5 h-1.5 rounded-full bg-primary pulse-glow-cyan"></span>
+</a>
+<!-- Tab 3: Findings -->
+<a class="flex items-center space-x-3 px-3 py-2 text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 rounded active:scale-[0.99]" href="#findings">
+<span class="material-symbols-outlined text-outline text-[18px]">flip_camera_ios</span>
+<span class="font-label-md text-label-md">Findings</span>
+</a>
+<!-- Tab 4: Scans -->
+<a class="flex items-center space-x-3 px-3 py-2 text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 rounded active:scale-[0.99]" href="#scans">
+<span class="material-symbols-outlined text-outline text-[18px]">radar</span>
+<span class="font-label-md text-label-md">Scans</span>
+</a>
+<!-- Tab 5: Reports -->
+<a class="flex items-center space-x-3 px-3 py-2 text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 rounded active:scale-[0.99]" href="#reports">
+<span class="material-symbols-outlined text-outline text-[18px]">description</span>
+<span class="font-label-md text-label-md">Reports</span>
+</a>
+<!-- Tab 6: AI Assistant -->
+<a class="flex items-center space-x-3 px-3 py-2 text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 rounded active:scale-[0.99]" href="#ai-assistant">
+<span class="material-symbols-outlined text-outline text-[18px]">smart_toy</span>
+<span class="font-label-md text-label-md">AI Assistant</span>
+</a>
+<!-- Tab 7: Settings -->
+<a class="flex items-center space-x-3 px-3 py-2 text-outline hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 rounded active:scale-[0.99]" href="#settings">
+<span class="material-symbols-outlined text-outline text-[18px]">tune</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<!-- Documentation CTA Link -->
+<div class="pt-3 mt-2 border-t border-outline-variant/30">
+<a class="flex items-center space-x-3 px-3 py-2 text-outline hover:text-primary hover:bg-surface-container-high/40 transition-all duration-150 rounded text-label-md font-label-md" href="#docs">
+<span class="material-symbols-outlined text-[18px]">menu_book</span>
+<span>Help &amp; API Docs</span>
+</a>
+</div>
+</nav>
+</div>
+<!-- Sidebar Bottom Status Footer -->
+<div class="px-2 pt-3 border-t border-outline-variant/30 flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-primary-container pulse-glow-cyan"></span>
+<span class="font-code-sm text-code-sm text-on-surface-variant font-medium">Engines Active v1.0.0</span>
+</div>
+<span class="material-symbols-outlined text-outline text-[16px]">check_circle</span>
+</div>
+</aside>
+<!-- MAIN VIEWPORT CONTAINER -->
+<div class="flex-1 ml-64 flex flex-col min-h-screen bg-surface-container-lowest tactical-grid-bg">
+<!-- TOP TELEMETRY NAVBAR (Shared Components JSON Anchor) -->
+<header class="sticky top-0 z-30 flex items-center justify-between px-6 h-14 w-full bg-surface-container-lowest/90 backdrop-blur-md border-b border-outline-variant/30">
+<!-- Left Breadcrumb Cluster -->
+<div class="flex items-center space-x-2">
+<button class="p-1 rounded text-outline hover:text-primary transition-colors focus:outline-none">
+<span class="material-symbols-outlined text-[20px]">menu</span>
+</button>
+<div class="flex items-center space-x-1.5 font-label-sm text-label-sm tracking-wider uppercase pl-2">
+<span class="text-outline">agentguard</span>
+<span class="text-outline-variant">/</span>
+<span class="text-on-surface font-semibold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary">emoji_symbols</span>
+            Repositories
+          </span>
+</div>
+</div>
+<!-- Right Telemetry Action Pills -->
+<div class="flex items-center space-x-3">
+<!-- Scans Count Pill -->
+<div class="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-surface-container border border-outline-variant/40 font-code-sm text-code-sm text-on-surface">
+<span class="material-symbols-outlined text-[15px] text-outline">radar</span>
+<span>Scans</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-dim font-bold text-primary">0</span>
+</div>
+<!-- Intro Guide Button -->
+<button class="flex items-center space-x-1 px-2.5 py-1 rounded bg-surface-container-low hover:bg-surface-container-high border border-outline-variant/30 font-label-sm text-label-sm text-on-surface transition-all">
+<span class="material-symbols-outlined text-[14px] text-secondary">play_arrow</span>
+<span>Intro</span>
+</button>
+<!-- Cyber Radar Live Sweep Button -->
+<button class="flex items-center space-x-1.5 px-3 py-1 rounded bg-primary/10 border border-primary/30 hover:border-primary font-label-sm text-label-sm text-primary transition-all shadow-[0_0_12px_rgba(139,223,221,0.15)]">
+<span class="w-2 h-2 rounded-full bg-primary-container pulse-glow-cyan"></span>
+<span>Cyber Radar</span>
+</button>
+<!-- Mute/Audio HUD icon -->
+<button class="p-1.5 rounded hover:bg-surface-container-high/60 text-outline hover:text-on-surface transition-colors" title="Toggle Sonar Audio">
+<span class="material-symbols-outlined text-[18px]">volume_up</span>
+</button>
+<!-- AI Assistant Action Button -->
+<button class="flex items-center space-x-1.5 px-3 py-1 rounded bg-surface-container border border-outline-variant/60 hover:border-primary/50 font-label-sm text-label-sm text-on-surface transition-all">
+<span class="material-symbols-outlined text-[16px] text-primary">smart_toy</span>
+<span>AI Assistant</span>
+</button>
+<!-- Settings Icon Action -->
+<button class="p-1.5 rounded hover:bg-surface-container-high/60 text-outline hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">settings</span>
+</button>
+<!-- Demo Mode Badge -->
+<span class="px-2.5 py-1 rounded font-code-sm text-code-sm bg-secondary-container/30 border border-secondary-container text-secondary flex items-center gap-1 font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          Demo Mode
+        </span>
+</div>
+</header>
+<!-- MAIN CANVASES CONTENT -->
+<main class="flex-1 p-6 space-y-6 max-w-[1600px] w-full mx-auto">
+<!-- SECTION: GitHub Security Auditor Header & Input Form -->
+<section class="space-y-4">
+<div class="flex flex-wrap items-center justify-between gap-4">
+<div class="space-y-1">
+<div class="flex items-center space-x-3">
+<h1 class="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">GitHub Security Auditor</h1>
+<span class="px-2.5 py-0.5 rounded font-label-sm text-label-sm uppercase tracking-wider text-primary border border-primary/40 bg-primary/10 flex items-center space-x-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span>Public &amp; Private Ready</span>
+</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-4xl">
+              Connect repositories, inspect project structure, pin commit SHAs, and run isolated static analyzers with verifiable evidence.
+            </p>
+</div>
+<!-- Fast Preset Selectors -->
+<div class="flex items-center space-x-2">
+<span class="font-code-sm text-code-sm text-outline uppercase tracking-wider">Quick Load:</span>
+<button class="px-2.5 py-1 rounded bg-surface-container border border-outline-variant/50 hover:border-primary/60 font-code-sm text-code-sm text-on-surface transition-all flex items-center space-x-1" onclick="document.getElementById('repo-input').value='https://github.com/agentguard/core-scanner'">
+<span class="material-symbols-outlined text-[14px] text-primary">terminal</span>
+<span>agentguard/core-scanner</span>
+</button>
+<button class="px-2.5 py-1 rounded bg-surface-container border border-outline-variant/50 hover:border-primary/60 font-code-sm text-code-sm text-on-surface transition-all flex items-center space-x-1" onclick="document.getElementById('repo-input').value='https://github.com/vercel/next.js'">
+<span class="material-symbols-outlined text-[14px] text-outline">code</span>
+<span>vercel/next.js</span>
+</button>
+</div>
+</div>
+<!-- Repository Connection Input Bar -->
+<div class="p-1 rounded bg-surface-container-low border border-outline-variant/40 shadow-inner flex items-center space-x-2">
+<div class="flex items-center pl-3 text-outline">
+<span class="material-symbols-outlined text-[20px]">emoji_symbols</span>
+</div>
+<input class="flex-1 bg-transparent border-0 text-on-surface font-code-md text-code-md focus:ring-0 focus:outline-none placeholder:text-outline/60" id="repo-input" placeholder="https://github.com/owner/repository" type="text" value="https://github.com/agentguard/core-scanner"/>
+<button class="px-5 py-2.5 rounded bg-primary-container text-on-primary-container font-title-md text-title-md font-bold hover:brightness-110 active:scale-95 transition-all shadow-[0_0_16px_rgba(139,223,221,0.3)] flex items-center space-x-2">
+<span class="material-symbols-outlined text-[18px]">cable</span>
+<span>Connect Repository</span>
+</button>
+</div>
+</section>
+<!-- SECTION: Central Cyber Radar Scanner HUD Viewport -->
+<section class="relative rounded-lg bg-surface-dim border border-outline-variant/40 overflow-hidden shadow-2xl p-6 min-h-[460px] flex flex-col justify-between">
+<!-- Tactical HUD Framing Overlays -->
+<div class="absolute top-2 left-3 font-code-sm text-code-sm text-outline/60 tracking-wider flex items-center space-x-2 select-none">
+<span class="material-symbols-outlined text-[14px] text-primary">track_changes</span>
+<span>SYS_MONITOR: ACTIVE // LISTENER: PORT 443</span>
+</div>
+<div class="absolute top-2 right-3 font-code-sm text-code-sm text-outline/60 tracking-wider select-none">
+          ENCRYPTION: VERIFIABLE ED25519 [ISOLATED VM SANDBOX]
+        </div>
+<!-- Corner Reticle Indicators -->
+<div class="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-primary/60 pointer-events-none"></div>
+<div class="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-primary/60 pointer-events-none"></div>
+<div class="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-primary/60 pointer-events-none"></div>
+<div class="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-primary/60 pointer-events-none"></div>
+<!-- Central Orbit Radar Reticle -->
+<div class="relative flex-1 flex items-center justify-center my-6">
+<!-- Concentric Ring 1 (Outer) -->
+<div class="absolute w-[360px] h-[360px] rounded-full border border-primary/15 flex items-center justify-center pointer-events-none">
+<!-- Concentric Ring 2 (Middle with Ticks) -->
+<div class="w-[260px] h-[260px] rounded-full border border-dashed border-primary/20 flex items-center justify-center">
+<!-- Concentric Ring 3 (Inner Target Ring) -->
+<div class="w-[160px] h-[160px] rounded-full border border-primary/30 flex items-center justify-center">
+<!-- Inner Core Node -->
+<div class="w-10 h-10 rounded-full bg-primary/10 border border-primary flex items-center justify-center">
+<span class="w-2.5 h-2.5 rounded-full bg-primary pulse-glow-cyan"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Rotating Radar Sweep Line -->
+<div class="absolute w-[360px] h-[360px] rounded-full pointer-events-none animate-radar">
+<div class="w-1/2 h-1/2 origin-bottom-right bg-gradient-to-tr from-transparent via-primary/5 to-primary/25 rounded-tl-full border-r border-primary/40"></div>
+</div>
+<!-- Active Threat / Clean Telemetry Blips on Reticle Coordinates -->
+<div class="absolute -top-4 left-1/3 px-2 py-0.5 rounded bg-surface-container-high/90 border border-primary/50 text-primary font-code-sm text-code-sm flex items-center space-x-1.5 shadow-[0_0_10px_rgba(139,223,221,0.2)]">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span>CVE: Clean</span>
+<span class="text-outline">@src/crypto/</span>
+</div>
+<div class="absolute bottom-8 right-1/4 px-2 py-0.5 rounded bg-surface-container-high/90 border border-secondary/50 text-secondary font-code-sm text-code-sm flex items-center space-x-1.5 shadow-[0_0_10px_rgba(255,180,166,0.2)]">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary pulse-glow-crimson"></span>
+<span>Advisory: Deprecated OpenSSL</span>
+<span class="text-outline">SHA: 7a9e2f</span>
+</div>
+<div class="absolute bottom-16 left-1/4 px-2 py-0.5 rounded bg-surface-container-high/90 border border-outline-variant/60 text-on-surface font-code-sm text-code-sm flex items-center space-x-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span>Pin Commit: e4b107c</span>
+</div>
+<!-- Central Loading Telemetry HUD Box -->
+<div class="relative z-10 text-center space-y-3 bg-surface-container-lowest/80 backdrop-blur-md px-8 py-5 rounded-lg border border-outline-variant/50 shadow-xl max-w-md">
+<div class="flex items-center justify-center space-x-3">
+<span class="material-symbols-outlined text-primary text-[24px] animate-spin">progress_activity</span>
+<h3 class="font-title-md text-title-md font-bold text-on-surface">Loading repositories and security reports...</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              Synthesizing dependency trees, static AST rules, and secret leak scanning agents across isolated worker threads.
+            </p>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-gradient-to-r from-primary to-primary-container h-full w-2/3 animate-pulse"></div>
+</div>
+<div class="flex justify-between font-code-sm text-code-sm text-outline pt-1">
+<span>AST_CHECK: 67%</span>
+<span class="text-primary font-semibold">TARGET: OK</span>
+</div>
+</div>
+</div>
+<!-- Bottom Telemetry Status Strip -->
+<div class="flex items-center justify-between border-t border-outline-variant/30 pt-3 text-outline font-code-sm text-code-sm">
+<div class="flex items-center space-x-4">
+<span class="flex items-center space-x-1">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-on-surface">RADAR SWEEP: SYNCHRONIZED</span>
+</span>
+<span>AGENT_WORKERS: 04 POOLED</span>
+<span>SANDBOX: FIRECRACKER MICROVM</span>
+</div>
+<div class="flex items-center space-x-3">
+<span class="text-on-surface font-mono">LATENCY: 14ms</span>
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-semibold">ED25519 VERIFIED</span>
+</div>
+</div>
+</section>
+<!-- SECTION: Audited Repositories in Workspace Bento Grid -->
+<section class="space-y-3">
+<!-- Section Header -->
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<h2 class="font-title-md text-title-md font-bold tracking-tight text-on-surface uppercase">Audited Repositories in Workspace</h2>
+<span class="px-2 py-0.5 rounded bg-surface-container-high font-code-sm text-code-sm text-primary font-semibold">3 Active</span>
+</div>
+<span class="font-body-sm text-body-sm text-outline flex items-center space-x-1.5">
+<span class="material-symbols-outlined text-[15px] text-primary">sync</span>
+<span>Synced via GitHub App Webhook</span>
+</span>
+</div>
+<!-- 3-Column Bento Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Card 1: agentguard/core-scanner -->
+<div class="group relative rounded-lg bg-surface-container-low border border-outline-variant/40 hover:border-primary/60 p-4 transition-all duration-200 hover:shadow-[0_0_20px_-4px_rgba(139,223,221,0.2)] flex flex-col justify-between">
+<div class="space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container border border-outline-variant/40 text-primary">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</div>
+<div>
+<h3 class="font-title-md text-title-md font-bold text-on-surface hover:text-primary transition-colors cursor-pointer">agentguard/core-scanner</h3>
+<span class="font-code-sm text-code-sm text-outline">Branch: main • SHA: a8f9c2d</span>
+</div>
+</div>
+<!-- Score Badge -->
+<div class="px-2.5 py-1 rounded bg-primary/10 border border-primary/30 text-right">
+<div class="font-code-sm text-code-sm text-outline">SCORE</div>
+<div class="font-title-md text-title-md font-bold text-primary">98 <span class="text-xs font-normal text-outline">/ 100</span></div>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                Core static AST parser and agent isolation worker rules. Monitored with live verification agents.
+              </p>
+<!-- Tags / Telemetry Metrics -->
+<div class="flex flex-wrap gap-2 pt-1">
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm bg-surface-container text-on-surface border border-outline-variant/40">Rust 1.76</span>
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm bg-surface-container text-on-surface border border-outline-variant/40">AST Rules: 412</span>
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm bg-primary/10 text-primary border border-primary/30 flex items-center gap-1 font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                  0 Vulnerabilities
+                </span>
+</div>
+</div>
+<!-- Card Footer actions -->
+<div class="mt-4 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
+<span class="font-code-sm text-code-sm text-outline">Audited 12m ago</span>
+<button class="font-label-sm text-label-sm text-primary hover:underline flex items-center space-x-1">
+<span>View Findings</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 2: vercel/next.js (Warnings / High Alert) -->
+<div class="group relative rounded-lg bg-surface-container-low border border-secondary-container/80 hover:border-secondary p-4 transition-all duration-200 hover:shadow-[0_0_24px_-2px_rgba(131,0,0,0.55)] flex flex-col justify-between">
+<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-secondary-container via-secondary to-secondary-container rounded-t-lg"></div>
+<div class="space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container border border-outline-variant/40 text-on-surface">
+<span class="material-symbols-outlined text-[18px]">layers</span>
+</div>
+<div>
+<h3 class="font-title-md text-title-md font-bold text-on-surface hover:text-secondary transition-colors cursor-pointer">vercel/next.js</h3>
+<span class="font-code-sm text-code-sm text-outline">Branch: canary • SHA: e4b107c</span>
+</div>
+</div>
+<!-- Score Badge -->
+<div class="px-2.5 py-1 rounded bg-secondary-container/20 border border-secondary-container text-right">
+<div class="font-code-sm text-code-sm text-outline">SCORE</div>
+<div class="font-title-md text-title-md font-bold text-secondary">89 <span class="text-xs font-normal text-outline">/ 100</span></div>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                The React Framework for the Web with production SSR. Active dependency scanner pinpointed outdated middleware libraries.
+              </p>
+<!-- Tags / Telemetry Metrics -->
+<div class="flex flex-wrap gap-2 pt-1">
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm bg-surface-container text-on-surface border border-outline-variant/40">TypeScript 5.3</span>
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm bg-secondary-container/30 text-secondary border border-secondary/40 flex items-center gap-1 font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary pulse-glow-crimson"></span>
+                  2 Advisory Warnings
+                </span>
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm bg-surface-container text-outline">AST Rules: 890</span>
+</div>
+</div>
+<!-- Card Footer actions -->
+<div class="mt-4 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
+<span class="font-code-sm text-code-sm text-outline">Audited 1h ago</span>
+<button class="font-label-sm text-label-sm text-secondary hover:underline flex items-center space-x-1">
+<span>Triage Warnings</span>
+<span class="material-symbols-outlined text-[14px]">warning</span>
+</button>
+</div>
+</div>
+<!-- Card 3: facebook/react -->
+<div class="group relative rounded-lg bg-surface-container-low border border-outline-variant/40 hover:border-primary/60 p-4 transition-all duration-200 hover:shadow-[0_0_20px_-4px_rgba(139,223,221,0.2)] flex flex-col justify-between">
+<div class="space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-2">
+<div class="p-1.5 rounded bg-surface-container border border-outline-variant/40 text-on-surface">
+<span class="material-symbols-outlined text-[18px]">code</span>
+</div>
+<div>
+<h3 class="font-title-md text-title-md font-bold text-on-surface hover:text-primary transition-colors cursor-pointer">facebook/react</h3>
+<span class="font-code-sm text-code-sm text-outline">Branch: main • SHA: 7f8c12a</span>
+</div>
+</div>
+<!-- Score Badge -->
+<div class="px-2.5 py-1 rounded bg-surface-container border border-outline-variant/50 text-right">
+<div class="font-code-sm text-code-sm text-outline">SCORE</div>
+<div class="font-title-md text-title-md font-bold text-on-surface">95 <span class="text-xs font-normal text-outline">/ 100</span></div>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                The library for web and native user interfaces. Complete cryptographic snapshot pinned and verified against lockfile tampering.
+              </p>
+<!-- Tags / Telemetry Metrics -->
+<div class="flex flex-wrap gap-2 pt-1">
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm bg-surface-container text-on-surface border border-outline-variant/40">JavaScript</span>
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm bg-surface-container text-primary border border-primary/30 flex items-center gap-1 font-semibold">
+<span class="material-symbols-outlined text-[12px] text-primary">verified</span>
+                  Pin Audited
+                </span>
+<span class="px-2 py-0.5 rounded font-code-sm text-code-sm bg-surface-container text-outline">AST Rules: 620</span>
+</div>
+</div>
+<!-- Card Footer actions -->
+<div class="mt-4 pt-3 border-t border-outline-variant/20 flex items-center justify-between">
+<span class="font-code-sm text-code-sm text-outline">Audited 3h ago</span>
+<button class="font-label-sm text-label-sm text-primary hover:underline flex items-center space-x-1">
+<span>View Details</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

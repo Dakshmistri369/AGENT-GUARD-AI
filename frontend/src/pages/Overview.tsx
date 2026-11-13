@@ -167,31 +167,35 @@ export const OverviewPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h1
               style={{
-                fontSize: '24px',
-                fontWeight: 800,
-                color: '#ffffff',
-                letterSpacing: '-0.5px',
+                fontSize: '26px',
+                fontWeight: 700,
+                color: '#e3e2e6',
+                letterSpacing: '-0.02em',
                 lineHeight: 1.25,
                 margin: 0,
+                fontFamily: "'Space Grotesk', system-ui, sans-serif",
               }}
             >
               Overview
             </h1>
             <span
               style={{
-                fontSize: '11px',
+                fontSize: '10.5px',
                 fontWeight: 600,
-                color: '#00f0ff',
-                background: 'rgba(0, 240, 255, 0.12)',
-                border: '1px solid rgba(0, 240, 255, 0.35)',
+                color: '#a7fcfa',
+                background: 'rgba(139, 223, 221, 0.1)',
+                border: '1px solid rgba(139, 223, 221, 0.35)',
                 padding: '2px 8px',
-                borderRadius: '6px',
+                borderRadius: '4px',
+                fontFamily: "'JetBrains Mono', monospace",
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
               }}
             >
               Current Posture
             </span>
           </div>
-          <p style={{ fontSize: '13px', color: '#ffffff', opacity: 0.95, margin: '4px 0 0 0', lineHeight: 1.4 }}>
+          <p style={{ fontSize: '13px', color: '#bdc9c8', margin: '4px 0 0 0', lineHeight: 1.4, fontFamily: "'Inter', sans-serif" }}>
             Multi-engine AST security, dependency supply chain, and secret exposure monitor
           </p>
         </div>
@@ -206,22 +210,23 @@ export const OverviewPage: React.FC = () => {
               value={selectedRepoId || ''}
               onChange={(e) => setSelectedRepoId(e.target.value ? Number(e.target.value) : null)}
               style={{
-                fontSize: '12.5px',
+                fontSize: '12px',
                 fontWeight: 600,
-                color: '#f8fafc',
-                background: 'rgba(10, 18, 32, 0.85)',
-                border: '1px solid rgba(56, 189, 248, 0.25)',
-                borderRadius: '6px',
-                padding: '7px 12px',
+                color: '#e3e2e6',
+                background: '#1b1b1f',
+                border: '1px solid rgba(62, 73, 72, 0.5)',
+                borderRadius: '4px',
+                padding: '6px 12px',
                 cursor: 'pointer',
                 outline: 'none',
                 maxWidth: '220px',
+                fontFamily: "'Inter', sans-serif",
               }}
               aria-label="Filter overview by connected repository"
             >
-              <option value="" style={{ background: '#0a1220', color: '#94a3b8' }}>All Repositories ({repositories.length})</option>
+              <option value="" style={{ background: '#1b1b1f', color: '#bdc9c8' }}>All Repositories ({repositories.length})</option>
               {repositories.map((repo) => (
-                <option key={repo.id} value={repo.id} style={{ background: '#0a1220', color: '#f8fafc' }}>
+                <option key={repo.id} value={repo.id} style={{ background: '#1b1b1f', color: '#e3e2e6' }}>
                   {repo.full_name || repo.name}
                 </option>
               ))}
@@ -234,17 +239,18 @@ export const OverviewPage: React.FC = () => {
               display: 'none',
               alignItems: 'center',
               gap: '6px',
-              fontSize: '11.5px',
-              color: '#94a3b8',
-              background: 'rgba(15, 23, 42, 0.8)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
+              fontSize: '11px',
+              color: '#889392',
+              background: '#1b1b1f',
+              border: '1px solid rgba(62, 73, 72, 0.4)',
               padding: '6px 10px',
-              borderRadius: '6px',
+              borderRadius: '4px',
+              fontFamily: "'JetBrains Mono', monospace",
             }}
             className="md:flex"
             title="Timestamp of latest metrics refresh"
           >
-            <Clock size={12} color="#38bdf8" />
+            <Clock size={12} color="#8bdfdd" />
             <span>
               {dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Live'}
             </span>
@@ -254,7 +260,18 @@ export const OverviewPage: React.FC = () => {
             onClick={() => refetch()}
             disabled={isFetching}
             className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '7px 12px' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              background: '#1b1b1f',
+              border: '1px solid rgba(62, 73, 72, 0.45)',
+              color: '#e3e2e6',
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}
             title="Refresh overview metrics"
             aria-label="Refresh overview metrics"
           >
@@ -264,17 +281,25 @@ export const OverviewPage: React.FC = () => {
 
           <button
             onClick={handleStartScan}
-            className="btn btn-primary"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              fontSize: '12.5px',
-              padding: '7px 14px',
+              fontSize: '12px',
+              padding: '6px 14px',
+              borderRadius: '4px',
+              background: '#8bdfdd',
+              color: '#00201f',
+              fontWeight: 700,
+              fontFamily: "'Space Grotesk', sans-serif",
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 0 12px rgba(139, 223, 221, 0.35)',
+              transition: 'all 0.15s ease',
             }}
             title="Start automated security audit"
           >
-            <Play size={13} fill="#ffffff" color="#ffffff" />
+            <Play size={13} fill="#00201f" color="#00201f" />
             <span>Run Scan</span>
           </button>
         </div>
@@ -289,39 +314,41 @@ export const OverviewPage: React.FC = () => {
           flexWrap: 'wrap',
           gap: '12px',
           padding: '10px 16px',
-          borderRadius: '8px',
-          background: 'linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(30,64,175,0.03) 100%)',
-          border: '1px solid rgba(37,99,235,0.18)',
+          borderRadius: '4px',
+          background: 'rgba(27, 27, 31, 0.75)',
+          border: '1px solid rgba(62, 73, 72, 0.4)',
           marginBottom: '20px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span
+            className="pulse-glow-cyan"
             style={{
-              width: '8px',
-              height: '8px',
+              width: '7px',
+              height: '7px',
               borderRadius: '50%',
-              background: '#00f0ff',
-              boxShadow: '0 0 10px rgba(0, 240, 255, 0.7)',
+              background: '#8bdfdd',
+              boxShadow: '0 0 8px rgba(139, 223, 221, 0.8)',
             }}
           />
-          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#00f0ff' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#a7fcfa', fontFamily: "'JetBrains Mono', monospace" }}>
             Demo Mode Active
           </span>
-          <span style={{ fontSize: '12px', color: '#ffffff', opacity: 0.95 }}>
+          <span style={{ fontSize: '12px', color: '#bdc9c8', fontFamily: "'Inter', sans-serif" }}>
             — Direct web app access enabled. Private repositories and credentials remain protected.
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span
             style={{
-              fontSize: '11px',
+              fontSize: '10.5px',
               fontWeight: 600,
-              color: '#2dd4bf',
-              background: 'rgba(13, 148, 136, 0.2)',
-              border: '1px solid rgba(45, 212, 191, 0.4)',
-              borderRadius: '4px',
+              color: '#8bdfdd',
+              background: 'rgba(139, 223, 221, 0.12)',
+              border: '1px solid rgba(139, 223, 221, 0.3)',
+              borderRadius: '2px',
               padding: '2px 8px',
+              fontFamily: "'JetBrains Mono', monospace",
             }}
           >
             Zero-Login Direct Dashboard
@@ -469,7 +496,7 @@ export const OverviewPage: React.FC = () => {
         );
       })()}
 
-      {/* ── Top Row: 4 Metric Cards with High-Contrast Cyber Navy Surfaces ── */}
+      {/* ── Top Row: 4 Metric Cards with Obsidian Sentinel Surfaces ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <SummaryCard
           title="Open Findings"
@@ -481,15 +508,15 @@ export const OverviewPage: React.FC = () => {
               ? 'Active findings detected in latest scan of selected repository'
               : 'Active findings detected across latest scans of all repositories'
           }
-          accentColor="#00f0ff"
-          bgColor="rgba(10, 18, 32, 0.85)"
-          borderColor="rgba(56, 189, 248, 0.18)"
+          accentColor="#8bdfdd"
+          bgColor="#1b1b1f"
+          borderColor="rgba(62, 73, 72, 0.45)"
           badge={
             !isError && summary && summary.potential_issues.count > 0
               ? `${summary.severity_distribution.critical} Crit · ${summary.severity_distribution.high} High`
               : 'Clean'
           }
-          badgeColor={(summary?.severity_distribution.critical ?? 0) > 0 ? '#f43f5e' : '#00f0ff'}
+          badgeColor={(summary?.severity_distribution.critical ?? 0) > 0 ? '#ffb4ab' : '#8bdfdd'}
           onClick={() => navigate('/repositories?tab=findings')}
           isLoading={isLoading && !summary}
         />
@@ -508,9 +535,9 @@ export const OverviewPage: React.FC = () => {
               ? 'High-priority vulnerabilities requiring immediate code remediation'
               : 'Zero critical or high severity vulnerabilities detected'
           }
-          accentColor="#f43f5e"
-          bgColor="rgba(10, 18, 32, 0.85)"
-          borderColor="rgba(56, 189, 248, 0.18)"
+          accentColor="#ffb4ab"
+          bgColor="#1b1b1f"
+          borderColor="rgba(62, 73, 72, 0.45)"
           badge={
             ((summary?.severity_distribution.critical ?? 0) + (summary?.severity_distribution.high ?? 0)) > 0
               ? 'Action Required'
@@ -518,8 +545,8 @@ export const OverviewPage: React.FC = () => {
           }
           badgeColor={
             ((summary?.severity_distribution.critical ?? 0) + (summary?.severity_distribution.high ?? 0)) > 0
-              ? '#f43f5e'
-              : '#10b981'
+              ? '#ffb4ab'
+              : '#8bdfdd'
           }
           onClick={() => navigate('/repositories?tab=findings&severity=critical')}
           isLoading={isLoading && !summary}
@@ -537,9 +564,9 @@ export const OverviewPage: React.FC = () => {
               ? 'Repository posture unavailable'
               : `Out of ${summary?.issues_by_repository.length ?? repositories.length} connected repositories in scope`
           }
-          accentColor="#f59e0b"
-          bgColor="rgba(10, 18, 32, 0.85)"
-          borderColor="rgba(56, 189, 248, 0.18)"
+          accentColor="#ffb4a6"
+          bgColor="#1b1b1f"
+          borderColor="rgba(62, 73, 72, 0.45)"
           badge={
             (summary?.issues_by_repository.filter((r) => r.total > 0).length ?? 0) > 0
               ? `${summary?.issues_by_repository.filter((r) => r.total > 0).length} Affected`
@@ -547,8 +574,8 @@ export const OverviewPage: React.FC = () => {
           }
           badgeColor={
             (summary?.issues_by_repository.filter((r) => r.total > 0).length ?? 0) > 0
-              ? '#f59e0b'
-              : '#10b981'
+              ? '#ffb4a6'
+              : '#8bdfdd'
           }
           onClick={() => navigate('/repositories')}
           isLoading={isLoading && !summary}
@@ -562,11 +589,11 @@ export const OverviewPage: React.FC = () => {
               ? 'Coverage metrics unavailable'
               : `${summary?.scans_and_reviews.total_scans ?? 0} total scans completed across Semgrep, Bandit, secrets & OSV`
           }
-          accentColor="#10b981"
-          bgColor="rgba(10, 18, 32, 0.85)"
-          borderColor="rgba(56, 189, 248, 0.18)"
+          accentColor="#a7fcfa"
+          bgColor="#1b1b1f"
+          borderColor="rgba(62, 73, 72, 0.45)"
           badge="4 Engines"
-          badgeColor="#10b981"
+          badgeColor="#8bdfdd"
           onClick={() => navigate('/repositories?tab=history')}
           isLoading={isLoading && !summary}
         />
