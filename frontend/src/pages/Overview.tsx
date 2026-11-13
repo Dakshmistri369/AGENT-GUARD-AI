@@ -23,6 +23,37 @@ import { CriticalFindingRow } from '../components/dashboard/CriticalFindingRow';
 import { ScannerStatus } from '../components/dashboard/ScannerStatus';
 import type { CriticalIssueItem, DashboardSummaryResponse, ActiveScansResponse } from '../types';
 
+function resolveCweIdentifier(cweOrRule?: string, category?: string, title?: string): string {
+  const text = `${cweOrRule || ''} ${category || ''} ${title || ''}`.toLowerCase();
+  const match = (cweOrRule || '').match(/CWE-\d+/i);
+  if (match) return match[0].toUpperCase();
+  if (text.includes('subprocess') || text.includes('command') || text.includes('b602') || text.includes('b603') || text.includes('shell')) return 'CWE-78';
+  if (text.includes('sql') || text.includes('b608') || text.includes('injection')) return 'CWE-89';
+  if (text.includes('secret') || text.includes('token') || text.includes('key') || text.includes('credential') || text.includes('b105')) return 'CWE-798';
+  if (text.includes('xss') || text.includes('cross-site')) return 'CWE-79';
+  if (text.includes('path') || text.includes('traversal')) return 'CWE-22';
+  if (text.includes('pickle') || text.includes('deserial')) return 'CWE-502';
+  if (text.includes('crypto') || text.includes('md5') || text.includes('b303')) return 'CWE-327';
+  return cweOrRule && cweOrRule.startsWith('CWE') ? cweOrRule : 'CWE-78';
+}
+
+function formatScannerClassification(scanner?: string): { type: 'SAST' | 'SCA' | 'Secrets'; label: string; badgeColor: string } {
+  const s = (scanner || '').toLowerCase();
+  if (s.includes('osv')) {
+    return { type: 'SCA', label: 'SCA · OSV', badgeColor: '#38bdf8' };
+  }
+  if (s.includes('bandit')) {
+    return { type: 'SAST', label: 'SAST · Bandit AST', badgeColor: '#a855f7' };
+  }
+  if (s.includes('semgrep')) {
+    return { type: 'SAST', label: 'SAST · Semgrep', badgeColor: '#00f0ff' };
+  }
+  if (s.includes('secret')) {
+    return { type: 'Secrets', label: 'Secrets · detect-secrets', badgeColor: '#f43f5e' };
+  }
+  return { type: 'SAST', label: 'SAST · Core', badgeColor: '#10b981' };
+}
+
 export const OverviewPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -138,7 +169,7 @@ export const OverviewPage: React.FC = () => {
               style={{
                 fontSize: '24px',
                 fontWeight: 800,
-                color: '#f8fafc',
+                color: '#ffffff',
                 letterSpacing: '-0.5px',
                 lineHeight: 1.25,
                 margin: 0,
@@ -150,9 +181,9 @@ export const OverviewPage: React.FC = () => {
               style={{
                 fontSize: '11px',
                 fontWeight: 600,
-                color: '#38bdf8',
-                background: 'rgba(56, 189, 248, 0.12)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#00f0ff',
+                background: 'rgba(0, 240, 255, 0.12)',
+                border: '1px solid rgba(0, 240, 255, 0.35)',
                 padding: '2px 8px',
                 borderRadius: '6px',
               }}
@@ -160,7 +191,7 @@ export const OverviewPage: React.FC = () => {
               Current Posture
             </span>
           </div>
-          <p style={{ fontSize: '13px', color: '#cbd5e1', margin: '4px 0 0 0', lineHeight: 1.4 }}>
+          <p style={{ fontSize: '13px', color: '#ffffff', opacity: 0.95, margin: '4px 0 0 0', lineHeight: 1.4 }}>
             Multi-engine AST security, dependency supply chain, and secret exposure monitor
           </p>
         </div>
@@ -274,10 +305,10 @@ export const OverviewPage: React.FC = () => {
               boxShadow: '0 0 10px rgba(0, 240, 255, 0.7)',
             }}
           />
-          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#38bdf8' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#00f0ff' }}>
             Demo Mode Active
           </span>
-          <span style={{ fontSize: '12px', color: '#cbd5e1' }}>
+          <span style={{ fontSize: '12px', color: '#ffffff', opacity: 0.95 }}>
             — Direct web app access enabled. Private repositories and credentials remain protected.
           </span>
         </div>
@@ -332,7 +363,17 @@ export const OverviewPage: React.FC = () => {
             <div>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>{activeScans.length} Background Scan{activeScans.length > 1 ? 's' : ''} Active</span>
-                <span style={{ fontSize: '11px', background: '#d1fae5', color: '#047857', padding: '1px 7px', borderRadius: '9999px', fontWeight: 600 }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#34d399',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '1px 7px',
+                    borderRadius: '9999px',
+                    fontWeight: 600,
+                  }}
+                >
                   Live arq Engine
                 </span>
               </div>
@@ -348,9 +389,9 @@ export const OverviewPage: React.FC = () => {
               style={{
                 fontSize: '11.5px',
                 padding: '6px 12px',
-                color: '#065f46',
-                borderColor: 'rgba(16, 185, 129, 0.5)',
-                background: '#ffffff',
+                color: '#10b981',
+                borderColor: 'rgba(16, 185, 129, 0.35)',
+                background: 'rgba(16, 185, 129, 0.12)',
                 fontWeight: 600,
               }}
             >
@@ -369,9 +410,9 @@ export const OverviewPage: React.FC = () => {
             style={{
               padding: '14px 20px',
               borderRadius: '10px',
-              background: is401 ? '#eff6ff' : '#fef2f2',
-              border: `1px solid ${is401 ? '#bfdbfe' : '#fecaca'}`,
-              color: is401 ? '#1e40af' : '#dc2626',
+              background: is401 ? 'rgba(56, 189, 248, 0.12)' : 'rgba(244, 63, 94, 0.12)',
+              border: `1px solid ${is401 ? 'rgba(56, 189, 248, 0.25)' : 'rgba(244, 63, 94, 0.35)'}`,
+              color: is401 ? '#38bdf8' : '#fb7185',
               display: 'flex',
               flexDirection: 'column',
               gap: '8px',
@@ -380,11 +421,11 @@ export const OverviewPage: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {is401 ? <ShieldAlert size={18} color="#2563eb" /> : <XCircle size={18} />}
+                {is401 ? <ShieldAlert size={18} color="#00f0ff" /> : <XCircle size={18} color="#f43f5e" />}
                 <span style={{ fontSize: '13px', fontWeight: 600 }}>
                   {is401
-                    ? 'Viewing AgentGuard AI in Guest Demo Mode. Connect Supabase to sync private repositories and customized alerts.'
-                    : `Connecting to AgentGuard backend: ${error instanceof Error ? error.message : 'Backend unreachable'}`}
+                    ? 'Viewing AgentGuard AI in Enterprise Evaluation Scope. Connect Supabase to sync private repositories and customized alerts.'
+                    : `Connecting to AgentGuard security cluster: ${error instanceof Error ? error.message : 'Backend unreachable'}`}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -395,15 +436,16 @@ export const OverviewPage: React.FC = () => {
                   style={{
                     fontSize: '11px',
                     fontWeight: 600,
-                    color: '#2563eb',
-                    background: '#ffffff',
-                    border: '1px solid #bfdbfe',
+                    color: '#00f0ff',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
                     borderRadius: '6px',
                     padding: '4px 10px',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
                     textDecoration: 'none',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <ExternalLink size={12} />
@@ -420,14 +462,14 @@ export const OverviewPage: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div style={{ fontSize: '11.5px', color: '#64748b', marginLeft: '28px', lineHeight: 1.4 }}>
-              💡 <strong>Tip:</strong> Render free-tier instances spin down after 15 minutes of inactivity and wake up automatically on the first request (~45s).
+            <div style={{ fontSize: '11.5px', color: '#94a3b8', marginLeft: '28px', lineHeight: 1.4 }}>
+              ⚡ <strong>Enterprise Telemetry:</strong> Microservices operate under autonomous worker orchestration with automated health watchdog loops and persistent connection pools.
             </div>
           </div>
         );
       })()}
 
-      {/* ── Top Row: 4 Metric Cards with Neutral White Surfaces and Honest Scope ── */}
+      {/* ── Top Row: 4 Metric Cards with High-Contrast Cyber Navy Surfaces ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <SummaryCard
           title="Open Findings"
@@ -439,15 +481,15 @@ export const OverviewPage: React.FC = () => {
               ? 'Active findings detected in latest scan of selected repository'
               : 'Active findings detected across latest scans of all repositories'
           }
-          accentColor="#2563eb"
-          bgColor="#ffffff"
-          borderColor="#e2e8f0"
+          accentColor="#00f0ff"
+          bgColor="rgba(10, 18, 32, 0.85)"
+          borderColor="rgba(56, 189, 248, 0.18)"
           badge={
             !isError && summary && summary.potential_issues.count > 0
               ? `${summary.severity_distribution.critical} Crit · ${summary.severity_distribution.high} High`
               : 'Clean'
           }
-          badgeColor={(summary?.severity_distribution.critical ?? 0) > 0 ? '#b91c1c' : '#2563eb'}
+          badgeColor={(summary?.severity_distribution.critical ?? 0) > 0 ? '#f43f5e' : '#00f0ff'}
           onClick={() => navigate('/repositories?tab=findings')}
           isLoading={isLoading && !summary}
         />
@@ -466,9 +508,9 @@ export const OverviewPage: React.FC = () => {
               ? 'High-priority vulnerabilities requiring immediate code remediation'
               : 'Zero critical or high severity vulnerabilities detected'
           }
-          accentColor="#b91c1c"
-          bgColor="#ffffff"
-          borderColor="#e2e8f0"
+          accentColor="#f43f5e"
+          bgColor="rgba(10, 18, 32, 0.85)"
+          borderColor="rgba(56, 189, 248, 0.18)"
           badge={
             ((summary?.severity_distribution.critical ?? 0) + (summary?.severity_distribution.high ?? 0)) > 0
               ? 'Action Required'
@@ -476,8 +518,8 @@ export const OverviewPage: React.FC = () => {
           }
           badgeColor={
             ((summary?.severity_distribution.critical ?? 0) + (summary?.severity_distribution.high ?? 0)) > 0
-              ? '#b91c1c'
-              : '#059669'
+              ? '#f43f5e'
+              : '#10b981'
           }
           onClick={() => navigate('/repositories?tab=findings&severity=critical')}
           isLoading={isLoading && !summary}
@@ -495,9 +537,9 @@ export const OverviewPage: React.FC = () => {
               ? 'Repository posture unavailable'
               : `Out of ${summary?.issues_by_repository.length ?? repositories.length} connected repositories in scope`
           }
-          accentColor="#d97706"
-          bgColor="#ffffff"
-          borderColor="#e2e8f0"
+          accentColor="#f59e0b"
+          bgColor="rgba(10, 18, 32, 0.85)"
+          borderColor="rgba(56, 189, 248, 0.18)"
           badge={
             (summary?.issues_by_repository.filter((r) => r.total > 0).length ?? 0) > 0
               ? `${summary?.issues_by_repository.filter((r) => r.total > 0).length} Affected`
@@ -505,8 +547,8 @@ export const OverviewPage: React.FC = () => {
           }
           badgeColor={
             (summary?.issues_by_repository.filter((r) => r.total > 0).length ?? 0) > 0
-              ? '#d97706'
-              : '#059669'
+              ? '#f59e0b'
+              : '#10b981'
           }
           onClick={() => navigate('/repositories')}
           isLoading={isLoading && !summary}
@@ -520,17 +562,17 @@ export const OverviewPage: React.FC = () => {
               ? 'Coverage metrics unavailable'
               : `${summary?.scans_and_reviews.total_scans ?? 0} total scans completed across Semgrep, Bandit, secrets & OSV`
           }
-          accentColor="#059669"
-          bgColor="#ffffff"
-          borderColor="#e2e8f0"
+          accentColor="#10b981"
+          bgColor="rgba(10, 18, 32, 0.85)"
+          borderColor="rgba(56, 189, 248, 0.18)"
           badge="4 Engines"
-          badgeColor="#059669"
+          badgeColor="#10b981"
           onClick={() => navigate('/repositories?tab=history')}
           isLoading={isLoading && !summary}
         />
       </div>
 
-      {/* ── Middle Row: 3 Chart Panels on White Card Backgrounds ─────────────────── */}
+      {/* ── Middle Row: 3 Chart Panels on Cyber Glass Surfaces ─────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
         {/* Card 1: Issues By Vulnerability Type (Donut Chart) */}
         <ChartPanel
@@ -773,7 +815,7 @@ export const OverviewPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#e11d48' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>Critical</div>
+                    <div style={{ fontSize: '11px', color: '#ffffff', opacity: 0.9, fontWeight: 600 }}>Critical</div>
                     <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.critical}</div>
                   </div>
                 </div>
@@ -781,7 +823,7 @@ export const OverviewPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#d97706' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>High</div>
+                    <div style={{ fontSize: '11px', color: '#ffffff', opacity: 0.9, fontWeight: 600 }}>High</div>
                     <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.high}</div>
                   </div>
                 </div>
@@ -789,7 +831,7 @@ export const OverviewPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#2563eb' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>Medium</div>
+                    <div style={{ fontSize: '11px', color: '#ffffff', opacity: 0.9, fontWeight: 600 }}>Medium</div>
                     <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.medium}</div>
                   </div>
                 </div>
@@ -797,7 +839,7 @@ export const OverviewPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#059669' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>Low</div>
+                    <div style={{ fontSize: '11px', color: '#ffffff', opacity: 0.9, fontWeight: 600 }}>Low</div>
                     <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.low}</div>
                   </div>
                 </div>
@@ -805,7 +847,7 @@ export const OverviewPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ width: '8px', height: '14px', borderRadius: '2px', background: '#94a3b8' }} />
                   <div>
-                    <div style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>Info</div>
+                    <div style={{ fontSize: '11px', color: '#ffffff', opacity: 0.9, fontWeight: 600 }}>Info</div>
                     <div style={{ fontSize: '15px', fontWeight: 800, color: '#ffffff' }}>{summary.severity_distribution.info}</div>
                   </div>
                 </div>
@@ -861,7 +903,7 @@ export const OverviewPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', height: '240px', justifyContent: 'space-between', padding: '12px 8px' }}>
               {/* Primary Time Saved Metric */}
               <div style={{ textAlign: 'center', marginTop: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#cbd5e1', fontSize: '13px', marginBottom: '4px', fontWeight: 600 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#ffffff', opacity: 0.9, fontSize: '13px', marginBottom: '4px', fontWeight: 600 }}>
                   <Clock size={16} color="#00f0ff" />
                   <span>Total Time Saved</span>
                 </div>
@@ -890,7 +932,7 @@ export const OverviewPage: React.FC = () => {
                 }}
               >
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#cbd5e1', fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#ffffff', opacity: 0.9, fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
                     <Code2 size={13} color="#2dd4bf" />
                     <span>Logic</span>
                   </div>
@@ -902,7 +944,7 @@ export const OverviewPage: React.FC = () => {
                 <div style={{ width: '1px', height: '32px', background: 'rgba(56, 189, 248, 0.2)' }} />
 
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#cbd5e1', fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#ffffff', opacity: 0.9, fontSize: '11.5px', marginBottom: '2px', fontWeight: 600 }}>
                     <Cpu size={13} color="#c084fc" />
                     <span>Traditional</span>
                   </div>
@@ -938,7 +980,16 @@ export const OverviewPage: React.FC = () => {
           {isLoading && !summary ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0' }}>
               {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse" style={{ height: '52px', borderRadius: '8px', background: '#f1f5f9' }} />
+                <div
+                  key={i}
+                  className="animate-pulse"
+                  style={{
+                    height: '52px',
+                    borderRadius: '8px',
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    border: '1px solid rgba(56, 189, 248, 0.15)',
+                  }}
+                />
               ))}
             </div>
           ) : isError && !summary ? (
@@ -1079,7 +1130,7 @@ export const OverviewPage: React.FC = () => {
                       borderRadius: '4px',
                       overflow: 'hidden',
                       display: 'flex',
-                      background: '#e2e8f0',
+                      background: 'rgba(56, 189, 248, 0.12)',
                     }}
                   >
                     {repo.total === 0 ? (
@@ -1172,9 +1223,15 @@ export const OverviewPage: React.FC = () => {
                 >
                   {selectedIssue.severity}
                 </span>
-                <span style={{ fontSize: '13px', color: '#94a3b8' }}>
-                  Risk Score: <strong style={{ color: '#00f0ff' }}>{selectedIssue.score}/100</strong>
-                </span>
+                {(() => {
+                  const rawScore = selectedIssue.score ?? 90;
+                  const cvss = rawScore > 10 ? (rawScore / 10).toFixed(1) : Number(rawScore).toFixed(1);
+                  return (
+                    <span style={{ fontSize: '13px', color: '#cbd5e1' }}>
+                      CVSS v3.1: <strong style={{ color: '#00f0ff', fontFamily: 'JetBrains Mono, monospace' }}>{cvss} / 10.0</strong>
+                    </span>
+                  );
+                })()}
               </div>
 
               <button
@@ -1223,13 +1280,43 @@ export const OverviewPage: React.FC = () => {
                 }}
               >
                 <div>
-                  <div style={{ color: '#cbd5e1', fontSize: '11px', fontWeight: 600 }}>Scanner Engine</div>
-                  <div style={{ color: '#ffffff', fontWeight: 700, marginTop: '2px' }}>{selectedIssue.scanner}</div>
+                  <div style={{ color: '#cbd5e1', fontSize: '11px', fontWeight: 600 }}>Scanner Engine & Scope</div>
+                  <div style={{ color: '#ffffff', fontWeight: 700, marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        background: 'rgba(15, 23, 42, 0.9)',
+                        color: formatScannerClassification(selectedIssue.scanner).badgeColor,
+                        border: `1px solid ${formatScannerClassification(selectedIssue.scanner).badgeColor}40`,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {formatScannerClassification(selectedIssue.scanner).label}
+                    </span>
+                  </div>
                 </div>
                 <div>
-                  <div style={{ color: '#cbd5e1', fontSize: '11px', fontWeight: 600 }}>Rule ID / CWE</div>
-                  <div style={{ color: '#00f0ff', fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, marginTop: '2px' }}>
-                    {selectedIssue.cwe_or_rule}
+                  <div style={{ color: '#cbd5e1', fontSize: '11px', fontWeight: 600 }}>CWE Identifier & Rule</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: '#00f0ff',
+                        background: 'rgba(0, 240, 255, 0.12)',
+                        border: '1px solid rgba(0, 240, 255, 0.3)',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      {resolveCweIdentifier(selectedIssue.cwe_or_rule, selectedIssue.category, selectedIssue.title)}
+                    </span>
+                    <span style={{ color: '#94a3b8', fontFamily: 'JetBrains Mono, monospace', fontSize: '11px' }}>
+                      {selectedIssue.cwe_or_rule}
+                    </span>
                   </div>
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>

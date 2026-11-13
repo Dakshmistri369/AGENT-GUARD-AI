@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Sparkles,
   Settings,
-  ChevronRight,
   GitBranch,
   RefreshCw,
   ExternalLink,
@@ -149,10 +148,12 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           </button>
         )}
 
-        {/* Breadcrumbs */}
+        {/* Cyber Breadcrumbs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span className="hidden sm:inline" style={{ color: '#cbd5e1', fontWeight: 600 }}>agentguard</span>
-          <ChevronRight size={14} color="#94a3b8" className="hidden sm:inline" />
+          <span className="hidden sm:inline" style={{ color: '#00f0ff', fontWeight: 700, letterSpacing: '0.4px', fontSize: '12px' }}>
+            AGENTGUARD AI
+          </span>
+          <span style={{ color: 'rgba(0, 240, 255, 0.4)', fontWeight: 600, fontSize: '12px' }}>//</span>
           <span
             style={{
               color: '#ffffff',
@@ -161,6 +162,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               maxWidth: '120px',
+              letterSpacing: '0.2px',
             }}
             className="sm:max-w-none"
           >
@@ -249,26 +251,26 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             gap: '6px',
             fontSize: '12px',
             fontWeight: 600,
-            color: '#c084fc',
-            background: 'rgba(168, 85, 247, 0.12)',
-            border: '1px solid rgba(168, 85, 247, 0.3)',
+            color: '#38bdf8',
+            background: 'rgba(56, 189, 248, 0.12)',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
             borderRadius: '6px',
             padding: '5px 11px',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.22)';
-            e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.5)';
+            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.22)';
+            e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.5)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(168, 85, 247, 0.12)';
-            e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.3)';
+            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.12)';
+            e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)';
           }}
           title="Play Cinematic Logo & Cybersecurity Animation"
           aria-label="Play Cinematic Logo & Cybersecurity Animation"
         >
-          <Play size={12} color="#c084fc" fill="#c084fc" />
+          <Play size={12} color="#38bdf8" fill="#38bdf8" />
           <span className="hidden sm:inline">Intro</span>
         </button>
 

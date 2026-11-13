@@ -45,8 +45,8 @@ export const LoginPage: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '24px 16px',
-        backgroundColor: '#f8fafc',
-        backgroundImage: 'radial-gradient(ellipse at top, rgba(37,99,235,0.08) 0%, rgba(248,250,252,1) 75%)',
+        backgroundColor: '#060b13',
+        backgroundImage: 'radial-gradient(ellipse at top, rgba(0, 240, 255, 0.12) 0%, rgba(6, 11, 19, 1) 75%)',
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       }}
     >
@@ -55,10 +55,12 @@ export const LoginPage: React.FC = () => {
         style={{
           width: '100%',
           maxWidth: '420px',
-          backgroundColor: '#ffffff',
+          backgroundColor: 'rgba(10, 18, 32, 0.85)',
           borderRadius: '16px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03)',
+          border: '1px solid rgba(56, 189, 248, 0.22)',
+          boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 240, 255, 0.08)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
         }}
       >
         {/* Header with Centered Logo */}
@@ -70,14 +72,14 @@ export const LoginPage: React.FC = () => {
             style={{
               fontSize: '20px',
               fontWeight: 700,
-              color: '#0f172a',
+              color: '#ffffff',
               letterSpacing: '-0.3px',
               marginBottom: '6px',
             }}
           >
             Welcome Back
           </h1>
-          <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.5 }}>
             Sign in to access your security auditor & scan findings
           </p>
         </div>
@@ -88,16 +90,16 @@ export const LoginPage: React.FC = () => {
             style={{
               padding: '12px 14px',
               borderRadius: '8px',
-              backgroundColor: '#fffbeb',
-              border: '1px solid #fde68a',
+              backgroundColor: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
               marginBottom: '20px',
               display: 'flex',
               gap: '10px',
               alignItems: 'flex-start',
             }}
           >
-            <AlertCircle size={16} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div style={{ fontSize: '12px', color: '#92400e', lineHeight: 1.5 }}>
+            <AlertCircle size={16} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ fontSize: '12px', color: '#fcd34d', lineHeight: 1.5 }}>
               <strong>Demo Environment:</strong> Supabase keys are not set on this deployment. You can sign in with any demo credentials or continue directly.
               <div style={{ marginTop: '8px' }}>
                 <Link
@@ -106,7 +108,7 @@ export const LoginPage: React.FC = () => {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    color: '#2563eb',
+                    color: '#00f0ff',
                     fontWeight: 600,
                     textDecoration: 'none',
                     fontSize: '12px',
@@ -125,16 +127,16 @@ export const LoginPage: React.FC = () => {
             style={{
               padding: '12px 14px',
               borderRadius: '8px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
+              backgroundColor: 'rgba(244, 63, 94, 0.12)',
+              border: '1px solid rgba(244, 63, 94, 0.35)',
               marginBottom: '20px',
               display: 'flex',
               gap: '10px',
               alignItems: 'center',
             }}
           >
-            <AlertCircle size={16} color="#dc2626" style={{ flexShrink: 0 }} />
-            <div style={{ fontSize: '12px', color: '#991b1b', lineHeight: 1.5 }}>
+            <AlertCircle size={16} color="#f43f5e" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '12px', color: '#fb7185', lineHeight: 1.5 }}>
               {error}
             </div>
           </div>
@@ -149,7 +151,7 @@ export const LoginPage: React.FC = () => {
                 display: 'block',
                 fontSize: '13px',
                 fontWeight: 600,
-                color: '#334155',
+                color: '#cbd5e1',
                 marginBottom: '6px',
               }}
             >
@@ -171,19 +173,19 @@ export const LoginPage: React.FC = () => {
                   width: '100%',
                   padding: '10px 14px 10px 38px',
                   borderRadius: '8px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  color: '#0f172a',
+                  backgroundColor: 'rgba(8, 14, 26, 0.85)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  color: '#ffffff',
                   fontSize: '13px',
                   outline: 'none',
                   transition: 'border-color 0.15s, box-shadow 0.15s',
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#2563eb';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)';
+                  e.target.style.borderColor = '#00f0ff';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 240, 255, 0.18)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.borderColor = 'rgba(56, 189, 248, 0.25)';
                   e.target.style.boxShadow = 'none';
                 }}
               />
@@ -197,14 +199,14 @@ export const LoginPage: React.FC = () => {
                 style={{
                   fontSize: '13px',
                   fontWeight: 600,
-                  color: '#334155',
+                  color: '#cbd5e1',
                 }}
               >
                 Password
               </label>
               <Link
                 to="/forgot-password"
-                style={{ fontSize: '12px', color: '#2563eb', fontWeight: 500, textDecoration: 'none' }}
+                style={{ fontSize: '12px', color: '#00f0ff', fontWeight: 500, textDecoration: 'none' }}
               >
                 Forgot password?
               </Link>
@@ -225,19 +227,19 @@ export const LoginPage: React.FC = () => {
                   width: '100%',
                   padding: '10px 38px 10px 38px',
                   borderRadius: '8px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  color: '#0f172a',
+                  backgroundColor: 'rgba(8, 14, 26, 0.85)',
+                  border: '1px solid rgba(56, 189, 248, 0.25)',
+                  color: '#ffffff',
                   fontSize: '13px',
                   outline: 'none',
                   transition: 'border-color 0.15s, box-shadow 0.15s',
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#2563eb';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)';
+                  e.target.style.borderColor = '#00f0ff';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 240, 255, 0.18)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.borderColor = 'rgba(56, 189, 248, 0.25)';
                   e.target.style.boxShadow = 'none';
                 }}
               />
@@ -278,10 +280,10 @@ export const LoginPage: React.FC = () => {
               gap: '8px',
               marginTop: '6px',
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
               color: '#ffffff',
-              border: 'none',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              boxShadow: '0 0 15px rgba(2, 132, 199, 0.35)',
               transition: 'opacity 0.15s, transform 0.15s',
               opacity: isSubmitting ? 0.7 : 1,
             }}
@@ -305,14 +307,14 @@ export const LoginPage: React.FC = () => {
           style={{
             marginTop: '24px',
             paddingTop: '20px',
-            borderTop: '1px solid #f1f5f9',
+            borderTop: '1px solid rgba(56, 189, 248, 0.18)',
             textAlign: 'center',
             fontSize: '13px',
-            color: '#64748b',
+            color: '#94a3b8',
           }}
         >
           Don't have an account?{' '}
-          <Link to="/register" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>
+          <Link to="/register" style={{ color: '#00f0ff', fontWeight: 600, textDecoration: 'none' }}>
             Create one
           </Link>
         </div>
@@ -329,7 +331,7 @@ export const LoginPage: React.FC = () => {
               textDecoration: 'none',
               transition: 'color 0.15s',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#334155')}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#00f0ff')}
             onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
           >
             <ArrowLeft size={13} />

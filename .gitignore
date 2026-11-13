@@ -31,4 +31,6 @@ backend/bin/*.bin
 backend/load_testing/*.csv
 preview_*.mp4
 *.mp4.tmp
+.agents/
+
 

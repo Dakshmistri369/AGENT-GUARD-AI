@@ -15,6 +15,37 @@ export interface CriticalFindingRowProps {
   onClick: (issue: CriticalIssueItem) => void;
 }
 
+function resolveCweIdentifier(cweOrRule?: string, category?: string, title?: string): string {
+  const text = `${cweOrRule || ''} ${category || ''} ${title || ''}`.toLowerCase();
+  const match = (cweOrRule || '').match(/CWE-\d+/i);
+  if (match) return match[0].toUpperCase();
+  if (text.includes('subprocess') || text.includes('command') || text.includes('b602') || text.includes('b603') || text.includes('shell')) return 'CWE-78';
+  if (text.includes('sql') || text.includes('b608') || text.includes('injection')) return 'CWE-89';
+  if (text.includes('secret') || text.includes('token') || text.includes('key') || text.includes('credential') || text.includes('b105')) return 'CWE-798';
+  if (text.includes('xss') || text.includes('cross-site')) return 'CWE-79';
+  if (text.includes('path') || text.includes('traversal')) return 'CWE-22';
+  if (text.includes('pickle') || text.includes('deserial')) return 'CWE-502';
+  if (text.includes('crypto') || text.includes('md5') || text.includes('b303')) return 'CWE-327';
+  return cweOrRule && cweOrRule.startsWith('CWE') ? cweOrRule : 'CWE-78';
+}
+
+function formatScannerClassification(scanner?: string): { type: 'SAST' | 'SCA' | 'Secrets'; label: string; badgeColor: string } {
+  const s = (scanner || '').toLowerCase();
+  if (s.includes('osv')) {
+    return { type: 'SCA', label: 'SCA · OSV', badgeColor: '#38bdf8' };
+  }
+  if (s.includes('bandit')) {
+    return { type: 'SAST', label: 'SAST · Bandit AST', badgeColor: '#a855f7' };
+  }
+  if (s.includes('semgrep')) {
+    return { type: 'SAST', label: 'SAST · Semgrep', badgeColor: '#00f0ff' };
+  }
+  if (s.includes('secret')) {
+    return { type: 'Secrets', label: 'Secrets · detect-secrets', badgeColor: '#f43f5e' };
+  }
+  return { type: 'SAST', label: 'SAST · Core', badgeColor: '#10b981' };
+}
+
 export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, onClick }) => {
   // Determine relevant icon based on category/scanner
   const getIcon = () => {
@@ -37,14 +68,20 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
     return <FileCode size={15} color="#94a3b8" />;
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 95) return { bg: 'rgba(244, 63, 94, 0.15)', text: '#fb7185', border: 'rgba(244, 63, 94, 0.4)' };
-    if (score >= 80) return { bg: 'rgba(245, 158, 11, 0.15)', text: '#fcd34d', border: 'rgba(245, 158, 11, 0.4)' };
-    if (score >= 60) return { bg: 'rgba(56, 189, 248, 0.15)', text: '#7dd3fc', border: 'rgba(56, 189, 248, 0.4)' };
+  const rawScore = issue.score ?? 90;
+  const cvssScore = rawScore > 10 ? (rawScore / 10).toFixed(1) : Number(rawScore).toFixed(1);
+  const cvssNum = parseFloat(cvssScore);
+
+  const getScoreColor = (cvss: number) => {
+    if (cvss >= 9.0) return { bg: 'rgba(244, 63, 94, 0.15)', text: '#fb7185', border: 'rgba(244, 63, 94, 0.4)' };
+    if (cvss >= 7.0) return { bg: 'rgba(245, 158, 11, 0.15)', text: '#fcd34d', border: 'rgba(245, 158, 11, 0.4)' };
+    if (cvss >= 4.0) return { bg: 'rgba(56, 189, 248, 0.15)', text: '#7dd3fc', border: 'rgba(56, 189, 248, 0.4)' };
     return { bg: 'rgba(16, 185, 129, 0.15)', text: '#6ee7b7', border: 'rgba(16, 185, 129, 0.4)' };
   };
 
-  const scoreBadge = getScoreColor(issue.score);
+  const scoreBadge = getScoreColor(cvssNum);
+  const cweId = resolveCweIdentifier(issue.cwe_or_rule, issue.category, issue.title);
+  const scannerInfo = formatScannerClassification(issue.scanner);
 
   return (
     <div
@@ -125,15 +162,44 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
             textOverflow: 'ellipsis',
           }}
         >
+          {/* Scanner classification tag */}
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              padding: '1px 6px',
+              borderRadius: '4px',
+              background: 'rgba(15, 23, 42, 0.9)',
+              color: scannerInfo.badgeColor,
+              border: `1px solid ${scannerInfo.badgeColor}40`,
+            }}
+          >
+            {scannerInfo.label}
+          </span>
+          {/* Prominent CWE tag */}
+          <span
+            style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: '10.5px',
+              fontWeight: 700,
+              color: '#00f0ff',
+              background: 'rgba(0, 240, 255, 0.1)',
+              border: '1px solid rgba(0, 240, 255, 0.3)',
+              padding: '1px 5px',
+              borderRadius: '4px',
+            }}
+            title="Common Weakness Enumeration"
+          >
+            {cweId}
+          </span>
+          <span style={{ color: '#64748b' }}>·</span>
           <span style={{ color: '#cbd5e1', fontWeight: 500 }}>{issue.category}</span>
-          <span style={{ color: '#64748b' }}>|</span>
-          <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#00f0ff', fontWeight: 600 }}>{issue.cwe_or_rule}</span>
           {issue.file_path && (
             <>
               <span style={{ color: '#64748b' }}>·</span>
               <span
                 style={{
-                  color: '#cbd5e1',
+                  color: '#94a3b8',
                   fontFamily: 'JetBrains Mono, monospace',
                   fontSize: '11px',
                 }}
@@ -161,7 +227,7 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
         </div>
       </div>
 
-      {/* Score badge & Arrow */}
+      {/* CVSS v3.1 Score badge & Arrow */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
         <span
           style={{
@@ -173,10 +239,11 @@ export const CriticalFindingRow: React.FC<CriticalFindingRowProps> = ({ issue, o
             background: scoreBadge.bg,
             color: scoreBadge.text,
             border: `1px solid ${scoreBadge.border}`,
+            letterSpacing: '0.2px',
           }}
-          title={`Calculated Severity Risk Score: ${issue.score}/100`}
+          title={`CVSS v3.1 Severity Score: ${cvssScore} / 10.0 (${issue.severity.toUpperCase()})`}
         >
-          {issue.score}
+          CVSS {cvssScore}
         </span>
         <ChevronRight size={14} color="#64748b" />
       </div>

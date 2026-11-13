@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   FileCode,
   Copy,
@@ -11,13 +11,29 @@ import {
 } from 'lucide-react';
 import type { PatchDiffWidgetData } from '../../types';
 
-interface InteractivePatchDiffViewerProps {
-  data: PatchDiffWidgetData;
+export interface InteractivePatchDiffViewerProps {
+  data?: PatchDiffWidgetData | null;
+  diff?: string | null;
+  filePath?: string | null;
+  lineStart?: number | null;
+  explanation?: string | null;
+  verificationCmd?: string | null;
+  originalSnippet?: string | null;
+  fixedSnippet?: string | null;
+  title?: string | null;
   onApplyPatch?: () => void;
 }
 
 export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProps> = ({
   data,
+  diff,
+  filePath,
+  lineStart,
+  explanation,
+  verificationCmd,
+  originalSnippet,
+  fixedSnippet,
+  title,
   onApplyPatch,
 }) => {
   const [viewMode, setViewMode] = useState<'unified' | 'split'>('unified');
@@ -25,18 +41,64 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
   const [isDryRunning, setIsDryRunning] = useState(false);
   const [dryRunSuccess, setDryRunSuccess] = useState(false);
 
+  const effectiveDiff = data?.diff_unified ?? diff ?? '';
+  const effectiveFilePath = data?.file_path ?? filePath ?? 'patch.diff';
+  const effectiveLineStart = data?.line_start ?? lineStart ?? 1;
+  const effectiveExplanation = data?.explanation ?? explanation ?? '';
+  const effectiveVerificationCmd = data?.verification_cmd ?? verificationCmd ?? null;
+
+  // Extract split representations if not provided explicitly
+  const { beforeCode, afterCode } = useMemo(() => {
+    if (data?.original_snippet && data?.fixed_snippet) {
+      return { beforeCode: data.original_snippet, afterCode: data.fixed_snippet };
+    }
+    if (originalSnippet && fixedSnippet) {
+      return { beforeCode: originalSnippet, afterCode: fixedSnippet };
+    }
+
+    if (!effectiveDiff) {
+      return { beforeCode: '', afterCode: '' };
+    }
+
+    const lines = effectiveDiff.split('\n');
+    const beforeLines: string[] = [];
+    const afterLines: string[] = [];
+
+    for (const line of lines) {
+      if (line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@')) {
+        continue;
+      }
+      if (line.startsWith('-')) {
+        beforeLines.push(line.slice(1));
+      } else if (line.startsWith('+')) {
+        afterLines.push(line.slice(1));
+      } else {
+        const trimmed = line.startsWith(' ') ? line.slice(1) : line;
+        beforeLines.push(trimmed);
+        afterLines.push(trimmed);
+      }
+    }
+
+    return {
+      beforeCode: beforeLines.join('\n') || (originalSnippet ?? '// No original code captured'),
+      afterCode: afterLines.join('\n') || (fixedSnippet ?? '// No modified code captured'),
+    };
+  }, [data, originalSnippet, fixedSnippet, effectiveDiff]);
+
   const handleCopyDiff = () => {
-    navigator.clipboard.writeText(data.diff_unified);
+    if (!effectiveDiff) return;
+    navigator.clipboard.writeText(effectiveDiff);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleDownloadPatch = () => {
-    const blob = new Blob([data.diff_unified], { type: 'text/plain;charset=utf-8' });
+    if (!effectiveDiff) return;
+    const blob = new Blob([effectiveDiff], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${data.file_path.replace(/[/\\?%*:|"<>]/g, '_')}.patch`;
+    a.download = `${effectiveFilePath.replace(/[/\\?%*:|"<>]/g, '_')}.patch`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -49,17 +111,21 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
     setTimeout(() => {
       setIsDryRunning(false);
       setDryRunSuccess(true);
-    }, 700);
+    }, 600);
   };
 
+  if (!effectiveDiff.trim()) {
+    return null;
+  }
+
   // Parse lines for unified display
-  const diffLines = data.diff_unified.split('\n');
+  const diffLines = effectiveDiff.split('\n');
 
   return (
     <div
       style={{
         margin: '12px 0',
-        borderRadius: '12px',
+        borderRadius: '10px',
         border: '1px solid rgba(56, 189, 248, 0.25)',
         background: 'rgba(8, 18, 34, 0.95)',
         boxShadow: '0 4px 18px rgba(0, 0, 0, 0.4)',
@@ -91,11 +157,12 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              maxWidth: '240px',
+              maxWidth: '300px',
               color: '#38bdf8',
             }}
+            title={effectiveFilePath}
           >
-            {data.file_path}
+            {title ? `${title} (${effectiveFilePath})` : effectiveFilePath}
           </span>
           <span
             style={{
@@ -104,10 +171,10 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
               background: '#050c18',
               border: '1px solid rgba(56, 189, 248, 0.2)',
               color: '#94a3b8',
-              fontSize: '12px',
+              fontSize: '11px',
             }}
           >
-            Line {data.line_start}
+            Line {effectiveLineStart}
           </span>
         </div>
 
@@ -119,15 +186,16 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
               padding: '4px 8px',
               borderRadius: '4px',
               border: '1px solid rgba(56, 189, 248, 0.25)',
-              background: viewMode === 'unified' ? '#2563eb' : '#050c18',
+              background: viewMode === 'unified' ? 'rgba(2, 132, 199, 0.9)' : '#050c18',
               color: '#ffffff',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              fontSize: '12px',
+              fontSize: '11px',
             }}
             title="Unified Diff View"
+            type="button"
           >
             <AlignLeft size={12} /> Unified
           </button>
@@ -138,15 +206,16 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
               padding: '4px 8px',
               borderRadius: '4px',
               border: '1px solid rgba(56, 189, 248, 0.25)',
-              background: viewMode === 'split' ? '#2563eb' : '#050c18',
+              background: viewMode === 'split' ? 'rgba(2, 132, 199, 0.9)' : '#050c18',
               color: '#ffffff',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              fontSize: '12px',
+              fontSize: '11px',
             }}
             title="Split Before / After View"
+            type="button"
           >
             <Columns size={12} /> Split
           </button>
@@ -163,9 +232,10 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              fontSize: '12px',
+              fontSize: '11px',
             }}
             title="Copy Raw Git Diff"
+            type="button"
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
             {copied ? 'Copied' : 'Copy'}
@@ -183,9 +253,10 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              fontSize: '12px',
+              fontSize: '11px',
             }}
             title="Download .patch file"
+            type="button"
           >
             <Download size={12} />
           </button>
@@ -196,18 +267,18 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
       {viewMode === 'unified' ? (
         <div
           style={{
-            fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+            fontFamily: 'JetBrains Mono, Consolas, Monaco, "Courier New", monospace',
             fontSize: '12px',
             lineHeight: 1.6,
             background: '#030710',
-            maxHeight: '260px',
+            maxHeight: '300px',
             overflowY: 'auto',
           }}
         >
           {diffLines.map((line, idx) => {
             const isAdd = line.startsWith('+') && !line.startsWith('+++');
             const isDel = line.startsWith('-') && !line.startsWith('---');
-            const isHunk = line.startsWith('@@');
+            const isHunk = line.startsWith('@@') || line.startsWith('---') || line.startsWith('+++');
 
             let lineBg = 'transparent';
             let lineTextColor = '#cbd5e1';
@@ -246,17 +317,18 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
               >
                 <span
                   style={{
-                    width: '28px',
+                    width: '32px',
                     color: gutterColor,
                     userSelect: 'none',
                     flexShrink: 0,
                     textAlign: 'right',
-                    paddingRight: '8px',
+                    paddingRight: '10px',
+                    fontSize: '11px',
                   }}
                 >
                   {idx + 1}
                 </span>
-                <span style={{ flex: 1 }}>{line}</span>
+                <span style={{ flex: 1, fontFamily: 'inherit' }}>{line || ' '}</span>
               </div>
             );
           })}
@@ -267,9 +339,9 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            fontFamily: 'Consolas, Monaco, monospace',
+            fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
             fontSize: '12px',
-            maxHeight: '260px',
+            maxHeight: '300px',
             overflowY: 'auto',
           }}
         >
@@ -283,7 +355,7 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
           >
             <div
               style={{
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 700,
                 color: '#fb7185',
                 marginBottom: '6px',
@@ -293,7 +365,7 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
               }}
             >
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ef4444' }} />
-              Original Vulnerable Code:
+              Original Vulnerable AST:
             </div>
             <pre
               style={{
@@ -301,9 +373,10 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
                 color: '#fda4af',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-all',
+                lineHeight: 1.5,
               }}
             >
-              {data.original_snippet}
+              {beforeCode}
             </pre>
           </div>
 
@@ -311,7 +384,7 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
           <div style={{ padding: '10px', background: '#04140e' }}>
             <div
               style={{
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 700,
                 color: '#6ee7b7',
                 marginBottom: '6px',
@@ -329,9 +402,10 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
                 color: '#6ee7b7',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-all',
+                lineHeight: 1.5,
               }}
             >
-              {data.fixed_snippet}
+              {afterCode}
             </pre>
           </div>
         </div>
@@ -345,25 +419,27 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
           borderTop: '1px solid rgba(56, 189, 248, 0.2)',
         }}
       >
-        <p
-          style={{
-            margin: '0 0 10px 0',
-            fontSize: '12px',
-            color: '#cbd5e1',
-            lineHeight: 1.45,
-          }}
-        >
-          <strong style={{ color: '#00f0ff' }}>AST Remediation Rationale: </strong>
-          {data.explanation}
-        </p>
+        {effectiveExplanation && (
+          <p
+            style={{
+              margin: '0 0 10px 0',
+              fontSize: '12px',
+              color: '#cbd5e1',
+              lineHeight: 1.45,
+            }}
+          >
+            <strong style={{ color: '#00f0ff' }}>AST Remediation Rationale: </strong>
+            {effectiveExplanation}
+          </p>
+        )}
 
-        {data.verification_cmd && (
+        {effectiveVerificationCmd && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              fontSize: '12px',
+              fontSize: '11px',
               color: '#38bdf8',
               fontFamily: 'monospace',
               background: '#030710',
@@ -374,7 +450,7 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
             }}
           >
             <span style={{ color: '#64748b' }}>$</span>
-            <span>{data.verification_cmd}</span>
+            <span>{effectiveVerificationCmd}</span>
           </div>
         )}
 
@@ -396,15 +472,16 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
                 background: '#07182c',
                 border: '1px solid rgba(56, 189, 248, 0.3)',
                 borderRadius: '6px',
-                padding: '6px 12px',
+                padding: '5px 12px',
                 cursor: isDryRunning ? 'default' : 'pointer',
                 color: '#38bdf8',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 600,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
               }}
+              type="button"
             >
               <Play size={12} color="#00f0ff" />
               {isDryRunning ? 'Simulating AST Dry Run...' : 'Simulate Dry-Run'}
@@ -418,7 +495,7 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
                   gap: '4px',
                   color: '#34d399',
                   fontWeight: 600,
-                  fontSize: '12px',
+                  fontSize: '11px',
                 }}
               >
                 <ShieldCheck size={14} /> Dry-Run Passed (0 AST conflicts)
@@ -434,11 +511,12 @@ export const InteractivePatchDiffViewer: React.FC<InteractivePatchDiffViewerProp
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '6px',
-                padding: '6px 12px',
+                padding: '5px 12px',
                 cursor: 'pointer',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 600,
               }}
+              type="button"
             >
               Apply Patch to Repository
             </button>

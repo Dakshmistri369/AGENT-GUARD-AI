@@ -528,4 +528,61 @@ export interface AdvisorySearchResponse {
   total_found: number;
 }
 
+// ── Enhanced Finding & Live Pipeline Telemetry Types ────────────────────────
+
+export interface CvssMetrics {
+  base_score: number;
+  vector_string: string;
+  epss_score?: number | null;
+  severity_rating: SeverityLevel;
+  attack_vector?: 'NETWORK' | 'ADJACENT' | 'LOCAL' | 'PHYSICAL';
+  attack_complexity?: 'LOW' | 'HIGH';
+  privileges_required?: 'NONE' | 'LOW' | 'HIGH';
+  user_interaction?: 'NONE' | 'REQUIRED';
+  scope?: 'UNCHANGED' | 'CHANGED';
+  confidentiality_impact?: 'NONE' | 'LOW' | 'HIGH';
+  integrity_impact?: 'NONE' | 'LOW' | 'HIGH';
+  availability_impact?: 'NONE' | 'LOW' | 'HIGH';
+}
+
+export interface CweReference {
+  cwe_id: string;
+  name: string;
+  url: string;
+  owasp_top10?: string;
+}
+
+export interface FindingEnhanced extends Finding {
+  cvss?: CvssMetrics | null;
+  cwe_info?: CweReference | null;
+  taint_trajectory?: AstTaintFlowWidgetData | null;
+  solution_diff?: PatchDiffWidgetData | null;
+}
+
+export interface EngineTelemetryState {
+  engine_id: 'semgrep' | 'bandit' | 'detect_secrets' | 'osv';
+  name: string;
+  status: 'idle' | 'running' | 'completed' | 'failed' | 'skipped';
+  files_scanned: number;
+  total_files: number;
+  rate_files_per_sec: number;
+  findings_discovered: number;
+  current_target_file?: string;
+  ast_nodes_evaluated?: number;
+  memory_footprint_mb?: number;
+}
+
+export interface LiveScanPipelineTelemetry {
+  pipeline_stage: 'validating' | 'fetching_metadata' | 'inspecting_file_tree' | 'running_scanners' | 'reviewing_evidence' | 'generating_report';
+  progress_percent: number;
+  elapsed_seconds: number;
+  files_processed: number;
+  total_files_discovered: number;
+  current_throughput_rate: number;
+  total_ast_nodes_evaluated: number;
+  memory_footprint_mb: number;
+  engines: EngineTelemetryState[];
+}
+
+
 

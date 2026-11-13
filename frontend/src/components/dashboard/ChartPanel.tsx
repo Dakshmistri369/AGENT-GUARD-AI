@@ -25,15 +25,15 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
       style={{
-        background: 'rgba(10, 18, 32, 0.85)',
+        background: 'rgba(10, 18, 32, 0.88)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(56, 189, 248, 0.18)',
-        borderRadius: '12px',
+        border: '1px solid rgba(0, 240, 255, 0.22)',
+        borderRadius: '10px',
         padding: '20px 22px',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 4px 24px -2px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(56, 189, 248, 0.08)',
+        boxShadow: '0 4px 24px -2px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 240, 255, 0.06)',
         minHeight,
         height: '100%',
         position: 'relative',

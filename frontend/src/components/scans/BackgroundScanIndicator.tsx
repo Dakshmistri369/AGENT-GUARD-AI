@@ -236,27 +236,27 @@ export const BackgroundScanIndicator: React.FC = () => {
           padding: '6px 10px',
           borderRadius: '8px',
           border: isError
-            ? '1px solid #fed7aa'
+            ? '1px solid rgba(245, 158, 11, 0.4)'
             : activeCount > 0
-            ? '1px solid #a7f3d0'
-            : '1px solid #e2e8f0',
+            ? '1px solid rgba(16, 185, 129, 0.45)'
+            : '1px solid rgba(56, 189, 248, 0.25)',
           background: isError
-            ? '#fff7ed'
+            ? 'rgba(245, 158, 11, 0.12)'
             : activeCount > 0
-            ? '#f0fdf4'
-            : '#ffffff',
+            ? 'rgba(16, 185, 129, 0.12)'
+            : 'rgba(10, 18, 32, 0.96)',
           color: isError
-            ? '#c2410c'
+            ? '#fcd34d'
             : activeCount > 0
-            ? '#047857'
-            : '#64748b',
+            ? '#6ee7b7'
+            : '#cbd5e1',
           fontSize: '12px',
           fontWeight: 600,
           cursor: 'pointer',
           minHeight: '34px',
           transition: 'all 0.15s ease',
         }}
-        className="hover:border-slate-300"
+        className="hover:border-cyan-500/50"
       >
         {activeCount > 0 ? (
           <>
@@ -287,18 +287,18 @@ export const BackgroundScanIndicator: React.FC = () => {
                   borderRadius: '9999px',
                   height: '8px',
                   width: '8px',
-                  background: '#059669',
+                  background: '#10b981',
                 }}
               />
             </span>
-            <RefreshCw size={13} className="animate-spin text-emerald-600" />
+            <RefreshCw size={13} className="animate-spin text-emerald-400" />
             <span className="hidden sm:inline">Active Scans</span>
             <span
               style={{
                 fontSize: '10.5px',
                 fontWeight: 700,
-                background: '#059669',
-                color: '#ffffff',
+                background: '#10b981',
+                color: '#040810',
                 padding: '1px 6px',
                 borderRadius: '9999px',
               }}
@@ -308,18 +308,19 @@ export const BackgroundScanIndicator: React.FC = () => {
           </>
         ) : isError ? (
           <>
-            <AlertTriangle size={13} color="#ea580c" />
+            <AlertTriangle size={13} color="#f59e0b" />
             <span className="hidden sm:inline">Scans Offline</span>
           </>
         ) : (
           <>
-            <Radio size={14} color="#64748b" />
+            <Radio size={14} color="#94a3b8" />
             <span className="hidden sm:inline">Scans</span>
             <span
               style={{
                 fontSize: '10px',
                 color: '#94a3b8',
-                background: '#f1f5f9',
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(56, 189, 248, 0.18)',
                 padding: '1px 5px',
                 borderRadius: '4px',
                 fontWeight: 600,
@@ -342,10 +343,12 @@ export const BackgroundScanIndicator: React.FC = () => {
             right: 0,
             width: '340px',
             maxWidth: '90vw',
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
+            background: 'rgba(10, 18, 32, 0.96)',
+            border: '1px solid rgba(56, 189, 248, 0.25)',
             borderRadius: '12px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.1)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             zIndex: 100,
             overflow: 'hidden',
           }}
@@ -355,16 +358,16 @@ export const BackgroundScanIndicator: React.FC = () => {
           <div
             style={{
               padding: '12px 14px',
-              borderBottom: '1px solid #f1f5f9',
-              background: '#f8fafc',
+              borderBottom: '1px solid rgba(56, 189, 248, 0.18)',
+              background: 'rgba(15, 23, 42, 0.95)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Activity size={15} color={activeCount > 0 ? '#059669' : '#64748b'} />
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+              <Activity size={15} color={activeCount > 0 ? '#10b981' : '#94a3b8'} />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
                 Background Scan Activity
               </span>
             </div>
@@ -374,9 +377,9 @@ export const BackgroundScanIndicator: React.FC = () => {
                   onClick={handleCancelAll}
                   disabled={isCancellingAll}
                   style={{
-                    border: '1px solid #fecaca',
-                    background: '#fef2f2',
-                    color: '#dc2626',
+                    border: '1px solid rgba(244, 63, 94, 0.4)',
+                    background: 'rgba(244, 63, 94, 0.15)',
+                    color: '#fb7185',
                     fontSize: '11px',
                     fontWeight: 600,
                     padding: '2px 8px',
@@ -390,9 +393,9 @@ export const BackgroundScanIndicator: React.FC = () => {
                   title="Cancel all running and queued background scans"
                 >
                   {isCancellingAll ? (
-                    <RefreshCw size={10} className="animate-spin text-red-600" />
+                    <RefreshCw size={10} className="animate-spin text-rose-400" />
                   ) : (
-                    <XCircle size={11} color="#dc2626" />
+                    <XCircle size={11} color="#fb7185" />
                   )}
                   <span>{isCancellingAll ? 'Cancelling...' : 'Cancel All'}</span>
                 </button>
@@ -422,12 +425,12 @@ export const BackgroundScanIndicator: React.FC = () => {
                 style={{
                   padding: '24px 16px',
                   textAlign: 'center',
-                  color: '#64748b',
+                  color: '#94a3b8',
                   fontSize: '12.5px',
                 }}
               >
-                <AlertTriangle size={24} color="#ea580c" style={{ margin: '0 auto 8px auto' }} />
-                <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
+                <AlertTriangle size={24} color="#f59e0b" style={{ margin: '0 auto 8px auto' }} />
+                <div style={{ fontWeight: 600, color: '#ffffff', marginBottom: '4px' }}>
                   Status Unavailable
                 </div>
                 <div>Unable to connect to scan background coordinator. Check network status.</div>
@@ -437,12 +440,12 @@ export const BackgroundScanIndicator: React.FC = () => {
                 style={{
                   padding: '24px 16px',
                   textAlign: 'center',
-                  color: '#64748b',
+                  color: '#94a3b8',
                   fontSize: '12.5px',
                 }}
               >
-                <CheckCircle2 size={24} color="#059669" style={{ margin: '0 auto 8px auto' }} />
-                <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
+                <CheckCircle2 size={24} color="#10b981" style={{ margin: '0 auto 8px auto' }} />
+                <div style={{ fontWeight: 600, color: '#ffffff', marginBottom: '4px' }}>
                   No Active Scans
                 </div>
                 <div>All background audits are complete. New scans will appear here in real time.</div>
@@ -455,8 +458,8 @@ export const BackgroundScanIndicator: React.FC = () => {
                     style={{
                       padding: '10px 12px',
                       borderRadius: '8px',
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
+                      background: 'rgba(15, 23, 42, 0.85)',
+                      border: '1px solid rgba(56, 189, 248, 0.2)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '6px',
@@ -473,7 +476,7 @@ export const BackgroundScanIndicator: React.FC = () => {
                         style={{
                           fontSize: '12.5px',
                           fontWeight: 700,
-                          color: '#0f172a',
+                          color: '#ffffff',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -489,7 +492,7 @@ export const BackgroundScanIndicator: React.FC = () => {
                           alignItems: 'center',
                           gap: '4px',
                           fontSize: '11px',
-                          color: '#475569',
+                          color: '#94a3b8',
                           fontWeight: 600,
                         }}
                       >
@@ -508,9 +511,9 @@ export const BackgroundScanIndicator: React.FC = () => {
                     >
                       <span
                         style={{
-                          color: '#047857',
-                          background: '#ecfdf5',
-                          border: '1px solid #a7f3d0',
+                          color: '#34d399',
+                          background: 'rgba(16, 185, 129, 0.15)',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
                           padding: '1px 6px',
                           borderRadius: '4px',
                           fontWeight: 600,
@@ -528,9 +531,9 @@ export const BackgroundScanIndicator: React.FC = () => {
                           onClick={() => handleCancelSingle(scan.id)}
                           disabled={cancellingScanId === scan.id}
                           style={{
-                            background: '#fef2f2',
-                            border: '1px solid #fecaca',
-                            color: '#dc2626',
+                            background: 'rgba(244, 63, 94, 0.15)',
+                            border: '1px solid rgba(244, 63, 94, 0.35)',
+                            color: '#fb7185',
                             cursor: cancellingScanId === scan.id ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -544,9 +547,9 @@ export const BackgroundScanIndicator: React.FC = () => {
                           title="Cancel this ongoing scan"
                         >
                           {cancellingScanId === scan.id ? (
-                            <RefreshCw size={9} className="animate-spin text-red-600" />
+                            <RefreshCw size={9} className="animate-spin text-rose-400" />
                           ) : (
-                            <XCircle size={10} color="#dc2626" />
+                            <XCircle size={10} color="#fb7185" />
                           )}
                           <span>{cancellingScanId === scan.id ? '...' : 'Cancel'}</span>
                         </button>
@@ -563,7 +566,7 @@ export const BackgroundScanIndicator: React.FC = () => {
                           style={{
                             background: 'none',
                             border: 'none',
-                            color: '#2563eb',
+                            color: '#00f0ff',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -587,16 +590,16 @@ export const BackgroundScanIndicator: React.FC = () => {
           <div
             style={{
               padding: '10px 14px',
-              borderTop: '1px solid #f1f5f9',
-              background: '#f8fafc',
+              borderTop: '1px solid rgba(56, 189, 248, 0.18)',
+              background: 'rgba(15, 23, 42, 0.95)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               fontSize: '11.5px',
             }}
           >
-            <span style={{ color: '#64748b' }}>
-              Worker engine: <strong style={{ color: '#0f172a' }}>arq + Redis</strong>
+            <span style={{ color: '#94a3b8' }}>
+              Worker engine: <strong style={{ color: '#ffffff' }}>arq + Redis</strong>
             </span>
             <button
               onClick={() => {
@@ -606,7 +609,7 @@ export const BackgroundScanIndicator: React.FC = () => {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#2563eb',
+                color: '#00f0ff',
                 cursor: 'pointer',
                 fontWeight: 600,
                 display: 'inline-flex',
@@ -640,16 +643,18 @@ export const BackgroundScanIndicator: React.FC = () => {
             <div
               key={toast.id}
               style={{
-                background: '#ffffff',
+                background: 'rgba(10, 18, 32, 0.96)',
                 border:
                   toast.type === 'success'
-                    ? '1px solid #86efac'
+                    ? '1px solid rgba(16, 185, 129, 0.45)'
                     : toast.type === 'error'
-                    ? '1px solid #fca5a5'
-                    : '1px solid #cbd5e1',
+                    ? '1px solid rgba(244, 63, 94, 0.45)'
+                    : '1px solid rgba(56, 189, 248, 0.35)',
                 borderRadius: '10px',
                 padding: '12px 14px',
-                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+                boxShadow: '0 10px 25px -3px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 240, 255, 0.1)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '10px',
@@ -657,17 +662,17 @@ export const BackgroundScanIndicator: React.FC = () => {
               className="animate-in slide-in-from-bottom-2 fade-in duration-200"
             >
               {toast.type === 'success' ? (
-                <CheckCircle2 size={18} color="#059669" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <CheckCircle2 size={18} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
               ) : toast.type === 'error' ? (
-                <XCircle size={18} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <XCircle size={18} color="#f43f5e" style={{ flexShrink: 0, marginTop: '2px' }} />
               ) : (
-                <Shield size={18} color="#2563eb" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <Shield size={18} color="#00f0ff" style={{ flexShrink: 0, marginTop: '2px' }} />
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
                   {toast.title}
                 </div>
-                <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px', lineHeight: 1.4 }}>
+                <div style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '2px', lineHeight: 1.4 }}>
                   {toast.message}
                 </div>
                 <div style={{ marginTop: '6px' }}>
@@ -687,12 +692,13 @@ export const BackgroundScanIndicator: React.FC = () => {
                       gap: '4px',
                       fontSize: '11.5px',
                       fontWeight: 600,
-                      color: '#2563eb',
-                      background: '#eff6ff',
-                      border: '1px solid #bfdbfe',
+                      color: '#00f0ff',
+                      background: 'rgba(0, 240, 255, 0.12)',
+                      border: '1px solid rgba(0, 240, 255, 0.35)',
                       borderRadius: '5px',
                       padding: '3px 8px',
                       cursor: 'pointer',
+                      transition: 'all 0.15s ease',
                     }}
                   >
                     <span>View results</span>

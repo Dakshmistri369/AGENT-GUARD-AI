@@ -140,7 +140,7 @@ export const ScannerStatus: React.FC<ScannerStatusProps> = ({
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: '11px', color: '#cbd5e1', marginTop: '1px' }}>
+                <div style={{ fontSize: '11px', color: '#ffffff', opacity: 0.9, marginTop: '1px' }}>
                   {scanner.description}
                 </div>
               </div>

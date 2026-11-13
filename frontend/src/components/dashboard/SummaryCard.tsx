@@ -30,12 +30,12 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   const computedBg =
     bgColor && bgColor !== '#ffffff'
       ? bgColor
-      : 'rgba(10, 18, 32, 0.85)';
+      : 'rgba(10, 18, 32, 0.88)';
 
   const computedBorder =
     borderColor && borderColor !== '#e2e8f0'
       ? borderColor
-      : 'rgba(56, 189, 248, 0.18)';
+      : 'rgba(0, 240, 255, 0.25)';
 
   const activeBadgeColor = badgeColor || accentColor;
 
@@ -44,20 +44,20 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      whileHover={onClick ? { y: -2, borderColor: accentColor, boxShadow: `0 8px 24px -4px ${accentColor}25` } : undefined}
+      whileHover={onClick ? { y: -2, borderColor: accentColor, boxShadow: `0 8px 24px -4px ${accentColor}35, 0 0 16px ${accentColor}20` } : undefined}
       onClick={onClick}
       style={{
         background: computedBg,
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: `1px solid ${computedBorder}`,
-        borderRadius: '12px',
+        borderRadius: '10px',
         padding: '20px 22px',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         cursor: onClick ? 'pointer' : 'default',
-        boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(56, 189, 248, 0.08)',
+        boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.7), 0 0 14px rgba(0, 240, 255, 0.08)',
         position: 'relative',
         overflow: 'hidden',
         minHeight: '130px',
@@ -73,7 +73,21 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
           right: 0,
           height: '3px',
           background: accentColor,
-          boxShadow: `0 0 10px ${accentColor}`,
+          boxShadow: `0 0 12px ${accentColor}`,
+        }}
+      />
+
+      {/* Cyber HUD Corner Accent */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '4px',
+          right: '4px',
+          width: '6px',
+          height: '6px',
+          borderTop: `1px solid ${accentColor}`,
+          borderRight: `1px solid ${accentColor}`,
+          opacity: 0.6,
         }}
       />
 
@@ -95,11 +109,11 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
               fontSize: '11px',
               padding: '2px 8px',
               borderRadius: '9999px',
-              background: 'rgba(15, 23, 42, 0.85)',
+              background: 'rgba(15, 23, 42, 0.95)',
               color: activeBadgeColor,
               border: `1px solid ${activeBadgeColor}60`,
               fontWeight: 700,
-              boxShadow: `0 0 8px ${activeBadgeColor}20`,
+              boxShadow: `0 0 8px ${activeBadgeColor}25`,
             }}
           >
             {badge}
@@ -107,7 +121,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
         )}
       </div>
 
-      {/* Primary Value & Subtext in crisp Cyber font */}
+      {/* Primary Value & Subtext in crisp White fonts */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px', marginTop: 'auto' }}>
         <div
           style={{
@@ -126,7 +140,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
                 width: '42px',
                 height: '32px',
                 borderRadius: '6px',
-                background: 'rgba(56, 189, 248, 0.2)',
+                background: 'rgba(0, 240, 255, 0.2)',
                 margin: '2px 0',
               }}
             />
@@ -138,10 +152,11 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
         <div
           style={{
             fontSize: '12px',
-            color: '#cbd5e1',
+            color: '#ffffff',
             lineHeight: 1.5,
             maxWidth: '240px',
             flex: 1,
+            opacity: 0.95,
           }}
         >
           {subtext}

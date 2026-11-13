@@ -25,9 +25,9 @@ export interface LiveScanRadarModalProps {
 export const LiveScanRadarModal: React.FC<LiveScanRadarModalProps> = ({
   isOpen,
   onClose,
-  repoName = 'soham04010/CliniqueAI',
+  repoName = 'agentguard/core-scanner',
   branch = 'main',
-  commitSha = 'd8771f5',
+  commitSha = 'HEAD',
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);

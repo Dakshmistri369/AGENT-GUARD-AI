@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  FolderOpen,
 } from 'lucide-react';
 import { AnimatedBrandLogo, type LogoScanState } from '../brand/AnimatedBrandLogo';
 import { API_BASE_URL } from '../../lib/api';
@@ -41,6 +42,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'WORKSPACE',
     items: [
       { label: 'Overview', path: '/', icon: LayoutDashboard },
+      { label: 'Projects', path: '/projects', icon: FolderOpen },
       { label: 'Repositories', path: '/repositories', icon: GitBranch },
       { label: 'Findings', path: '/repositories?tab=findings', icon: AlertTriangle },
       { label: 'Scans', path: '/repositories?tab=history', icon: History },

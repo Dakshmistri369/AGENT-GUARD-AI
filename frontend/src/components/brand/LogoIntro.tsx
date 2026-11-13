@@ -31,120 +31,120 @@ interface SecurityKeywordBadge {
 const SECURITY_KEYWORD_BADGES: SecurityKeywordBadge[] = [
   {
     id: 'sast',
-    icon: <Zap size={14} color="#2563eb" />,
+    icon: <Zap size={14} color="#00f0ff" />,
     label: 'STATIC CODE ANALYSIS (SAST)',
     sublabel: 'Deterministic Pattern Auditing',
     x: '18%',
     y: '22%',
-    textColor: '#1d4ed8',
-    borderColor: '#bfdbfe',
-    bgColor: '#eff6ff',
-    glowColor: 'rgba(37, 99, 235, 0.15)',
+    textColor: '#00f0ff',
+    borderColor: 'rgba(0, 240, 255, 0.35)',
+    bgColor: 'rgba(10, 18, 32, 0.92)',
+    glowColor: 'rgba(0, 240, 255, 0.25)',
     delayOffset: 0.05,
     driftRangeY: -8,
     driftDuration: 3.6,
   },
   {
     id: 'scanners',
-    icon: <Shield size={14} color="#059669" />,
+    icon: <Shield size={14} color="#10b981" />,
     label: 'SEMGREP & BANDIT ENGINES',
     sublabel: 'Multi-Scanner AST Detection',
     x: '82%',
     y: '22%',
-    textColor: '#15803d',
-    borderColor: '#bbf7d0',
-    bgColor: '#f0fdf4',
-    glowColor: 'rgba(5, 150, 105, 0.15)',
+    textColor: '#34d399',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    bgColor: 'rgba(10, 18, 32, 0.92)',
+    glowColor: 'rgba(16, 185, 129, 0.25)',
     delayOffset: 0.15,
     driftRangeY: 8,
     driftDuration: 4.0,
   },
   {
     id: 'nemotron',
-    icon: <Cpu size={14} color="#7c3aed" />,
+    icon: <Cpu size={14} color="#a855f7" />,
     label: 'NVIDIA NEMOTRON 70B',
     sublabel: 'Deep Cybersecurity Reasoning',
     x: '14%',
     y: '45%',
-    textColor: '#6d28d9',
-    borderColor: '#e9d5ff',
-    bgColor: '#faf5ff',
-    glowColor: 'rgba(124, 58, 237, 0.18)',
+    textColor: '#c084fc',
+    borderColor: 'rgba(168, 85, 247, 0.35)',
+    bgColor: 'rgba(10, 18, 32, 0.92)',
+    glowColor: 'rgba(168, 85, 247, 0.25)',
     delayOffset: 0.25,
     driftRangeY: -6,
     driftDuration: 3.4,
   },
   {
     id: 'langgraph',
-    icon: <Sparkles size={14} color="#4338ca" />,
+    icon: <Sparkles size={14} color="#38bdf8" />,
     label: 'LANGGRAPH 4-AGENT PIPELINE',
     sublabel: 'Threat • Test • Evidence • Verify',
     x: '86%',
     y: '45%',
-    textColor: '#3730a3',
-    borderColor: '#c7d2fe',
-    bgColor: '#eef2ff',
-    glowColor: 'rgba(67, 56, 202, 0.18)',
+    textColor: '#7dd3fc',
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+    bgColor: 'rgba(10, 18, 32, 0.92)',
+    glowColor: 'rgba(56, 189, 248, 0.25)',
     delayOffset: 0.35,
     driftRangeY: 7,
     driftDuration: 3.8,
   },
   {
     id: 'secrets',
-    icon: <Lock size={14} color="#e11d48" />,
+    icon: <Lock size={14} color="#f43f5e" />,
     label: 'SECRET LEAK DETECTION',
     sublabel: 'High-Entropy Token Defense',
     x: '19%',
     y: '68%',
-    textColor: '#be123c',
-    borderColor: '#fecaca',
-    bgColor: '#fef2f2',
-    glowColor: 'rgba(225, 29, 72, 0.15)',
+    textColor: '#fb7185',
+    borderColor: 'rgba(244, 63, 94, 0.35)',
+    bgColor: 'rgba(10, 18, 32, 0.92)',
+    glowColor: 'rgba(244, 63, 94, 0.25)',
     delayOffset: 0.45,
     driftRangeY: -7,
     driftDuration: 3.5,
   },
   {
     id: 'remediation',
-    icon: <Terminal size={14} color="#0d9488" />,
+    icon: <Terminal size={14} color="#00f0ff" />,
     label: 'AUTOMATED CODE REMEDIATION',
     sublabel: 'Validated Unified Diff Patches',
     x: '81%',
     y: '68%',
-    textColor: '#0f766e',
-    borderColor: '#99f6e4',
-    bgColor: '#f0fdfa',
-    glowColor: 'rgba(13, 148, 136, 0.15)',
+    textColor: '#38bdf8',
+    borderColor: 'rgba(0, 240, 255, 0.35)',
+    bgColor: 'rgba(10, 18, 32, 0.92)',
+    glowColor: 'rgba(0, 240, 255, 0.25)',
     delayOffset: 0.55,
     driftRangeY: 8,
     driftDuration: 3.9,
   },
   {
     id: 'cve-osv',
-    icon: <Shield size={14} color="#0284c7" />,
+    icon: <Shield size={14} color="#f59e0b" />,
     label: 'CVE & OSV VULNERABILITY AUDITING',
     sublabel: 'Supply Chain Dependency Integrity',
     x: '50%',
     y: '12%',
-    textColor: '#0369a1',
-    borderColor: '#bae6fd',
-    bgColor: '#f0f9ff',
-    glowColor: 'rgba(2, 132, 199, 0.14)',
+    textColor: '#fcd34d',
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    bgColor: 'rgba(10, 18, 32, 0.92)',
+    glowColor: 'rgba(245, 158, 11, 0.25)',
     delayOffset: 0.2,
     driftRangeY: -5,
     driftDuration: 4.2,
   },
   {
     id: 'verification',
-    icon: <CheckCircle2 size={14} color="#15803d" />,
+    icon: <CheckCircle2 size={14} color="#10b981" />,
     label: 'ZERO-DAY DEFENSE & CI VERIFICATION',
     sublabel: 'Evidence-Backed Quality Gate',
     x: '50%',
     y: '88%',
-    textColor: '#166534',
-    borderColor: '#bbf7d0',
-    bgColor: '#f0fdf4',
-    glowColor: 'rgba(22, 163, 74, 0.15)',
+    textColor: '#34d399',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    bgColor: 'rgba(10, 18, 32, 0.92)',
+    glowColor: 'rgba(16, 185, 129, 0.25)',
     delayOffset: 0.4,
     driftRangeY: 6,
     driftDuration: 3.7,
@@ -170,8 +170,8 @@ const BACKGROUND_WATERMARKS: BackgroundWatermark[] = [
     x: '50%',
     y: '28%',
     fontSize: 'clamp(40px, 8vw, 92px)',
-    color: '#0f172a',
-    opacity: 0.045,
+    color: '#38bdf8',
+    opacity: 0.05,
     tracking: '0.28em',
   },
   {
@@ -180,8 +180,8 @@ const BACKGROUND_WATERMARKS: BackgroundWatermark[] = [
     x: '50%',
     y: '74%',
     fontSize: 'clamp(22px, 4.5vw, 48px)',
-    color: '#2563eb',
-    opacity: 0.055,
+    color: '#818cf8',
+    opacity: 0.07,
     tracking: '0.22em',
   },
 ];
@@ -273,7 +273,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
             position: 'fixed',
             inset: 0,
             zIndex: 99999,
-            background: '#ffffff',
+            background: '#060b13',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -289,8 +289,8 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
               position: 'absolute',
               inset: 0,
               backgroundImage: `
-                linear-gradient(to right, rgba(226, 232, 240, 0.45) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(226, 232, 240, 0.45) 1px, transparent 1px)
+                linear-gradient(to right, rgba(56, 189, 248, 0.12) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(56, 189, 248, 0.12) 1px, transparent 1px)
               `,
               backgroundSize: '48px 48px',
               maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 80%)',
@@ -313,7 +313,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
               width: '750px',
               height: '750px',
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, rgba(6, 182, 212, 0.04) 40%, rgba(255, 255, 255, 0) 70%)',
+              background: 'radial-gradient(circle, rgba(0, 240, 255, 0.18) 0%, rgba(99, 102, 241, 0.12) 40%, rgba(6, 11, 19, 0) 70%)',
               pointerEvents: 'none',
               transform: 'translate(-50%, -50%)',
               left: '50%',
@@ -339,20 +339,20 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
               gap: '6px',
               padding: '6px 14px',
               borderRadius: '999px',
-              background: 'rgba(255, 255, 255, 0.9)',
-              border: '1px solid #cbd5e1',
-              color: '#334155',
+              background: 'rgba(10, 18, 32, 0.85)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              color: '#e2e8f0',
               fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
               backdropFilter: 'blur(8px)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
             }}
             title="Skip introduction (Esc)"
             aria-label="Skip introduction"
           >
             <span>Skip</span>
-            <span style={{ fontSize: '10px', color: '#64748b', background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', border: '1px solid #cbd5e1' }}>Esc</span>
+            <span style={{ fontSize: '10px', color: '#94a3b8', background: 'rgba(15, 23, 42, 0.8)', padding: '1px 5px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>Esc</span>
             <X size={13} style={{ marginLeft: '2px' }} />
           </motion.button>
 
@@ -485,11 +485,12 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                       width: '28px',
                       height: '28px',
                       borderRadius: '6px',
-                      background: '#ffffff',
+                      background: 'rgba(15, 23, 42, 0.9)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                      border: '1px solid rgba(56, 189, 248, 0.2)',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                       flexShrink: 0,
                     }}
                   >
@@ -511,7 +512,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                     <span
                       style={{
                         fontSize: '9.5px',
-                        color: '#64748b',
+                        color: '#94a3b8',
                         fontWeight: 500,
                         fontFamily: 'Inter, system-ui, sans-serif',
                       }}
@@ -580,7 +581,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 88 8 L 14 29 L 14 116 C 14 158, 48 188, 88 206"
                   fill="none"
-                  stroke="#0f172a"
+                  stroke="#ffffff"
                   strokeWidth="9.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -597,7 +598,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 88 8 L 132 21 M 145 25 L 164 30 L 164 68"
                   fill="none"
-                  stroke="#0f172a"
+                  stroke="#ffffff"
                   strokeWidth="9.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -614,7 +615,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 164 104 C 164 135, 148 168, 88 206"
                   fill="none"
-                  stroke="#0f172a"
+                  stroke="#ffffff"
                   strokeWidth="9.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -631,7 +632,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 88 38 L 142 142"
                   fill="none"
-                  stroke="#0f172a"
+                  stroke="#ffffff"
                   strokeWidth="13"
                   strokeLinecap="round"
                   initial={{ y: -75, x: 25, scaleY: 0.25, opacity: 0 }}
@@ -647,7 +648,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 88 38 L 65 78"
                   fill="none"
-                  stroke="#0f172a"
+                  stroke="#ffffff"
                   strokeWidth="12"
                   strokeLinecap="round"
                   initial={{ x: -45, y: -35, opacity: 0 }}
@@ -663,7 +664,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 54 98 L 34 140"
                   fill="none"
-                  stroke="#0f172a"
+                  stroke="#ffffff"
                   strokeWidth="8"
                   strokeLinecap="round"
                   initial={{ x: -55, opacity: 0 }}
@@ -677,7 +678,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 68 98 L 48 140"
                   fill="none"
-                  stroke="#0f172a"
+                  stroke="#ffffff"
                   strokeWidth="6"
                   strokeLinecap="round"
                   initial={{ x: -55, opacity: 0 }}
@@ -694,7 +695,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 96 44 L 110 44 L 118 34 L 136 30 L 142 15"
                   fill="none"
-                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#0f172a'}
+                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#00f0ff'}
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -707,7 +708,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 134 94 L 155 88 L 172 80 L 186 62"
                   fill="none"
-                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#0f172a'}
+                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#00f0ff'}
                   strokeWidth="5.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -720,7 +721,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 44 126 L 30 133 L 20 133 L 12 133"
                   fill="none"
-                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#0f172a'}
+                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#00f0ff'}
                   strokeWidth="5.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -733,7 +734,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                 <motion.path
                   d="M 85 185 L 85 160 L 87 128 L 108 112"
                   fill="none"
-                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#0f172a'}
+                  stroke={phase === 2 ? 'url(#circuit-flow-gradient)' : '#00f0ff'}
                   strokeWidth="5.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -749,7 +750,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   cy="62"
                   r="7"
                   fill="#ffffff"
-                  stroke={phase === 2 ? '#06b6d4' : phase >= 3 ? '#0f172a' : '#0f172a'}
+                  stroke={phase === 2 ? '#06b6d4' : '#00f0ff'}
                   strokeWidth="4.5"
                   filter={phase === 2 ? 'url(#node-glow)' : 'none'}
                   initial={{ scale: 0, opacity: 0 }}
@@ -767,7 +768,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   cx="186"
                   cy="62"
                   r="2.5"
-                  fill={phase === 2 ? '#06b6d4' : '#0f172a'}
+                  fill={phase === 2 ? '#06b6d4' : '#00f0ff'}
                   initial={{ scale: 0 }}
                   animate={phase >= 2 ? { scale: 1 } : { scale: 0 }}
                 />
@@ -778,7 +779,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   cy="94"
                   r="5.5"
                   fill="#ffffff"
-                  stroke={phase === 2 ? '#3b82f6' : '#0f172a'}
+                  stroke={phase === 2 ? '#3b82f6' : '#38bdf8'}
                   strokeWidth="3.5"
                   initial={{ scale: 0, opacity: 0 }}
                   animate={
@@ -798,7 +799,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   cy="128"
                   r="5.5"
                   fill="#ffffff"
-                  stroke={phase === 2 ? '#7c3aed' : '#0f172a'}
+                  stroke={phase === 2 ? '#7c3aed' : '#a855f7'}
                   strokeWidth="3.5"
                   initial={{ scale: 0, opacity: 0 }}
                   animate={
@@ -818,7 +819,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   cy="133"
                   r="7"
                   fill="#ffffff"
-                  stroke={phase === 2 ? '#06b6d4' : '#0f172a'}
+                  stroke={phase === 2 ? '#06b6d4' : '#00f0ff'}
                   strokeWidth="4.5"
                   filter={phase === 2 ? 'url(#node-glow)' : 'none'}
                   initial={{ scale: 0, opacity: 0 }}
@@ -836,7 +837,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   cx="12"
                   cy="133"
                   r="2.5"
-                  fill={phase === 2 ? '#06b6d4' : '#0f172a'}
+                  fill={phase === 2 ? '#06b6d4' : '#00f0ff'}
                   initial={{ scale: 0 }}
                   animate={phase >= 2 ? { scale: 1 } : { scale: 0 }}
                 />
@@ -847,7 +848,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   cy="160"
                   r="5.5"
                   fill="#ffffff"
-                  stroke={phase === 2 ? '#7c3aed' : '#0f172a'}
+                  stroke={phase === 2 ? '#7c3aed' : '#a855f7'}
                   strokeWidth="3.5"
                   initial={{ scale: 0, opacity: 0 }}
                   animate={
@@ -907,7 +908,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   lineHeight: 1.1,
                 }}
               >
-                {/* "AgentGuard" — Black Bold Modern Wordmark */}
+                {/* "AgentGuard" — Crisp White Cyber Wordmark */}
                 <motion.span
                   initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
                   animate={
@@ -919,7 +920,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   style={{
                     fontSize: 'clamp(30px, 4.6vw, 48px)',
                     fontWeight: 800,
-                    color: '#0f172a',
+                    color: '#ffffff',
                     letterSpacing: '-0.035em',
                     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
                   }}
@@ -940,7 +941,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                     fontSize: 'clamp(30px, 4.6vw, 48px)',
                     fontWeight: 800,
                     letterSpacing: '-0.02em',
-                    background: 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
+                    background: 'linear-gradient(135deg, #00f0ff 0%, #a855f7 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     display: 'inline-block',
@@ -971,7 +972,7 @@ export const LogoIntro: React.FC<LogoIntroProps> = ({
                   style={{
                     fontSize: 'clamp(11px, 1.4vw, 13.5px)',
                     fontWeight: 700,
-                    color: '#475569',
+                    color: '#94a3b8',
                     letterSpacing: '0.2em',
                     textTransform: 'uppercase',
                     fontFamily: 'JetBrains Mono, monospace',
