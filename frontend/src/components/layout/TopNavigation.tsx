@@ -6,19 +6,14 @@ import {
   GitBranch,
   RefreshCw,
   ExternalLink,
-  Play,
   LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
-  Radio,
-  Volume2,
-  VolumeX,
 } from 'lucide-react';
 import type { Repository } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { SHOW_SIGN_IN_BUTTON } from '../../config/authFeatures';
-import { BackgroundScanIndicator } from '../scans/BackgroundScanIndicator';
 import { API_BASE_URL } from '../../lib/api';
 
 export interface TopNavigationProps {
@@ -46,14 +41,6 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 }) => {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const [isCyberSoundActive, setIsCyberSoundActive] = React.useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    try {
-      return localStorage.getItem('agentguard_cyber_sound') === 'true';
-    } catch {
-      return false;
-    }
-  });
 
   // Determine page title for breadcrumb
   const getPageTitle = () => {
@@ -237,141 +224,6 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
 
       {/* Right: Quick actions, AI assistant, user pill */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-        {/* Background Scan Activity Indicator (always visible across all pages) */}
-        <BackgroundScanIndicator />
-
-        {/* Cinematic Animated Logo Intro Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            if (typeof window !== 'undefined') {
-              sessionStorage.removeItem('agentguard_intro_completed');
-              localStorage.removeItem('agentguard_intro_seen');
-              window.dispatchEvent(new CustomEvent('agentguard:replay-intro'));
-            }
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '11.5px',
-            fontWeight: 600,
-            color: '#e3e2e6',
-            background: '#1b1b1f',
-            border: '1px solid rgba(62, 73, 72, 0.45)',
-            borderRadius: '4px',
-            padding: '5px 10px',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            fontFamily: "'JetBrains Mono', monospace",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#292a2d';
-            e.currentTarget.style.borderColor = 'rgba(255, 180, 166, 0.5)';
-            e.currentTarget.style.color = '#ffb4a6';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#1b1b1f';
-            e.currentTarget.style.borderColor = 'rgba(62, 73, 72, 0.45)';
-            e.currentTarget.style.color = '#e3e2e6';
-          }}
-          title="Play Cinematic Logo & Cybersecurity Animation"
-          aria-label="Play Cinematic Logo & Cybersecurity Animation"
-        >
-          <Play size={12} color="#ffb4a6" fill="#ffb4a6" />
-          <span className="hidden sm:inline">Intro</span>
-        </button>
-
-        {/* Cyber Radar Visualizer Button */}
-        <button
-          onClick={() => {
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(
-                new CustomEvent('agentguard:open-cyber-radar', {
-                  detail: {
-                    repoName: repositories.find((r) => r.id === selectedRepoId)?.full_name || activeScanRepoName || 'Target Repository',
-                  },
-                })
-              );
-            }
-          }}
-          className="pulse-glow-cyan"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '11.5px',
-            fontWeight: 600,
-            color: '#a7fcfa',
-            background: 'rgba(139, 223, 221, 0.1)',
-            border: '1px solid rgba(139, 223, 221, 0.35)',
-            borderRadius: '4px',
-            padding: '5px 10px',
-            cursor: 'pointer',
-            minHeight: '34px',
-            boxShadow: '0 0 12px rgba(139, 223, 221, 0.15)',
-            transition: 'all 0.15s ease',
-            fontFamily: "'JetBrains Mono', monospace",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(139, 223, 221, 0.2)';
-            e.currentTarget.style.borderColor = '#8bdfdd';
-            e.currentTarget.style.boxShadow = '0 0 16px rgba(139, 223, 221, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(139, 223, 221, 0.1)';
-            e.currentTarget.style.borderColor = 'rgba(139, 223, 221, 0.35)';
-            e.currentTarget.style.boxShadow = '0 0 12px rgba(139, 223, 221, 0.15)';
-          }}
-          title="Open Live Cyber Scan Radar Visualizer with Sound Effects"
-          aria-label="Open Live Cyber Scan Radar"
-        >
-          <span
-            style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: '#8bdfdd',
-              boxShadow: '0 0 6px rgba(139, 223, 221, 0.8)',
-            }}
-          />
-          <Radio size={13} color="#a7fcfa" />
-          <span className="hidden sm:inline">Cyber Radar</span>
-        </button>
-
-        {/* Audio Sound FX Toggle */}
-        <button
-          onClick={() => {
-            const nextSound = !isCyberSoundActive;
-            setIsCyberSoundActive(nextSound);
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(
-                new CustomEvent('agentguard:toggle-cyber-sound', {
-                  detail: { muted: !nextSound },
-                })
-              );
-            }
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '34px',
-            height: '34px',
-            borderRadius: '4px',
-            border: isCyberSoundActive ? '1px solid rgba(139, 223, 221, 0.45)' : '1px solid rgba(62, 73, 72, 0.45)',
-            background: isCyberSoundActive ? 'rgba(139, 223, 221, 0.14)' : '#1b1b1f',
-            color: isCyberSoundActive ? '#a7fcfa' : '#889392',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          title={isCyberSoundActive ? 'Mute Cyber Audio Effects' : 'Enable Cyber Audio Effects'}
-          aria-label="Toggle Cyber Sound"
-        >
-          {isCyberSoundActive ? <Volume2 size={16} /> : <VolumeX size={16} />}
-        </button>
-
         {/* AI Assistant shortcut */}
         <button
           type="button"
