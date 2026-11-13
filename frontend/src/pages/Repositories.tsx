@@ -33,7 +33,6 @@ import {
   FileText,
   Layers,
   Info,
-  Radio,
   Activity,
 } from 'lucide-react';
 import { api, API_BASE_URL } from '../lib/api';
@@ -46,7 +45,6 @@ import type {
   RepositorySolutionPlan,
   AstTaintFlowWidgetData,
 } from '../types';
-import { EmbeddedCyberRadar } from '../components/scans/EmbeddedCyberRadar';
 import { InteractivePatchDiffViewer } from '../components/ai/InteractivePatchDiffViewer';
 import { AstTaintFlowVisualizer } from '../components/ai/AstTaintFlowVisualizer';
 import { LiveScanTelemetryVisualizer } from '../components/scans/LiveScanTelemetryVisualizer';
@@ -587,17 +585,6 @@ export const RepositoriesPage: React.FC = () => {
     const repoId = activeRepo.id;
 
     try {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(
-          new CustomEvent('agentguard:open-cyber-radar', {
-            detail: {
-              repoName: activeRepo.full_name,
-              branch: targetBranch.trim() || activeRepo.default_branch,
-              commitSha: activeRepo.pinned_sha,
-            },
-          })
-        );
-      }
       const scan = await api.scans.analyze(activeRepo.id, {
         metadata_only: metadataOnly,
         branch: targetBranch.trim() || activeRepo.default_branch,
@@ -1542,33 +1529,6 @@ export const RepositoriesPage: React.FC = () => {
 
                 {isScanning ? (
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => {
-                        window.dispatchEvent(
-                          new CustomEvent('agentguard:open-cyber-radar', {
-                            detail: {
-                              repoName: activeRepo.full_name,
-                              branch: targetBranch.trim() || activeRepo.default_branch,
-                              commitSha: activeRepo.pinned_sha,
-                            },
-                          })
-                        );
-                      }}
-                      className="btn"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: 'linear-gradient(135deg, #0284c7 0%, #10b981 100%)',
-                        color: '#ffffff',
-                        fontWeight: 600,
-                        boxShadow: '0 0 12px rgba(14, 165, 233, 0.4)',
-                      }}
-                      title="Watch live cyber scan HUD"
-                    >
-                      <Radio size={14} className="animate-pulse" />
-                      Live Radar
-                    </button>
                     <button onClick={handleCancelScan} disabled={isCancelling} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <XCircle size={14} color="var(--accent-rose)" />
                       {isCancelling ? 'Cancelling...' : 'Cancel Scan'}
@@ -1584,36 +1544,6 @@ export const RepositoriesPage: React.FC = () => {
                     >
                       <Shield size={14} />
                       Analyze Repository
-                    </button>
-                    <button
-                      onClick={() => {
-                        window.dispatchEvent(
-                          new CustomEvent('agentguard:open-cyber-radar', {
-                            detail: {
-                              repoName: activeRepo.full_name,
-                              branch: targetBranch.trim() || activeRepo.default_branch,
-                              commitSha: activeRepo.pinned_sha,
-                            },
-                          })
-                        );
-                      }}
-                      title="Open Live Cyber Scan Radar Visualizer with Sound Effects"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        background: 'rgba(2, 132, 199, 0.08)',
-                        border: '1px solid rgba(2, 132, 199, 0.3)',
-                        color: '#0284c7',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      <Radio size={14} color="#0284c7" />
-                      <span className="hidden sm:inline">Cyber Radar</span>
                     </button>
                   </div>
                 )}
@@ -1737,18 +1667,9 @@ export const RepositoriesPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 6-Stage Security Verification Stepper & Embedded Cyber Radar Console */}
+          {/* 6-Stage Security Verification Stepper HUD */}
           {(isScanning || currentScan) && (
             <div className="glass-card p-3.5 sm:p-5" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Native In-Page Cyber Radar Console */}
-              <EmbeddedCyberRadar
-                scan={currentScan}
-                isScanning={isScanning}
-                repoName={activeRepo.full_name}
-                branch={targetBranch.trim() || activeRepo.default_branch}
-                commitSha={activeRepo.pinned_sha || currentScan?.commit_sha}
-              />
-
               {/* Real-Time Scan Telemetry Visualizer & 6-Stage Stepper HUD */}
               <LiveScanTelemetryVisualizer
                 scan={currentScan}
